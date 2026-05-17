@@ -1,0 +1,30 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "BlueprintNodeGraph",
+	"Description": "UE5 Lightweight Parallel Flow Orchestration Framework (Blueprint Native)",
+	"Category": "Blueprint",
+	"CreatedBy": "BlueprintNodeGraph Team",
+	"CreatedByURL": "",
+	"DocsURL": "https://github.com/wiills/BlueprintNodeGraph/Docs",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"EngineVersion": "5.7.0",
+	"Modules": [
+		{
+			"Name": "BlueprintNodeGraph",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "BlueprintNodeGraphEditor",
+			"Type": "DeveloperTool",
+			"LoadingPhase": "PostEngineInit"
+		}
+	]
+}
