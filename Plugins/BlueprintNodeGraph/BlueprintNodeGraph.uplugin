@@ -23,7 +23,7 @@
 		},
 		{
 			"Name": "BlueprintNodeGraphEditor",
-			"Type": "Editor",
+			"Type": "UncookedOnly",
 			"LoadingPhase": "Default"
 		}
 	]

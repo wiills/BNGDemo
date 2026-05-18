@@ -6,7 +6,7 @@ public class BlueprintNodeGraphEditor : ModuleRules
 {
 	public BlueprintNodeGraphEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
-		// 须与 .uplugin 中本模块 Type = Editor 一致；DeveloperTool 在部分目标上不按编辑器程序链接编辑器模块。
+		// 须与 .uplugin 中本模块 Type 一致：UncookedOnly，便于运行时蓝图引用 K2 节点且不将该模块打进打包运行时。
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		CppStandard = CppStandardVersion.Cpp20;
 		

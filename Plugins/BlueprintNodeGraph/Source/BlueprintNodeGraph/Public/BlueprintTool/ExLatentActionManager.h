@@ -159,7 +159,7 @@ public:
 	void ReportBranchFailed();
 
 protected:
-	/** 多输入分支中的单次报告：默认实现等价于旧版递减 InputCount；WaitBranches 等子类可覆盖以实现 All/Any/Count */
+	/** 多输入分支中的单次报告：默认实现等价于旧版递减 InputCount；UExWaitBranchProxy 等子类可覆盖以实现 All/Any/Count */
 	virtual void HandleBranchReported(bool bSuccess);
 
 	virtual void OnBranchesFinished() {}
