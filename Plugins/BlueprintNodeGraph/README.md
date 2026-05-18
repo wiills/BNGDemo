@@ -1,185 +1,195 @@
+<div align="center">
+
+[English](./README.md) | [中文](./README_CN.md)
+
+---
+
+</div>
+
 # BlueprintNodeGraph
-## UE5 轻量级并行流程编排框架（蓝图原生）
+## UE5 Lightweight Parallel Flow Orchestration Framework (Pure Blueprint)
 ### Production-Ready · Battle-tested in Shipped Games
 
-BlueprintNodeGraph 是专为UE5设计的**蓝图原生异步流程框架**，替代零散延迟/等待节点、简化任务/剧情/关卡逻辑开发，**支撑上线项目全关卡逻辑验证**。
+<img width="1378" height="750" alt="Image" src="https://github.com/user-attachments/assets/c583910a-0759-49f1-b9b1-b1df0bd5e71c" />
 
-核心优势：**标准蓝图内直接使用、原生并行异步、GC安全、网络同步、低开销易扩展**。
+BlueprintNodeGraph is a **Blueprint-native async flow framework** designed specifically for UE5. It replaces scattered Delay/Wait nodes and simplifies task/story/level logic development, **supporting full-level logic validation in shipped projects**.
+
+Core advantages: **Direct use in standard Blueprints, native parallel async, GC-safe, network replication, low overhead and easy extensibility**.
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Unreal Engine](https://img.shields.io/badge/unreal--engine-5.7+-green.svg)](https://www.unrealengine.com/)
 [![Version](https://img.shields.io/badge/version-1.1-orange.svg)](https://github.com/your-repo)
 
-## 目录
+## Table of Contents
 
-- [项目简介](#项目简介)
-- [为什么选择 BlueprintNodeGraph？](#为什么选择-blueprintnodegraph)
-- [功能特性](#功能特性)
-- [快速开始](#快速开始)
-- [文档](#文档)
-- [示例](#示例)
-- [技术支持](#技术支持)
-- [贡献指南](#贡献指南)
-- [许可证](#许可证)
+- [Introduction](#introduction)
+- [Why Choose BlueprintNodeGraph?](#why-choose-blueprintnodegraph)
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Documentation](#documentation)
+- [Examples](#examples)
+- [Support](#support)
+- [Contributing](#contributing)
+- [License](#license)
 
-## 项目简介
+## Introduction
 
-BlueprintNodeGraph 是一个强大的 Unreal Engine 插件，提供了丰富的异步蓝图节点和延迟任务执行系统。该插件让开发者能够在蓝图中轻松实现复杂的异步逻辑，无需编写大量 C++ 代码。
+BlueprintNodeGraph is a powerful Unreal Engine plugin that provides a rich set of async Blueprint nodes and delayed task execution system. This plugin enables developers to easily implement complex async logic in Blueprints without writing a lot of C++ code.
 
-**主要设计目标：**
-- 提供直观、易用的异步节点
-- 完整的任务生命周期管理
-- GC 安全的对象管理
-- 网络复制支持
-- 高性能、低开销
+**Main Design Goals:**
+- Intuitive and easy-to-use async nodes
+- Complete task lifecycle management
+- GC-safe object management
+- Network replication support
+- High performance, low overhead
 
-**核心文件：**
-- [ExLatentTaskBase.h](Source/BlueprintNodeGraph/Public/BlueprintTool/ExLatentTaskBase.h) - 延迟任务基类
-- [ExLatentActionManager.h](Source/BlueprintNodeGraph/Public/BlueprintTool/ExLatentActionManager.h) - 代理管理器
-- [ExK2Node_LatentTaskCall.h](Source/BlueprintNodeGraphEditor/Public/BlueprintTool/ExK2Node_LatentTaskCall.h) - K2节点扩展
+**Core Files:**
+- [ExLatentTaskBase.h](Source/BlueprintNodeGraph/Public/BlueprintTool/ExLatentTaskBase.h) - Latent task base class
+- [ExLatentActionManager.h](Source/BlueprintNodeGraph/Public/BlueprintTool/ExLatentActionManager.h) - Delegate manager
+- [ExK2Node_LatentTaskCall.h](Source/BlueprintNodeGraphEditor/Public/BlueprintTool/ExK2Node_LatentTaskCall.h) - K2 node extension
 
-## 为什么选择 BlueprintNodeGraph？
+## Why Choose BlueprintNodeGraph?
 
-### 🆚 与其他方案对比
+### 🆚 Comparison with Other Solutions
 
-| 功能 | **BlueprintNodeGraph** | FlowGraph | StateTree |
-|------|---------------------|-----------|-----------|
-| **核心定位** | 纯蓝图异步节点系统 | 可视化节点编程 | 状态机系统 |
-| **学习曲线** | ✅ **极低**（像用现成节点一样**） | 高（需学习特定概念） | 高（需学习状态机概念） |
-| **使用方式** | ✅ **直接在标准蓝图编辑器中拖节点** | 需要打开单独的 FlowGraph 编辑器 | 需要打开专门的编辑器 |
-| **异步执行** | ✅ **原生异步支持** | 需要额外实现 | 主要同步 |
-| **超时机制** | ✅ **内置超时保护** | 需要自行实现 | 需要自行实现 |
-| **GC 防护** | ✅ **自动GC安全** | 需要手动管理 | 需要手动管理 |
-| **网络复制** | ✅ **直接支持** | 需要自行实现 | 需要自行实现 |
-| **延迟循环** | ✅ **Loop Delay 等现成节点** | 需要组合节点实现 | 不适用 |
-| **多分支同步** | ✅ **Wait Branches 等现成节点** | 需要手动搭建 | 需要组合状态切换 |
+| Feature | **BlueprintNodeGraph** | FlowGraph | StateTree |
+|---------|----------------------|-----------|-----------|
+| **Core Purpose** | Pure Blueprint async node system | Visual node programming | State machine system |
+| **Learning Curve** | ✅ **Extremely Low** (like using existing nodes) | High (need to learn specific concepts) | High (need to learn state machine concepts) |
+| **Usage Method** | ✅ **Drag nodes directly in standard Blueprint Editor** | Need to open separate FlowGraph Editor | Need to open specialized Editor |
+| **Async Execution** | ✅ **Native async support** | Need additional implementation | Mainly synchronous |
+| **Timeout Mechanism** | ✅ **Built-in timeout protection** | Need to implement manually | Need to implement manually |
+| **GC Protection** | ✅ **Automatic GC-safe** | Need manual management | Need manual management |
+| **Network Replication** | ✅ **Direct support** | Need to implement manually | Need to implement manually |
+| **Latent Loop** | ✅ **Loop Delay and other ready-to-use nodes** | Need to combine nodes | Not applicable |
+| **Multi-branch Sync** | ✅ **Wait Branches and other ready-to-use nodes** | Need to build manually | Need to combine state transitions |
 
-### 💡 我们的核心优势
+### 💡 Our Core Advantages
 
-#### 1. 直接在标准蓝图编辑器中工作
+#### 1. Works Directly in Standard Blueprint Editor
 
-**其他方案：**
-- FlowGraph 需要使用单独的编辑器
-- StateTree 需要专门的编辑器
+**Other Solutions:**
+- FlowGraph requires a separate editor
+- StateTree requires a specialized editor
 
-**我们的方案：**
-- ✅ 直接在标准蓝图编辑器中拖入节点
-- ✅ 无需学习新的编辑器
-- ✅ 与你的现有工作流完全兼容
-- ✅ 学习成本几乎为零
+**Our Solution:**
+- ✅ Drag nodes directly in standard Blueprint Editor
+- ✅ No need to learn a new editor
+- ✅ Fully compatible with your existing workflow
+- ✅ Learning cost is virtually zero
 
-#### 2. 开箱即用的异步执行
+#### 2. Out-of-the-box Async Execution
 
-**文件位置：** [ExLatentProxyDefine.h](Source/BlueprintNodeGraph/Public/BlueprintTool/ExLatentProxyDefine.h)
+**File Location:** [ExLatentProxyDefine.h](Source/BlueprintNodeGraph/Public/BlueprintTool/ExLatentProxyDefine.h)
 
 ```cpp
-// 直接拖入节点即用：
+// Just drag and use:
 Loop Delay (Duration: 1.0)
     ↓
-执行你的逻辑
+Execute your logic
 ```
 
-无需配置复杂的图表，直接使用！
+No complex chart configuration needed, just use it!
 
-#### 3. 自动 GC 防护机制
+#### 3. Automatic GC Protection Mechanism
 
-**文件位置：** [ExAsyncActionBase.h#L96-113](Source/BlueprintNodeGraph/Public/BlueprintTool/ExAsyncActionBase.h#L96-113)
+**File Location:** [ExAsyncActionBase.h#L96-113](Source/BlueprintNodeGraph/Public/BlueprintTool/ExAsyncActionBase.h#L96-113)
 
 ```cpp
-// 自动处理对象生命周期：
-RegisterWithGameInstance(WorldContext);  // 防止被回收
-SetReadyToDestroy();                    // 完成后标记销毁
+// Automatic object lifecycle handling:
+RegisterWithGameInstance(WorldContext);  // Prevent collection
+SetReadyToDestroy();                    // Mark for destruction when complete
 ```
 
-- ✅ 自动管理，无需手动清理
-- ✅ 无内存泄漏风险
+- ✅ Automatic management, no manual cleanup
+- ✅ No memory leak risk
 
-#### 4. 超时机制保护
+#### 4. Timeout Protection Mechanism
 
-**文件位置：** [ExLatentNodeInfo](Source/BlueprintNodeGraph/Public/BlueprintTool/ExLatentProxyDefine.h)
+**File Location:** [ExLatentNodeInfo](Source/BlueprintNodeGraph/Public/BlueprintTool/ExLatentProxyDefine.h)
 
 ```
-节点属性 → 配置 Time Out: 10.0
+Node Properties → Configure Time Out: 10.0
     ↓
-自动超时保护
+Automatic timeout protection
 ```
 
-防止无限等待！
+Prevents infinite waiting!
 
-#### 5. 完整任务生命周期
+#### 5. Complete Task Lifecycle
 
-**文件位置：** [ExLatentTaskBase.h#L61](Source/BlueprintNodeGraph/Public/BlueprintTool/ExLatentTaskBase.h#L61)
+**File Location:** [ExLatentTaskBase.h#L61](Source/BlueprintNodeGraph/Public/BlueprintTool/ExLatentTaskBase.h#L61)
 
 ```
 CreateTask() → Activate() → Receive On Start → Receive On Stop → Destroy
 ```
 
-- 完整的状态机管理
-- 支持网络复制同步
+- Complete state machine management
+- Network replication sync support
 
-### 🎯 使用场景对比
+### 🎯 Use Case Comparison
 
-| 场景  | BlueprintNodeGraph | FlowGraph | StateTree |
-| --- | --- | --- | --- |
-| **循环延迟** | ✅ Loop Delay 原生节点 | 需要组合节点实现 | 不适用（状态机模型不适合线性循环流程） |
-| **多输入同步 / 并行分支** | ✅ Wait Branches 原生节点 | 需要嵌套 Parallel 节点，层级复杂 | 不适用（状态机模型不支持原生并行） |
-| **异步加载 / 条件等待** | ✅ Wait Condition 原生节点 | 需要手动搭建等待逻辑 | 需要手动搭建事件监听，实现成本高 |
-| **复杂任务 / 剧情 / 关卡流程** | ✅ 原生适配，支持断点续跑 / 网络同步，上线验证 | ✅ 通用流程框架，适配性一般，需额外适配业务 | ❌ 不适用，状态机模型不匹配任务线性 + 分支逻辑 |
-| **AI 状态机 / 行为控制** | 可实现（配合蓝图 / 事件，非核心优势） | 可实现（需大量自定义节点） | ✅ 最适合，分层状态机天生适配 AI 行为 |
+| Scenario | BlueprintNodeGraph | FlowGraph | StateTree |
+|----------|------------------|-----------|-----------|
+| **Loop Delay** | ✅ Loop Delay native node | Need to combine nodes | Not applicable (state machine model unsuitable for linear loop flow) |
+| **Multi-input Sync / Parallel Branches** | ✅ Wait Branches native node | Need nested Parallel nodes, complex hierarchy | Not applicable (state machine model doesn't support native parallel) |
+| **Async Loading / Conditional Wait** | ✅ Wait Condition native node | Need to build wait logic manually | Need to build event listeners manually, high implementation cost |
+| **Complex Tasks / Story / Level Flow** | ✅ Native adaptation, supports resume from checkpoint / network sync, validated in production | ✅ General flow framework, general adaptability, needs additional business adaptation | ❌ Not applicable, state machine model doesn't match linear + branching task logic |
+| **AI State Machine / Behavior Control** | Can implement (with Blueprint / events, not core advantage) | Can implement (needs lots of custom nodes) | ✅ Best fit, hierarchical state machine naturally adapts to AI behavior |
 
-### 💬 一句话总结
+### 💬 One-line Summary
 
-> **BlueprintNodeGraph = FlowGraph 的易用性 + StateTree 的强大功能**
+> **BlueprintNodeGraph = FlowGraph's ease of use + StateTree's powerful features**
 
-- ✅ 简单场景：直接拖入节点，几秒钟搞定
-- ✅ 无需学习新概念
-- ✅ 支持异步，开箱即用
-- ✅ 比 FlowGraph 更简单，比 StateTree 更直接
+- ✅ Simple scenarios: drag nodes directly, done in seconds
+- ✅ No new concepts to learn
+- ✅ Async support, out of the box
+- ✅ Simpler than FlowGraph, more direct than StateTree
 
-## 功能特性
+## Features
 
-### 🚀 核心功能
+### 🚀 Core Features
 
-- **延迟执行节点** - Loop Delay、For Loop with Delay 等
-- **条件等待节点** - Wait Condition、Wait Branch
-- **异步代理系统** - 支持多个输入分支同步
-- **延迟任务框架** - 完整的任务生命周期管理
-- **超时机制** - 防止无限等待
-- **网络复制** - 支持多人游戏
-- **GC 防护** - 自动管理对象生命周期
-- **WorldPartition 支持** - 大地图子关卡异步加载/卸载
-- **异步资产加载** - 支持 UObject 和 UClass 异步加载
-- **断点续跑/存档** - 完整的流程状态保存和恢复
-- **内容浏览器集成** - 右键快速创建 Flow Graph 资产
+- **Latent Execution Nodes** - Loop Delay, For Loop with Delay, etc.
+- **Conditional Wait Nodes** - Wait Condition, Wait Branch
+- **Async Delegate System** - Supports multiple input branch synchronization
+- **Latent Task Framework** - Complete task lifecycle management
+- **Timeout Mechanism** - Prevents infinite waiting
+- **Network Replication** - Supports multiplayer games
+- **GC Protection** - Automatic object lifecycle management
+- **WorldPartition Support** - Large map sub-level async load/unload
+- **Async Asset Loading** - Supports UObject and UClass async loading
+- **Resume from Checkpoint / Save** - Complete flow state save and restore
+- **Content Browser Integration** - Right-click to quickly create Flow Graph assets
 
-### 🔧 技术亮点
+### 🔧 Technical Highlights
 
-- 基于 UE5 最新特性开发
-- 完整的 C++ 和蓝图支持
-- 模块化架构，易于扩展
-- 包含编辑器集成
-- 提供完整示例
+- Developed based on latest UE5 features
+- Complete C++ and Blueprint support
+- Modular architecture, easy to extend
+- Includes Editor integration
+- Provides complete examples
 
-### 📦 包含模块
+### 📦 Included Modules
 
-| 模块 | 类型 | 描述 |
-|------|------|------|
-| BlueprintNodeGraph | Runtime | 运行时核心模块 |
-| BlueprintNodeGraphEditor | Editor | 编辑器扩展模块 |
+| Module | Type | Description |
+|--------|------|-------------|
+| BlueprintNodeGraph | Runtime | Runtime core module |
+| BlueprintNodeGraphEditor | Editor | Editor extension module |
 
-## 快速开始
+## Quick Start
 
-### 安装
+### Installation
 
-1. 将 `BlueprintNodeGraph` 文件夹复制到项目的 `Plugins` 目录
-2. 重新打开项目
-3. 在 Plugins 菜单中启用 "BlueprintNodeGraph"
+1. Copy the `BlueprintNodeGraph` folder to your project's `Plugins` directory
+2. Reopen the project
+3. Enable "BlueprintNodeGraph" in the Plugins menu
 
-详细安装步骤请查看 [使用文档](Docs/Usage.md#安装指南)。
+See [Installation Guide](Docs/Usage.md#installation) for detailed installation steps.
 
-### 你的第一个异步节点
+### Your First Async Node
 
-在蓝图中添加一个简单的延迟循环：
+Add a simple delay loop in Blueprint:
 
 ```
 Event BeginPlay
@@ -192,85 +202,85 @@ Print String ("Hello!")
 Print String ("Done!")
 ```
 
-就这么简单！查看 [快速开始指南](Docs/Usage.md#快速开始) 了解更多。
+That's it! See [Quick Start Guide](Docs/Usage.md#quick-start) for more.
 
-## 文档
+## Documentation
 
-### 📚 主要文档
+### 📚 Main Documentation
 
-- **[使用文档](Docs/Usage.md)** - 完整的使用指南、API 参考、示例
-- **[架构文档](Docs/Architecture.md)** - 深入了解插件架构、工作原理
-- **[改进计划](Docs/improve.md)** - 未来的改进方向和建议
+- **[Usage Guide](Docs/Usage.md)** - Complete usage guide, API reference, examples
+- **[Architecture Guide](Docs/Architecture.md)** - Deep dive into plugin architecture and how it works
+- **[Improvement Plan](Docs/improve.md)** - Future improvement directions and suggestions
 
-### 🔗 快速链接
+### 🔗 Quick Links
 
-- [安装指南](Docs/Usage.md#安装指南)
-- [API 参考](Docs/Usage.md#基础节点使用)
-- [示例项目](Content/BP_TestBlueprintNodes.uasset)
-- [架构设计](Docs/Architecture.md)
+- [Installation Guide](Docs/Usage.md#installation)
+- [API Reference](Docs/Usage.md#basic-node-usage)
+- [Example Project](Content/BP_TestBlueprintNodes.uasset)
+- [Architecture Design](Docs/Architecture.md)
 
-## 示例
+## Examples
 
-插件包含多个示例蓝图，展示各种功能：
+The plugin includes multiple example Blueprints demonstrating various features:
 
-- [BP_TestBlueprintNodes](Content/BP_TestBlueprintNodes.uasset) - 基础节点使用示例
-- [BP_TestTask](Content/Tasks/BP_TestTask.uasset) - 自定义任务示例 1
-- [BP_TestTask2](Content/Tasks/BP_TestTask2.uasset) - 自定义任务示例 2
+- [BP_TestBlueprintNodes](Content/BP_TestBlueprintNodes.uasset) - Basic node usage examples
+- [BP_TestTask](Content/Tasks/BP_TestTask.uasset) - Custom task example 1
+- [BP_TestTask2](Content/Tasks/BP_TestTask2.uasset) - Custom task example 2
 
-这些示例位于 `Content` 文件夹中。
+These examples are located in the `Content` folder.
 
-## 技术支持
+## Support
 
-### 常见问题
+### FAQ
 
-遇到问题？请查看：
+Having issues? Check:
 
-- [故障排除](Docs/Usage.md#故障排除) - 常见问题的解决方案
-- [最佳实践](Docs/Usage.md#最佳实践) - 使用建议和技巧
+- [Troubleshooting](Docs/Usage.md#troubleshooting) - Solutions to common problems
+- [Best Practices](Docs/Usage.md#best-practices) - Usage tips and tricks
 
-### 报告问题
+### Reporting Issues
 
-如果发现 bug 或有功能建议：
+If you find a bug or have feature suggestions:
 
-1. 检查是否已有相关 issue
-2. 提供复现步骤和环境信息
-3. 使用清晰的标题和描述
+1. Check if an existing issue covers it
+2. Provide reproduction steps and environment info
+3. Use clear titles and descriptions
 
-## 贡献指南
+## Contributing
 
-我们欢迎任何形式的贡献！
+We welcome any form of contribution!
 
-### 开发环境设置
+### Development Environment Setup
 
-1. Fork 本仓库
-2. 克隆到你的 Unreal 项目 Plugins 目录
-3. 生成项目文件并编译
-4. 创建你的特性分支
+1. Fork this repository
+2. Clone to your Unreal project's Plugins directory
+3. Generate project files and compile
+4. Create your feature branch
 
-### 提交规范
+### Commit Guidelines
 
-- 使用清晰的 commit message
-- 确保代码编译通过
-- 添加必要的文档
-- 更新相关示例
+- Use clear commit messages
+- Ensure code compiles successfully
+- Add necessary documentation
+- Update related examples
 
-## 许可证
+## License
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
-
----
-
-## 致谢
-
-感谢所有为这个项目做出贡献的开发者！
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-### 📮 联系我们
+## Acknowledgments
 
-- 项目主页: [你的项目地址]
-- 问题反馈: [Issues 页面]
+Thanks to all developers who contributed to this project!
 
 ---
 
-**BlueprintNodeGraph** - 让蓝图异步编程更简单！
+### 📮 Contact Us
+
+- Project Home: [Your Project URL]
+- Issue Tracker: [Issues Page]
+
+---
+
+**BlueprintNodeGraph** - Making Blueprint async programming simpler!
