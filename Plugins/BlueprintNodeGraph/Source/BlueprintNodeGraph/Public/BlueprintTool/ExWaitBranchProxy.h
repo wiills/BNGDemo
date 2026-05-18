@@ -47,7 +47,7 @@ private:
 	/** Count 模式下需要的最少成功分支数 */
 	UPROPERTY()
 	int32 RequiredSuccessCount = 1;
-
+	
 	int32 ReportsReceived = 0;
 	int32 SuccessReceived = 0;
 };

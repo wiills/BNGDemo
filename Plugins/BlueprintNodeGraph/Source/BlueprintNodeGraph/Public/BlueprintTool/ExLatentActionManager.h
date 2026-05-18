@@ -77,7 +77,7 @@ protected:
  * @class UExLatentActionProxyBase
  * @brief 等待所有输入分支完成后执行输出的基础异步代理类
  */
-UCLASS(Abstract, HideDropdown, Blueprintable, BlueprintType, meta = (HideThen), HideCategories = "NodeInfo")
+UCLASS(Abstract, HideDropdown, NotBlueprintable, NotBlueprintType, meta = (HideThen), HideCategories = "NodeInfo")
 class BLUEPRINTNODEGRAPH_API UExLatentActionProxyBase : public UObject
 {
 	GENERATED_BODY()
@@ -86,6 +86,9 @@ protected:
 	/** 任务是否已完成 */
 	UPROPERTY()
 	bool bFinished = false;
+	/** 任务是否已初始化 */
+	UPROPERTY()
+	bool bInitialized = false;
 
 	/** 是否所有分支都已完成 */
 	UPROPERTY()
@@ -133,18 +136,13 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true"))
 	void SetK2NodeInfo(const FExLatentNodeInfo K2NodeInfo);
 
+	/** 任务是否已初始化 */
+	bool IsInitialized() const { return bInitialized; }
 	bool IsFinished() const { return bFinished; }
 	void SetFinished(bool bCond) { bFinished = bCond; }
 
 	UFUNCTION(BlueprintCallable)
 	void TryFinish();
-
-	/**
-	 * @brief 是否在分支完成后自动调用 OnFinishCall
-	 * @return 是否自动完成
-	 */
-	virtual bool IsFinishAfterBranches() const { return false; }
-	virtual bool IsBranchesFinished() const { return bBranchesFinished; }
 
 	/**
 	 * @brief 在委托绑定后触发操作执行（默认视为该输入分支成功完成）
@@ -161,6 +159,13 @@ public:
 protected:
 	/** 多输入分支中的单次报告：默认实现等价于旧版递减 InputCount；UExWaitBranchProxy 等子类可覆盖以实现 All/Any/Count */
 	virtual void HandleBranchReported(bool bSuccess);
+
+	/**
+	 * @brief 是否在分支完成后自动调用 OnFinishCall
+	 * @return 是否自动完成
+	 */
+	virtual bool IsFinishAfterBranches() const { return false; }
+	virtual bool IsBranchesFinished() const { return bBranchesFinished; }
 
 	virtual void OnBranchesFinished() {}
 	UFUNCTION()
@@ -224,7 +229,7 @@ T* CreateWaitProxyCall(UObject* WorldContextObject, FString UUID, int32 InputCou
 	{
 		return nullptr;
 	}
-	auto ObjectUUID = FString::Printf(TEXT("%llu_%s"), GetTypeHash(WorldContextObject), *UUID);
+	auto ObjectUUID = FString::Printf(TEXT("%u%s"), GetTypeHash(WorldContextObject), *UUID);
 	auto Proxy = WaitInputManager->GetProxyObject<T>(ObjectUUID);
 	if (!Proxy)
 	{
@@ -245,7 +250,7 @@ T* CreateWaitProxyCallWithClass(UObject* WorldContextObject, UClass* TargetClass
 	{
 		return nullptr;
 	}
-	auto ObjectUUID = FString::Printf(TEXT("%llu_%s"), GetTypeHash(WorldContextObject), *UUID);
+	auto ObjectUUID = FString::Printf(TEXT("%u%s"), GetTypeHash(WorldContextObject), *UUID);
 	auto Proxy = WaitInputManager->GetProxyObject<T>(ObjectUUID);
 	if (!Proxy)
 	{

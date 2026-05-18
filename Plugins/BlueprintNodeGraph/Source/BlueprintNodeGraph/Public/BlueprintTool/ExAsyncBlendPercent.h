@@ -28,7 +28,7 @@ class BLUEPRINTNODEGRAPH_API UExAsyncBlendPercentProxy : public UExLatentActionP
 
 	float FinalPercent=0.f;
 
-protected:
+public:
 	virtual TStatId GetStatId() const override
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(UExWaitConditionProxy, STATGROUP_Tickables);
@@ -52,6 +52,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|FlowControl", meta=(WorldContext="WorldContextObject",HidePin="UUID,InputCount"))
 	static UExAsyncBlendPercentProxy*	CreateProxy(UObject* WorldContextObject, FString UUID, int32 InputCount, UPARAM(ref) float& PercentSpeed1, UPARAM(ref) float& PercentSpeed2);
 
+protected:
 	// wait for custom condition
 	virtual bool IsFinishAfterBranches() const override { return false; }
 	

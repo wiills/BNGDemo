@@ -6,7 +6,7 @@
 UExWaitBranchProxy* UExWaitBranchProxy::CreateProxy_WaitAll(UObject* WorldContextObject, FString UUID, int32 InputCount)
 {
 	UExWaitBranchProxy* Proxy = CreateWaitProxyCall<UExWaitBranchProxy>(WorldContextObject, UUID, InputCount);
-	if (Proxy)
+	if (Proxy && !Proxy->IsFinished() && !Proxy->IsInitialized())
 	{
 		Proxy->InitializeForRun(EExWaitBranchCompletionMode::All, 1, InputCount);
 	}
@@ -16,7 +16,7 @@ UExWaitBranchProxy* UExWaitBranchProxy::CreateProxy_WaitAll(UObject* WorldContex
 UExWaitBranchProxy* UExWaitBranchProxy::CreateProxy_WaitAny(UObject* WorldContextObject, FString UUID, int32 InputCount)
 {
 	UExWaitBranchProxy* Proxy = CreateWaitProxyCall<UExWaitBranchProxy>(WorldContextObject, UUID, InputCount);
-	if (Proxy)
+	if (Proxy && !Proxy->IsFinished() && !Proxy->IsInitialized())
 	{
 		Proxy->InitializeForRun(EExWaitBranchCompletionMode::Any, 1, InputCount);
 	}
@@ -27,7 +27,7 @@ UExWaitBranchProxy* UExWaitBranchProxy::CreateProxy_WaitCount(UObject* WorldCont
 	int32 RequiredSuccessCount)
 {
 	UExWaitBranchProxy* Proxy = CreateWaitProxyCall<UExWaitBranchProxy>(WorldContextObject, UUID, InputCount);
-	if (Proxy)
+	if (Proxy && !Proxy->IsFinished() && !Proxy->IsInitialized())
 	{
 		Proxy->InitializeForRun(EExWaitBranchCompletionMode::Count, RequiredSuccessCount, InputCount);
 	}
@@ -43,6 +43,7 @@ void UExWaitBranchProxy::InitializeForRun(EExWaitBranchCompletionMode InMode, in
 	SuccessReceived = 0;
 	bBranchesFinished = false;
 	bFinished = false;
+	bInitialized = true;
 }
 
 void UExWaitBranchProxy::HandleBranchReported(bool bSuccess)

@@ -33,6 +33,8 @@ protected:
 	/** 任务是否已完成 */
 	UPROPERTY()
 	bool bFinished = false;
+	/** 任务是否已初始化 */
+	bool binitialized = false;
 
 	/** 节点配置信息，包含UUID、日志、超时时间等 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NodeInfo")
@@ -59,6 +61,12 @@ public:
 	virtual void Activate();
 
 	/**
+	 * @brief 检查任务是否已初始化
+	 * @return 任务初始化状态
+	 */
+	bool IsInitialized() const { return binitialized; }
+	
+	/**
 	 * @brief 检查任务是否已完成
 	 * @return 任务完成状态
 	 */
@@ -77,17 +85,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable)
 	virtual void TryFinish();
-
-	/**
-	 * @brief 完成回调函数
-	 *
-	 * 当任务完成时调用，默认实现标记任务为完成状态
-	 */
-	UFUNCTION()
-	virtual void OnFinishCall()
-	{
-		SetFinished(true);
-	}
 
 	/**
 	 * @brief 获取当前世界上下文
@@ -116,6 +113,14 @@ public:
 	virtual void BeginDestroy() override;
 
 protected:
+	/**
+	 * @brief 完成回调函数
+	 *
+	 * 当任务完成时调用，默认实现标记任务为完成状态
+	 */
+	UFUNCTION()
+	virtual void OnFinishCall() {}
+
 	/**
 	 * @brief 将对象注册到GameInstance（内部实现）
 	 * @param GameInstance 目标GameInstance
