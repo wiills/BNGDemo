@@ -2,6 +2,8 @@
 
 #include "BlueprintTool/ExAsyncActionBase.h"
 
+#include "BlueprintTool/ExBlueprintDebugBubble.h"
+#include "BlueprintTool/ExK2NodeTimeoutLatentAction.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
@@ -17,24 +19,30 @@ UExAsyncActionBase::UExAsyncActionBase(const FObjectInitializer& ObjectInitializ
 
 void UExAsyncActionBase::SetK2NodeInfo(const FExLatentNodeInfo K2NodeInfo)
 {
-	if (m_K2NodeTimerHandle.IsValid())
+	if (ExBlueprintDebugBubble::HasActiveRegistration(this, K2NodeInfo))
+	{
+		return;
+	}
+	if (FExK2NodeTimeoutLatentAction::HasExistingForProxy(this, K2NodeInfo.UUID))
 	{
 		return;
 	}
 	m_NodeInfo = K2NodeInfo;
 	UE_LOG(LogAsyncAction, Display, TEXT("[StartLog][UExAsyncActionBase::SetK2NodeInfo] - %s, Log: %s"), *GetName(), *m_NodeInfo.StartLog);
-	if (m_NodeInfo.TimeOut > 0)
+	if (m_NodeInfo.TimeOut > 0.f)
 	{
-		UE_LOG(LogAsyncAction, Display, TEXT("[StartLog][UExAsyncActionBase::SetK2NodeInfo] - %s, MaxTime: %f, Start Count Down!!!"), *GetName(), m_NodeInfo.TimeOut);
-		GetWorld()->GetTimerManager().SetTimer(m_K2NodeTimerHandle, [Ref = TWeakObjectPtr<UExAsyncActionBase>(this)]()
-		{
-			if (Ref.Get() && !Ref->IsFinished())
-			{
-				UE_LOG(LogAsyncAction, Display, TEXT("[EndLog][UExAsyncActionBase::SetTimer] - %s, MaxTime: %f, TimeOut!!!, Call Finish, Log: %s"),
-					*Ref->GetName(), Ref->m_NodeInfo.TimeOut, *Ref->m_NodeInfo.EndLog);
-				Ref->TryFinish();
-			}
-		}, m_NodeInfo.TimeOut, false);
+		UE_LOG(LogAsyncAction, Display, TEXT("[StartLog][UExAsyncActionBase::SetK2NodeInfo] - %s, latent timeout %f + debug bubble"), *GetName(), m_NodeInfo.TimeOut);
+	}
+	else
+	{
+		UE_LOG(LogAsyncAction, Display, TEXT("[StartLog][UExAsyncActionBase::SetK2NodeInfo] - %s, debug bubble (elapsed, no timeout)"), *GetName());
+	}
+
+	ExBlueprintDebugBubble::Register(this, m_NodeInfo);
+
+	if (m_NodeInfo.TimeOut > 0.f)
+	{
+		FExK2NodeTimeoutLatentAction::TryRegister(this, m_NodeInfo);
 	}
 }
 
@@ -46,6 +54,7 @@ void UExAsyncActionBase::Activate()
 
 void UExAsyncActionBase::TryFinish()
 {
+	ExBlueprintDebugBubble::Unregister(this, m_NodeInfo);
 	if (IsFinished())
 	{
 		return;
@@ -90,6 +99,7 @@ void UExAsyncActionBase::ClearK2NodeTimer()
 
 void UExAsyncActionBase::BeginDestroy()
 {
+	ExBlueprintDebugBubble::Unregister(this, m_NodeInfo);
 	ClearK2NodeTimer();
 	Super::BeginDestroy();
 }

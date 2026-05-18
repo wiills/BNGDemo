@@ -26,7 +26,7 @@ class BLUEPRINTNODEGRAPH_API UExWaitConditionProxy : public UExLatentActionProxy
 	// condition value Pointer
 	bool* bSelfConditionValuePtr=nullptr;
 
-protected:
+public:
 	virtual TStatId GetStatId() const override
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(UExWaitConditionProxy, STATGROUP_Tickables);
@@ -51,6 +51,7 @@ public:
 protected:
 	// wait branches
 	virtual void OnBranchesFinished() override;
+	virtual bool IsCustomFinish() const override { return true; }
 	
 	virtual void OnFinishCall() override;
 };

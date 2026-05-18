@@ -40,6 +40,9 @@ public:
 	/** 工厂函数尚未设置时（如蓝图动作搜索/过滤阶段的临时节点）避免走引擎 BaseAsyncTask::GetTooltipText 中对空 UFunction 的 ensure。 */
 	virtual FText GetTooltipText() const override;
 
+	/** PIE/SIE 与 Delay 类似的计时气泡（经调试子系统绘制）。 */
+	virtual TSharedPtr<class SGraphNode> CreateVisualWidget() override;
+
 protected:
 	/**
 	 * @brief 是否在细节面板显示节点属性

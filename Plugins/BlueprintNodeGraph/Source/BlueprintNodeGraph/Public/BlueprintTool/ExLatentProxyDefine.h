@@ -22,6 +22,10 @@ struct FExLatentNodeInfo
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NodeInfo", meta = (DisplayName = "资源UUID", AllowPrivateAccess = true))
 	FString UUID;
 
+	/** 编辑器调试用：对应图表节点的 NodeGuid（编译时由 ExK2Node_AsyncBase 写入）。旧蓝图需重新编译以填充。 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NodeInfo", meta = (DisplayName = "图表节点Guid", AllowPrivateAccess = true))
+	FString GraphNodeGuid;
+
 	/** 节点唯一ID（UUID + Owner唯一ID） */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NodeInfo", meta = (DisplayName = "唯一ID", AllowPrivateAccess = true))
 	FString UniqueId;

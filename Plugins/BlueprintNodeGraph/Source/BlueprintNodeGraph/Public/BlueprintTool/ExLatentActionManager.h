@@ -158,19 +158,24 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true"))
 	void Activate();
 
+	virtual void BeginDestroy() override;
+
 protected:
-	/** 多输入分支中的单次报告：默认实现等价于旧版递减 InputCount；UExWaitBranchProxy 等子类可覆盖以实现 All/Any/Count */
-	virtual void HandleBranchReported(bool bSuccess);
-	
 	bool CheckBranchesFinished() const { return m_CurrentSuccessBranchCount >= m_NeedSuccessBranchCount; }
 	bool IsBranchesFinished() const { return bBranchesFinished; }
 	virtual bool IsRemoveAfterBranches() const { return true; }
+	virtual bool IsCustomFinish() const { return false; }
 
 	virtual void OnOneBranchFinished() {}
 	virtual void OnBranchesFinished() {}
 	UFUNCTION()
 	virtual void OnFinishCall();
 	void RemoveWaitInstance();
+	
+private:
+	/** 多输入分支中的单次报告：默认实现等价于旧版递减 InputCount；UExWaitBranchProxy 等子类可覆盖以实现 All/Any/Count */
+	virtual void HandleBranchReported(bool bSuccess);
+	
 };
 
 /**

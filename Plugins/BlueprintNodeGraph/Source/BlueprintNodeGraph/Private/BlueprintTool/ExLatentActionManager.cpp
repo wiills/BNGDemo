@@ -2,6 +2,9 @@
 
 #include "BlueprintTool/ExLatentActionManager.h"
 
+#include "BlueprintTool/ExBlueprintDebugBubble.h"
+#include "BlueprintTool/ExK2NodeTimeoutLatentAction.h"
+
 void UExLatentActionProxyBase::Activate()
 {
 	HandleBranchReported(true);
@@ -16,35 +19,42 @@ void UExLatentActionProxyBase::HandleBranchReported(bool bSuccess)
 	{
 		bBranchesFinished = true;
 		OnBranchesFinished();
-		TryFinish();
+		if (!IsCustomFinish())
+		{
+			TryFinish();
+		}
 	}
 }
 
 void UExLatentActionProxyBase::SetK2NodeInfo(const FExLatentNodeInfo K2NodeInfo)
 {
-	if (m_K2NodeTimerHandle.IsValid())
+	if (ExBlueprintDebugBubble::HasActiveRegistration(this, K2NodeInfo))
+	{
+		return;
+	}
+	if (FExK2NodeTimeoutLatentAction::HasExistingForProxy(this, K2NodeInfo.UUID))
 	{
 		return;
 	}
 	m_NodeInfo = K2NodeInfo;
 	UE_LOG(LogAsyncAction, Display, TEXT("[StartLog][UExLatentActionProxyBase::SetK2NodeInfo] - %s, Log: %s"), *GetName(), *m_NodeInfo.StartLog);
-	if (m_NodeInfo.TimeOut > 0)
+
+	ExBlueprintDebugBubble::Register(this, m_NodeInfo);
+
+	if (m_NodeInfo.TimeOut > 0.f)
 	{
-		UE_LOG(LogAsyncAction, Display, TEXT("[StartLog][UExLatentActionProxyBase::SetK2NodeInfo] - %s, MaxTime: %f, Start Count Down!!!"), *GetName(), m_NodeInfo.TimeOut);
-		GetWorld()->GetTimerManager().SetTimer(m_K2NodeTimerHandle, [this, WeakThis = TWeakObjectPtr<UExLatentActionProxyBase>(this)]()
-		{
-			if (WeakThis.IsValid() && !IsFinished())
-			{
-				UE_LOG(LogAsyncAction, Display, TEXT("[EndLog][UExLatentActionProxyBase::SetTimer] - %s, MaxTime: %f, TimeOut!!!, Call Finish, Log: %s"),
-					*GetName(), m_NodeInfo.TimeOut, *m_NodeInfo.EndLog);
-				TryFinish();
-			}
-		}, m_NodeInfo.TimeOut, false);
+		UE_LOG(LogAsyncAction, Display, TEXT("[StartLog][UExLatentActionProxyBase::SetK2NodeInfo] - %s, latent timeout %f + debug bubble"), *GetName(), m_NodeInfo.TimeOut);
+		FExK2NodeTimeoutLatentAction::TryRegister(this, m_NodeInfo);
+	}
+	else
+	{
+		UE_LOG(LogAsyncAction, Display, TEXT("[StartLog][UExLatentActionProxyBase::SetK2NodeInfo] - %s, debug bubble (elapsed, no timeout)"), *GetName());
 	}
 }
 
 void UExLatentActionProxyBase::TryFinish()
 {
+	ExBlueprintDebugBubble::Unregister(this, m_NodeInfo);
 	if (IsFinished())
 	{
 		RemoveWaitInstance();
@@ -84,6 +94,12 @@ void UExLatentActionProxyBase::RemoveWaitInstance()
 			WaitInputManager->RemoveProxyObject(m_SelfUUID);
 		}
 	}
+}
+
+void UExLatentActionProxyBase::BeginDestroy()
+{
+	ExBlueprintDebugBubble::Unregister(this, m_NodeInfo);
+	Super::BeginDestroy();
 }
 
 void UExLatentActionProxy::TryFinish()

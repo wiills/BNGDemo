@@ -34,7 +34,7 @@ public:
 protected:
 	virtual bool IsRemoveAfterBranches() const override { return false; }
 
-	virtual void HandleBranchReported(bool bSuccess) override;
+	virtual void OnOneBranchFinished() override;
 
 	virtual void OnBranchesFinished() override;
 

@@ -2,6 +2,7 @@
 
 #include "BlueprintTool/ExK2Node_AsyncBase.h"
 
+#include "BlueprintTool/SGraphNode_ExAsyncDebug.h"
 #include "ObjectTools.h"
 #include "K2Node_CallFunction.h"
 #include "K2Node_IfThenElse.h"
@@ -35,6 +36,11 @@ FText UExK2Node_AsyncBase::GetTooltipText() const
 	return GetNodeTitle(ENodeTitleType::ListView);
 }
 
+TSharedPtr<SGraphNode> UExK2Node_AsyncBase::CreateVisualWidget()
+{
+	return SNew(SGraphNode_ExAsyncDebug, this);
+}
+
 void UExK2Node_AsyncBase::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -55,6 +61,7 @@ void UExK2Node_AsyncBase::SetNodeInfoPinValue(const UEdGraphSchema_K2* Schema, U
 void UExK2Node_AsyncBase::GenerateContextUniqueId()
 {
 	NodeInfo.UUID = GetNodeUUID();
+	NodeInfo.GraphNodeGuid = NodeGuid.ToString(EGuidFormats::DigitsWithHyphens);
 	if (const auto RealOwner = GetOuter()->GetOuter())
 	{
 		if (NodeInfo.UniqueId.IsEmpty())

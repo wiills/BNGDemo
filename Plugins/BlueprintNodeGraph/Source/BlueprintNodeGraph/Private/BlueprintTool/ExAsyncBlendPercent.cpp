@@ -38,6 +38,4 @@ void UExAsyncBlendPercentProxy::OnFinishCall()
 {
 	Super::OnFinishCall();
 	UE_LOG(LogAsyncAction, Display, TEXT("[UExAsyncBlendPercentProxy::OnFinishCall] - %s"), *GetName());
-	m_OnCompletedDelegate.Broadcast();
-	RemoveWaitInstance();
 }

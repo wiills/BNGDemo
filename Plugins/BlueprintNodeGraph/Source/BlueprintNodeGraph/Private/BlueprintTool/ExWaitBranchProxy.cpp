@@ -62,9 +62,8 @@ void UExWaitBranchProxy::InitializeForRun(EExWaitBranchCompletionMode InMode, in
 	bInitialized = true;
 }
 
-void UExWaitBranchProxy::HandleBranchReported(bool bSuccess)
+void UExWaitBranchProxy::OnOneBranchFinished()
 {
-	Super::HandleBranchReported(bSuccess);
 	// remove instance
 	if (IsFinished() && !IsRemoveAfterBranches())
 	{

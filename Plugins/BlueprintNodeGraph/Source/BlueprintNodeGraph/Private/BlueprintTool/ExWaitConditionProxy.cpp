@@ -37,6 +37,4 @@ void UExWaitConditionProxy::OnFinishCall()
 {
 	Super::OnFinishCall();
 	UE_LOG(LogAsyncAction, Display, TEXT("[UExWaitConditionProxy::OnFinishCall] - %s"), *GetName());
-	m_OnCompletedDelegate.Broadcast();
-	RemoveWaitInstance();
 }
