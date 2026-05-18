@@ -47,7 +47,6 @@ public:
 		}
 	}
 
-	virtual bool IsFinishAfterBranches() const { return false; }
 	virtual bool IsBranchesFinished() const { return bBranchesFinished; }
 
 	virtual void Activate() override final
@@ -58,10 +57,7 @@ public:
 		{
 			bBranchesFinished = true;
 			OnBranchesFinished();
-			if (IsFinishAfterBranches())
-			{
-				TryFinish();
-			}
+			TryFinish();
 		}
 	}
 
@@ -108,17 +104,24 @@ protected:
 
 	/** 输入分支计数 */
 	UPROPERTY()
-	int32 m_InputBranchCount;
+	int32 m_ConstInputBranchCount;
+	UPROPERTY()
+	int32 m_NeedSuccessBranchCount = 0;
 
 	/** 完成委托 */
 	UPROPERTY(BlueprintAssignable, meta = (DisplayName = "OnCompleted"))
 	FOnDelayCompletedDelegate m_OnCompletedDelegate;
 
+private:
+	UPROPERTY()
+	int32 m_CurrentSuccessBranchCount = 0;
+	
 public:
 	void SetUUIDAndCount(FString UUID, int32 InCount)
 	{
 		m_SelfUUID = UUID;
-		m_InputBranchCount = InCount;
+		m_ConstInputBranchCount = InCount;
+		m_NeedSuccessBranchCount = m_ConstInputBranchCount;
 	}
 
 	UExLatentActionProxyBase(const FObjectInitializer& ObjectInitializer)
@@ -127,6 +130,11 @@ public:
 		{
 			SetFlags(RF_StrongRefOnFrame);
 		}
+	}
+	
+	void SetNeedBranchCount(int32 InCount)
+	{
+		m_NeedSuccessBranchCount = InCount;
 	}
 
 	/**
@@ -150,23 +158,15 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true"))
 	void Activate();
 
-	/**
-	 * @brief 将当前输入分支记为失败完成（计入「已报告」次数；不计入成功数，供 Count / Any 策略使用）
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Utilities|FlowControl", meta = (BlueprintInternalUseOnly = "true"))
-	void ReportBranchFailed();
-
 protected:
 	/** 多输入分支中的单次报告：默认实现等价于旧版递减 InputCount；UExWaitBranchProxy 等子类可覆盖以实现 All/Any/Count */
 	virtual void HandleBranchReported(bool bSuccess);
+	
+	bool CheckBranchesFinished() const { return m_CurrentSuccessBranchCount >= m_NeedSuccessBranchCount; }
+	bool IsBranchesFinished() const { return bBranchesFinished; }
+	virtual bool IsRemoveAfterBranches() const { return true; }
 
-	/**
-	 * @brief 是否在分支完成后自动调用 OnFinishCall
-	 * @return 是否自动完成
-	 */
-	virtual bool IsFinishAfterBranches() const { return false; }
-	virtual bool IsBranchesFinished() const { return bBranchesFinished; }
-
+	virtual void OnOneBranchFinished() {}
 	virtual void OnBranchesFinished() {}
 	UFUNCTION()
 	virtual void OnFinishCall();

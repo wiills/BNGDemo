@@ -67,18 +67,10 @@ void UExAsyncActionBase::RegisterWithGameInstance(UObject* WorldContextObject)
 {
 	if (UWorld* FoundWorld = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 	{
-		if (FoundWorld->GetGameInstance())
+		if (UGameInstance* GameInstance = FoundWorld->GetGameInstance())
 		{
-			RegisterWithGameInstance(FoundWorld->GetGameInstance());
+			RegisteredWithGameInstance = GameInstance;
 		}
-	}
-}
-
-void UExAsyncActionBase::RegisterWithGameInstance(UGameInstance* GameInstance)
-{
-	if (GameInstance)
-	{
-		RegisteredWithGameInstance = GameInstance;
 	}
 }
 

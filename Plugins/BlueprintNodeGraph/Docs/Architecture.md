@@ -119,15 +119,8 @@ Activate()
     │   Set Finished      Wait...
     │       │
     │       └─→ OnBranchesFinished()
-    │               │
-    │               └─→ IsFinishAfterBranches() ?
-    │                       │
-    │               ┌───────┴───────┐
-    │              Yes             No
-    │               ↓               ↓
-    │           TryFinish()      Wait...
-    │               │
-    └───────────────┘
+    │
+    └───────────────  （完成时是否调用 TryFinish 由具体子类逻辑与外部调用决定）
 ```
 
 ### 3. 任务生命周期
@@ -340,9 +333,6 @@ public:
     
     // 重写完成回调
     virtual void OnFinishCall() override;
-    
-    // 重写是否自动完成
-    virtual bool IsFinishAfterBranches() const override { return true; }
 };
 ```
 

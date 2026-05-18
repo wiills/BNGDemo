@@ -58,11 +58,6 @@ public:
 		m_InputBranchCount = InCount;
 	}
 
-	/**
-	 * @brief 是否在分支完成后自动调用 OnFinishCall
-	 * @return 是否自动完成
-	 */
-	virtual bool IsFinishAfterBranches() const { return false; }
 	virtual bool IsBranchesFinished() const { return bBranchesFinished; }
 
 	/**
@@ -87,10 +82,7 @@ public:
 		{
 			bBranchesFinished = true;
 			OnBranchesFinished();
-			if (IsFinishAfterBranches())
-			{
-				TryStop();
-			}
+			TryStop();
 		}
 	}
 

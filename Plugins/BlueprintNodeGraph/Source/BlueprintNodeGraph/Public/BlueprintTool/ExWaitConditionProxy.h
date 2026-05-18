@@ -48,9 +48,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|FlowControl", meta=(WorldContext="WorldContextObject",HidePin="UUID,InputCount"))
 	static UExWaitConditionProxy* CreateProxy(UObject* WorldContextObject, FString UUID, int32 InputCount, UPARAM(ref) bool& Condition);
 
-	// wait for custom condition
-	virtual bool IsFinishAfterBranches() const override { return false; }
-	
 protected:
 	// wait branches
 	virtual void OnBranchesFinished() override;

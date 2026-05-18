@@ -53,10 +53,6 @@ public:
 	static UExAsyncBlendPercentProxy*	CreateProxy(UObject* WorldContextObject, FString UUID, int32 InputCount, UPARAM(ref) float& PercentSpeed1, UPARAM(ref) float& PercentSpeed2);
 
 protected:
-	// wait for custom condition
-	virtual bool IsFinishAfterBranches() const override { return false; }
-	
-protected:
 	// wait branches
 	virtual void OnBranchesFinished() override;
 	

@@ -32,22 +32,15 @@ public:
 		UPARAM(DisplayName = "Required Success Count") int32 RequiredSuccessCount = 1);
 
 protected:
-	virtual bool IsFinishAfterBranches() const override { return true; }
+	virtual bool IsRemoveAfterBranches() const override { return false; }
 
 	virtual void HandleBranchReported(bool bSuccess) override;
 
 	virtual void OnBranchesFinished() override;
 
 private:
-	void InitializeForRun(EExWaitBranchCompletionMode InMode, int32 InRequiredSuccess, int32 ExpectedBranches);
+	void InitializeForRun(EExWaitBranchCompletionMode InMode, int32 InRequiredSuccess);
 
 	UPROPERTY()
 	EExWaitBranchCompletionMode CompletionMode = EExWaitBranchCompletionMode::All;
-
-	/** Count 模式下需要的最少成功分支数 */
-	UPROPERTY()
-	int32 RequiredSuccessCount = 1;
-	
-	int32 ReportsReceived = 0;
-	int32 SuccessReceived = 0;
 };

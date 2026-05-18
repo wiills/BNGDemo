@@ -43,7 +43,6 @@ public:
 	static UExForLoopWithDelayProxy* CreateProxy(UObject* WorldContextObject, FString UUID, int32 InputCount, int32 LoopCount=1, float LoopInterval=1.f, bool bNeedFistDelay=false);
 	
 protected:
-	virtual bool IsFinishAfterBranches() const override { return false; }
 	// wait branches
 	virtual void OnBranchesFinished() override;
 	

@@ -119,13 +119,7 @@ protected:
 	 * 当任务完成时调用，默认实现标记任务为完成状态
 	 */
 	UFUNCTION()
-	virtual void OnFinishCall() {}
-
-	/**
-	 * @brief 将对象注册到GameInstance（内部实现）
-	 * @param GameInstance 目标GameInstance
-	 */
-	virtual void RegisterWithGameInstance(UGameInstance* GameInstance);
+	virtual void OnFinishCall() {};
 
 	/**
 	 * @brief 清理定时器

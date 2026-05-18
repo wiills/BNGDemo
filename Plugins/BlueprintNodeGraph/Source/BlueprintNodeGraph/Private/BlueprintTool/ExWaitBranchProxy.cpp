@@ -8,7 +8,7 @@ UExWaitBranchProxy* UExWaitBranchProxy::CreateProxy_WaitAll(UObject* WorldContex
 	UExWaitBranchProxy* Proxy = CreateWaitProxyCall<UExWaitBranchProxy>(WorldContextObject, UUID, InputCount);
 	if (Proxy && !Proxy->IsFinished() && !Proxy->IsInitialized())
 	{
-		Proxy->InitializeForRun(EExWaitBranchCompletionMode::All, 1, InputCount);
+		Proxy->InitializeForRun(EExWaitBranchCompletionMode::All, 1);
 	}
 	return Proxy;
 }
@@ -18,7 +18,7 @@ UExWaitBranchProxy* UExWaitBranchProxy::CreateProxy_WaitAny(UObject* WorldContex
 	UExWaitBranchProxy* Proxy = CreateWaitProxyCall<UExWaitBranchProxy>(WorldContextObject, UUID, InputCount);
 	if (Proxy && !Proxy->IsFinished() && !Proxy->IsInitialized())
 	{
-		Proxy->InitializeForRun(EExWaitBranchCompletionMode::Any, 1, InputCount);
+		Proxy->InitializeForRun(EExWaitBranchCompletionMode::Any, 1);
 	}
 	return Proxy;
 }
@@ -29,18 +29,34 @@ UExWaitBranchProxy* UExWaitBranchProxy::CreateProxy_WaitCount(UObject* WorldCont
 	UExWaitBranchProxy* Proxy = CreateWaitProxyCall<UExWaitBranchProxy>(WorldContextObject, UUID, InputCount);
 	if (Proxy && !Proxy->IsFinished() && !Proxy->IsInitialized())
 	{
-		Proxy->InitializeForRun(EExWaitBranchCompletionMode::Count, RequiredSuccessCount, InputCount);
+		Proxy->InitializeForRun(EExWaitBranchCompletionMode::Count, RequiredSuccessCount);
 	}
 	return Proxy;
 }
 
-void UExWaitBranchProxy::InitializeForRun(EExWaitBranchCompletionMode InMode, int32 InRequiredSuccess, int32 ExpectedBranches)
+void UExWaitBranchProxy::InitializeForRun(EExWaitBranchCompletionMode InMode, int32 InRequiredSuccess)
 {
 	CompletionMode = InMode;
-	RequiredSuccessCount = FMath::Max(1, InRequiredSuccess);
-	m_InputBranchCount = ExpectedBranches;
-	ReportsReceived = 0;
-	SuccessReceived = 0;
+	
+	/** Count 模式下需要的最少成功分支数 */
+	int32 RequiredSuccessCount = 1;
+	switch (CompletionMode)
+	{
+	case EExWaitBranchCompletionMode::All:
+		RequiredSuccessCount = m_ConstInputBranchCount;
+		break;
+	case EExWaitBranchCompletionMode::Any:
+		RequiredSuccessCount = 1;
+		break;
+	case EExWaitBranchCompletionMode::Count:
+		RequiredSuccessCount = InRequiredSuccess;
+		break;
+	default:
+		RequiredSuccessCount = 1;
+		break;
+	}
+	SetNeedBranchCount(RequiredSuccessCount);
+	
 	bBranchesFinished = false;
 	bFinished = false;
 	bInitialized = true;
@@ -48,42 +64,11 @@ void UExWaitBranchProxy::InitializeForRun(EExWaitBranchCompletionMode InMode, in
 
 void UExWaitBranchProxy::HandleBranchReported(bool bSuccess)
 {
-	if (IsFinished() || bBranchesFinished)
+	Super::HandleBranchReported(bSuccess);
+	// remove instance
+	if (IsFinished() && !IsRemoveAfterBranches())
 	{
-		return;
-	}
-
-	ReportsReceived++;
-	if (bSuccess)
-	{
-		SuccessReceived++;
-	}
-
-	bool bShouldComplete = false;
-	switch (CompletionMode)
-	{
-	case EExWaitBranchCompletionMode::All:
-		bShouldComplete = (ReportsReceived >= m_InputBranchCount);
-		break;
-	case EExWaitBranchCompletionMode::Any:
-		bShouldComplete = (SuccessReceived >= 1);
-		break;
-	case EExWaitBranchCompletionMode::Count:
-		bShouldComplete = (SuccessReceived >= RequiredSuccessCount);
-		break;
-	default:
-		bShouldComplete = (ReportsReceived >= m_InputBranchCount);
-		break;
-	}
-
-	if (bShouldComplete)
-	{
-		bBranchesFinished = true;
-		OnBranchesFinished();
-		if (IsFinishAfterBranches())
-		{
-			TryFinish();
-		}
+		RemoveWaitInstance();
 	}
 }
 

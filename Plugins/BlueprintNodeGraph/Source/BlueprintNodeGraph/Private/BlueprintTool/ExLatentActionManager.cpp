@@ -7,24 +7,16 @@ void UExLatentActionProxyBase::Activate()
 	HandleBranchReported(true);
 }
 
-void UExLatentActionProxyBase::ReportBranchFailed()
-{
-	HandleBranchReported(false);
-}
-
 void UExLatentActionProxyBase::HandleBranchReported(bool bSuccess)
 {
-	(void)bSuccess;
-	UE_LOG(LogAsyncAction, Display, TEXT("[UExLatentActionProxyBase::HandleBranchReported] - %s, Count: %d"), *GetName(), m_InputBranchCount);
-	m_InputBranchCount--;
-	if (m_InputBranchCount <= 0 && !IsFinished())
+	m_CurrentSuccessBranchCount++;
+	UE_LOG(LogAsyncAction, Display, TEXT("[UExLatentActionProxyBase::HandleBranchReported] - %s, Count: %d"), *GetName(), m_CurrentSuccessBranchCount);
+	OnOneBranchFinished();
+	if (CheckBranchesFinished() && !IsFinished())
 	{
 		bBranchesFinished = true;
 		OnBranchesFinished();
-		if (IsFinishAfterBranches())
-		{
-			TryFinish();
-		}
+		TryFinish();
 	}
 }
 
@@ -64,16 +56,22 @@ void UExLatentActionProxyBase::TryFinish()
 
 void UExLatentActionProxyBase::OnFinishCall()
 {
-	UE_LOG(LogAsyncAction, Display, TEXT("[UExLatentActionProxyBase::OnFinishCall] - %s"), *GetName());
 	UE_LOG(LogAsyncAction, Display, TEXT("[EndLog][UExLatentActionProxyBase::OnFinishCall] - %s, Log: %s"), *GetName(), *m_NodeInfo.EndLog);
 	SetFinished(true);
-	RemoveWaitInstance();
+	if (IsRemoveAfterBranches())
+	{
+		RemoveWaitInstance();
+	}
 	m_OnCompletedDelegate.Broadcast();
 }
 
 void UExLatentActionProxyBase::RemoveWaitInstance()
 {
 	if (!IsValid(GetWorld()) || !IsValid(GetWorld()->GetGameInstance()))
+	{
+		return;
+	}
+	if (!IsRemoveAfterBranches())
 	{
 		return;
 	}
