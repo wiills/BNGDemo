@@ -1,44 +1,33 @@
 // Copyright BlueprintNodeGraph. All Rights Reserved.
 
 #include "BlueprintTool/ExParallelProxy.h"
-#include "BlueprintTool/ExLatentActionManager.h"
 
-UExParallelProxy* UExParallelProxy::CreateProxy_All(UObject* WorldContextObject, int32 BranchCount)
+UExParallelProxy* UExParallelProxy::CreateProxy(UObject* WorldContextObject, int32 InBranchCount, EExParallelMode InMode, int32 InRequiredCount)
 {
 	auto* Proxy = NewObject<UExParallelProxy>();
-	Proxy->ExpectedBranchCount = BranchCount;
-	Proxy->Mode = EExParallelMode::All;
-	Proxy->RegisterWithGameInstance(WorldContextObject);
-	return Proxy;
-}
-
-UExParallelProxy* UExParallelProxy::CreateProxy_Any(UObject* WorldContextObject, int32 BranchCount)
-{
-	auto* Proxy = NewObject<UExParallelProxy>();
-	Proxy->ExpectedBranchCount = BranchCount;
-	Proxy->Mode = EExParallelMode::Any;
-	Proxy->RegisterWithGameInstance(WorldContextObject);
-	return Proxy;
-}
-
-UExParallelProxy* UExParallelProxy::CreateProxy_Count(UObject* WorldContextObject, int32 BranchCount, int32 RequiredCount)
-{
-	auto* Proxy = NewObject<UExParallelProxy>();
-	Proxy->ExpectedBranchCount = BranchCount;
-	Proxy->Mode = EExParallelMode::Count;
-	Proxy->SuccessfulBranchCount = RequiredCount;
+	Proxy->ExpectedBranchCount = InBranchCount;
+	Proxy->Mode = InMode;
+	Proxy->SuccessfulBranchCount = InRequiredCount;
 	Proxy->RegisterWithGameInstance(WorldContextObject);
 	return Proxy;
 }
 
 void UExParallelProxy::RegisterBranch(FString BranchUUID)
 {
+	if (IsFinished())
+	{
+		return;
+	}
 	BranchUUIDs.Add(BranchUUID);
 	BranchResults.Add(BranchUUID, false);
 }
 
 void UExParallelProxy::BranchCompleted(FString BranchUUID, bool bSuccess)
 {
+	if (IsFinished())
+	{
+		return;
+	}
 	if (!BranchResults.Contains(BranchUUID))
 	{
 		return;

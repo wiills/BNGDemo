@@ -2,6 +2,32 @@
 
 #include "BlueprintTool/ExLatentActionManager.h"
 
+void UExLatentActionProxyBase::Activate()
+{
+	HandleBranchReported(true);
+}
+
+void UExLatentActionProxyBase::ReportBranchFailed()
+{
+	HandleBranchReported(false);
+}
+
+void UExLatentActionProxyBase::HandleBranchReported(bool bSuccess)
+{
+	(void)bSuccess;
+	UE_LOG(LogAsyncAction, Display, TEXT("[UExLatentActionProxyBase::HandleBranchReported] - %s, Count: %d"), *GetName(), m_InputBranchCount);
+	m_InputBranchCount--;
+	if (m_InputBranchCount <= 0 && !IsFinished())
+	{
+		bBranchesFinished = true;
+		OnBranchesFinished();
+		if (IsFinishAfterBranches())
+		{
+			TryFinish();
+		}
+	}
+}
+
 void UExLatentActionProxyBase::SetK2NodeInfo(const FExLatentNodeInfo K2NodeInfo)
 {
 	if (m_K2NodeTimerHandle.IsValid())

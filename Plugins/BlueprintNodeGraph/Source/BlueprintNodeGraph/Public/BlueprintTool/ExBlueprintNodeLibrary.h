@@ -39,8 +39,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|FlowControl", meta=(Latent, WorldContext="WorldContext", LatentInfo="LatentInfo", Duration="0.2", Keywords="sleep"))
 	static void	OnDelay(const UObject* WorldContext, float Duration, struct FLatentActionInfo LatentInfo );
 
-	UFUNCTION(BlueprintCallable, Category = "Parallel", meta = (WorldContext = "WorldContextObject", Keywords = "parallel"))
-	static void ExecuteParallel_Branches(UObject* WorldContextObject, int32 BranchCount);
+
 
 	UFUNCTION(BlueprintCallable, Category = "GameplayTag", meta = (WorldContext = "WorldContextObject", Keywords = "gameplay tag"))
 	static bool HasGameplayTag(UObject* WorldContextObject, FGameplayTag TagToCheck);

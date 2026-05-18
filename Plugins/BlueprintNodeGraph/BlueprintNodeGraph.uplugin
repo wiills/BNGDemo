@@ -23,8 +23,8 @@
 		},
 		{
 			"Name": "BlueprintNodeGraphEditor",
-			"Type": "DeveloperTool",
-			"LoadingPhase": "PostEngineInit"
+			"Type": "Editor",
+			"LoadingPhase": "Default"
 		}
 	]
 }

@@ -24,10 +24,10 @@ class BLUEPRINTNODEGRAPH_API UExParallelProxy : public UExAsyncActionBase
 
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Parallel")
-	FOnParallelCompletedDelegate OnCompleted;
+	FOnParallelBranchCompletedDelegate OnBranchCompleted;
 
 	UPROPERTY(BlueprintAssignable, Category = "Parallel")
-	FOnParallelBranchCompletedDelegate OnBranchCompleted;
+	FOnParallelCompletedDelegate OnCompleted;
 
 protected:
 	UPROPERTY()
@@ -46,14 +46,8 @@ protected:
 	TArray<FString> BranchUUIDs;
 
 public:
-	UFUNCTION(BlueprintCallable, Category = "Parallel", meta = (WorldContext = "WorldContextObject", BlueprintInternalUseOnly = "true", DisplayName = "Parallel - All"))
-	static UExParallelProxy* CreateProxy_All(UObject* WorldContextObject, int32 BranchCount);
-
-	UFUNCTION(BlueprintCallable, Category = "Parallel", meta = (WorldContext = "WorldContextObject", BlueprintInternalUseOnly = "true", DisplayName = "Parallel - Any"))
-	static UExParallelProxy* CreateProxy_Any(UObject* WorldContextObject, int32 BranchCount);
-
-	UFUNCTION(BlueprintCallable, Category = "Parallel", meta = (WorldContext = "WorldContextObject", BlueprintInternalUseOnly = "true", DisplayName = "Parallel - Count"))
-	static UExParallelProxy* CreateProxy_Count(UObject* WorldContextObject, int32 BranchCount, int32 RequiredCount);
+	UFUNCTION(BlueprintCallable, Category = "Parallel", meta = (WorldContext = "WorldContextObject", BlueprintInternalUseOnly = "true", DisplayName = "Parallel"))
+	static UExParallelProxy* CreateProxy(UObject* WorldContextObject, int32 InBranchCount, EExParallelMode InMode = EExParallelMode::All, int32 InRequiredCount = 1);
 
 	UFUNCTION(BlueprintCallable, Category = "Parallel", meta = (BlueprintInternalUseOnly = "true"))
 	void RegisterBranch(FString BranchUUID);

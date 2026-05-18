@@ -179,10 +179,10 @@ void UExK2Node_AsyncBase::ExpandNode(FKismetCompilerContext& CompilerContext, UE
 	}
 
 	// --------------------------------------------------------------------------------------
-	// Move the connections from the original node then pin to the last internal then pin
+	// 主 Then：接到 Activate 链末端（原默认行为；无子类覆盖，不保留虚函数钩子）
 	// --------------------------------------------------------------------------------------
 	UEdGraphPin* OriginalThenPin = FindPin(UEdGraphSchema_K2::PN_Then);
-	if (OriginalThenPin)
+	if (OriginalThenPin && LastThenPin)
 	{
 		bIsErrorFree &= CompilerContext.MovePinLinksToIntermediate(*OriginalThenPin, *LastThenPin).CanSafeConnect();
 	}

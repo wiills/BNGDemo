@@ -82,6 +82,7 @@ class BLUEPRINTNODEGRAPH_API UExLatentActionProxyBase : public UObject
 {
 	GENERATED_BODY()
 
+protected:
 	/** 任务是否已完成 */
 	UPROPERTY()
 	bool bFinished = false;
@@ -94,7 +95,6 @@ class BLUEPRINTNODEGRAPH_API UExLatentActionProxyBase : public UObject
 	UPROPERTY()
 	FTimerHandle m_K2NodeTimerHandle;
 
-protected:
 	/** 节点配置信息 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NodeInfo")
 	FExLatentNodeInfo m_NodeInfo;
@@ -147,25 +147,21 @@ public:
 	virtual bool IsBranchesFinished() const { return bBranchesFinished; }
 
 	/**
-	 * @brief 在委托绑定后触发操作执行
+	 * @brief 在委托绑定后触发操作执行（默认视为该输入分支成功完成）
 	 */
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true"))
-	void Activate()
-	{
-		UE_LOG(LogAsyncAction, Display, TEXT("[UExLatentActionProxyBase::Activate] - %s, Count: %d"), *GetName(), m_InputBranchCount);
-		m_InputBranchCount--;
-		if (m_InputBranchCount <= 0 && !IsFinished())
-		{
-			bBranchesFinished = true;
-			OnBranchesFinished();
-			if (IsFinishAfterBranches())
-			{
-				TryFinish();
-			}
-		}
-	}
+	void Activate();
+
+	/**
+	 * @brief 将当前输入分支记为失败完成（计入「已报告」次数；不计入成功数，供 Count / Any 策略使用）
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Utilities|FlowControl", meta = (BlueprintInternalUseOnly = "true"))
+	void ReportBranchFailed();
 
 protected:
+	/** 多输入分支中的单次报告：默认实现等价于旧版递减 InputCount；WaitBranches 等子类可覆盖以实现 All/Any/Count */
+	virtual void HandleBranchReported(bool bSuccess);
+
 	virtual void OnBranchesFinished() {}
 	UFUNCTION()
 	virtual void OnFinishCall();

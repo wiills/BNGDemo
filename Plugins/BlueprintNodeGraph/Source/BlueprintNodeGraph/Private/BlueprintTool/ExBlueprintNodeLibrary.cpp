@@ -36,9 +36,7 @@ void UExBlueprintNodeLibrary::OnDelay(const UObject* WorldContext, float Duratio
 	}
 }
 
-void UExBlueprintNodeLibrary::ExecuteParallel_Branches(UObject* WorldContextObject, int32 BranchCount)
-{
-}
+
 
 bool UExBlueprintNodeLibrary::HasGameplayTag(UObject* WorldContextObject, FGameplayTag TagToCheck)
 {

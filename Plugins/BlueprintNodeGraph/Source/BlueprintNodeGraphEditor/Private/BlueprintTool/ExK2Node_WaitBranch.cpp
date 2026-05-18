@@ -25,7 +25,8 @@ UExK2Node_WaitBranch::UExK2Node_WaitBranch(const FObjectInitializer& ObjectIniti
 
 FText UExK2Node_WaitBranch::GetTooltipText() const
 {
-	return NSLOCTEXT("K2Node", "WaitInputAll_Tooltip", "Wait Multi-Async-Input-Branches, Then Execute Once");
+	return NSLOCTEXT("K2Node", "WaitInputAll_Tooltip",
+		"多路异步输入汇合：All=全部支路完成；Any=任一路成功完成；Count=成功完成的路数达到 RequiredSuccessCount。支路默认 Activate 为成功，失败请调用 ReportBranchFailed。");
 }
 
 FText UExK2Node_WaitBranch::GetNodeTitle(ENodeTitleType::Type TitleType) const

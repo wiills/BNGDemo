@@ -82,7 +82,7 @@ protected:
 	 * @brief 设置 UUID 和节点信息到对应引脚
 	 * @param Schema 蓝图架构
 	 */
-	void SetUUIDAndNodeInfo(const UEdGraphSchema_K2* Schema);
+	virtual void SetUUIDAndNodeInfo(const UEdGraphSchema_K2* Schema);
 
 	/**
 	 * @brief 生成上下文唯一ID
