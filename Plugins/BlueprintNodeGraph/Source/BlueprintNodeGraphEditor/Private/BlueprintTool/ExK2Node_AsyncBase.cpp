@@ -2,6 +2,7 @@
 
 #include "BlueprintTool/ExK2Node_AsyncBase.h"
 
+#include "ObjectTools.h"
 #include "K2Node_CallFunction.h"
 #include "K2Node_IfThenElse.h"
 #include "K2Node_TemporaryVariable.h"
@@ -16,6 +17,22 @@
 UExK2Node_AsyncBase::UExK2Node_AsyncBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+}
+
+FText UExK2Node_AsyncBase::GetTooltipText() const
+{
+	const UFunction* FactoryFunction = nullptr;
+	if (ProxyFactoryClass && ProxyFactoryFunctionName != NAME_None)
+	{
+		FactoryFunction = ProxyFactoryClass->FindFunctionByName(ProxyFactoryFunctionName);
+	}
+
+	if (FactoryFunction)
+	{
+		return FText::FromString(ObjectTools::GetDefaultTooltipForFunction(FactoryFunction, true));
+	}
+
+	return GetNodeTitle(ENodeTitleType::ListView);
 }
 
 void UExK2Node_AsyncBase::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)

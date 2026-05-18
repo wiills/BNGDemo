@@ -37,6 +37,9 @@ public:
 	 */
 	UExK2Node_AsyncBase(const FObjectInitializer& ObjectInitializer);
 
+	/** 工厂函数尚未设置时（如蓝图动作搜索/过滤阶段的临时节点）避免走引擎 BaseAsyncTask::GetTooltipText 中对空 UFunction 的 ensure。 */
+	virtual FText GetTooltipText() const override;
+
 protected:
 	/**
 	 * @brief 是否在细节面板显示节点属性
