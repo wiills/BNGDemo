@@ -19,15 +19,15 @@ class BLUEPRINTNODEGRAPH_API UExWaitBranchProxy : public UExLatentActionProxyBas
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Utilities|FlowControl",
-		meta = (WorldContext = "WorldContextObject", HidePin = "UUID,InputCount"))
+		meta = (WorldContext = "WorldContextObject", HidePin = "UUID,InputCount", BlueprintInternalUseOnly = "true"))
 	static UExWaitBranchProxy* CreateProxy_WaitAll(UObject* WorldContextObject, FString UUID, int32 InputCount);
 
 	UFUNCTION(BlueprintCallable, Category = "Utilities|FlowControl",
-		meta = (WorldContext = "WorldContextObject", HidePin = "UUID,InputCount"))
+		meta = (WorldContext = "WorldContextObject", HidePin = "UUID,InputCount", BlueprintInternalUseOnly = "true"))
 	static UExWaitBranchProxy* CreateProxy_WaitAny(UObject* WorldContextObject, FString UUID, int32 InputCount);
 
 	UFUNCTION(BlueprintCallable, Category = "Utilities|FlowControl",
-		meta = (WorldContext = "WorldContextObject", HidePin = "UUID,InputCount"))
+		meta = (WorldContext = "WorldContextObject", HidePin = "UUID,InputCount", BlueprintInternalUseOnly = "true"))
 	static UExWaitBranchProxy* CreateProxy_WaitCount(UObject* WorldContextObject, FString UUID, int32 InputCount,
 		UPARAM(DisplayName = "Required Success Count") int32 RequiredSuccessCount = 1);
 
