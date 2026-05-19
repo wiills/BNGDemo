@@ -1,27 +1,56 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintNodeGraphEditor/Public/BlueprintNodeGraphEditor.h"
+#include "BlueprintNodeGraphEditor.h"
 
-//#include "IPlacementModeModule.h"
+#include "AssetToolsModule.h"
+#include "AssetTypeCategories.h"
+#include "BlueprintTool/AssetActions/ExAssetTypeActions_FlowGraph.h"
+#include "IAssetTools.h"
+#include "Modules/ModuleManager.h"
 
 #define LOCTEXT_NAMESPACE "FBlueprintNodeGraphEditorModule"
 
+namespace
+{
+	EAssetTypeCategories::Type BlueprintNodeGraphAssetCategory = EAssetTypeCategories::Misc;
+	TArray<TSharedPtr<IAssetTypeActions>> RegisteredAssetTypeActions;
+}
+
 void FBlueprintNodeGraphEditorModule::StartupModule()
 {
-	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
-	
-	// // Register actors to category
-	// IPlacementModeModule::Get().RegisterPlaceableItem(LevelTools.UniqueHandle, MakeShareable(new FPlaceableItem(nullptr, FAssetData(AAISpawnPoint::StaticClass()))));
-	// IPlacementModeModule::Get().RegisterPlaceableItem(LevelTools.UniqueHandle, MakeShareable(new FPlaceableItem(nullptr, FAssetData(ALevelTriggerBase::StaticClass()))));
+	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+
+	BlueprintNodeGraphAssetCategory = AssetTools.RegisterAdvancedAssetCategory(
+		FName(TEXT("BlueprintNodeGraph")),
+		LOCTEXT("BlueprintNodeGraphAssetCategory", "Blueprint Node Graph"));
+
+	RegisteredAssetTypeActions.Add(MakeShareable(new FExAssetTypeActions_FlowGraph(BlueprintNodeGraphAssetCategory)));
+
+	for (const TSharedPtr<IAssetTypeActions>& Action : RegisteredAssetTypeActions)
+	{
+		if (Action.IsValid())
+		{
+			AssetTools.RegisterAssetTypeActions(Action.ToSharedRef());
+		}
+	}
 }
 
 void FBlueprintNodeGraphEditorModule::ShutdownModule()
 {
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
-	
+	if (FModuleManager::Get().IsModuleLoaded("AssetTools"))
+	{
+		IAssetTools& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
+		for (const TSharedPtr<IAssetTypeActions>& Action : RegisteredAssetTypeActions)
+		{
+			if (Action.IsValid())
+			{
+				AssetTools.UnregisterAssetTypeActions(Action.ToSharedRef());
+			}
+		}
+	}
+	RegisteredAssetTypeActions.Empty();
 }
 
 #undef LOCTEXT_NAMESPACE
-	
+
 IMPLEMENT_MODULE(FBlueprintNodeGraphEditorModule, BlueprintNodeGraphEditor)

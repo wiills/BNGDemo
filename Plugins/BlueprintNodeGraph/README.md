@@ -210,22 +210,23 @@ That's it! See [Quick Start Guide](Docs/Usage.md#quick-start) for more.
 
 - **[Usage Guide](Docs/Usage.md)** - Complete usage guide, API reference, examples
 - **[Architecture Guide](Docs/Architecture.md)** - Deep dive into plugin architecture and how it works
-- **[Improvement Plan](Docs/improve.md)** - Future improvement directions and suggestions
+- **[Quest System Guide](Docs/QuestSystemGuide.md)** - Hierarchical quest system usage
+- **[Refactoring Plan](Docs/RefactoringPlan.md)** - Naming conventions and directory layout (completed)
 
 ### 🔗 Quick Links
 
 - [Installation Guide](Docs/Usage.md#installation)
 - [API Reference](Docs/Usage.md#basic-node-usage)
-- [Example Project](Content/BP_TestBlueprintNodes.uasset)
+- [Example Project](Content/BP_TestGraph1.uasset)
 - [Architecture Design](Docs/Architecture.md)
 
 ## Examples
 
 The plugin includes multiple example Blueprints demonstrating various features:
 
-- [BP_TestBlueprintNodes](Content/BP_TestBlueprintNodes.uasset) - Basic node usage examples
-- [BP_TestTask](Content/Tasks/BP_TestTask.uasset) - Custom task example 1
-- [BP_TestTask2](Content/Tasks/BP_TestTask2.uasset) - Custom task example 2
+- [BP_TestGraph1](Content/BP_TestGraph1.uasset) - Basic flow graph example
+- [BP_QuestHost](Content/BP_QuestHost.uasset) - Quest system host example
+- [WBP_QuestTree](Content/Quest/WBP_QuestTree.uasset) - Quest tree UI example
 
 These examples are located in the `Content` folder.
 

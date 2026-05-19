@@ -170,6 +170,11 @@ bool UExQuestBlueprintLibrary::CanQuestActivate(const FExQuestTask& Task)
 	return Task.CanActivate();
 }
 
+bool UExQuestBlueprintLibrary::CanQuestActivateWithData(const FExQuestData& QuestData, const FGameplayTag& TaskId)
+{
+	return QuestData.CanActivateTask(TaskId);
+}
+
 bool UExQuestBlueprintLibrary::IsQuestLocked(const FExQuestTask& Task)
 {
 	return Task.State == EExQuestState::Locked;

@@ -4,9 +4,23 @@
 
 bool FExQuestTask::CanActivate() const
 {
-	if (State != EExQuestState::Locked && State != EExQuestState::Inactive)
+	return State == EExQuestState::Locked || State == EExQuestState::Inactive;
+}
+
+bool FExQuestTask::ArePreTasksSatisfied(const FExQuestData& QuestData) const
+{
+	if (PreTaskIds.IsEmpty())
 	{
-		return false;
+		return true;
+	}
+
+	for (const FGameplayTag& PreTaskId : PreTaskIds)
+	{
+		FExQuestTask PreTask;
+		if (!QuestData.FindTaskById(PreTaskId, PreTask) || PreTask.State != EExQuestState::Completed)
+		{
+			return false;
+		}
 	}
 
 	return true;
@@ -14,11 +28,6 @@ bool FExQuestTask::CanActivate() const
 
 bool FExQuestTask::IsFullyCompleted() const
 {
-	if (State != EExQuestState::Completed)
-	{
-		return false;
-	}
-
 	for (const FExQuestObjective& Objective : Objectives)
 	{
 		if (!Objective.bIsOptional && !Objective.bIsCompleted)
@@ -57,12 +66,28 @@ float FExQuestTask::GetCompletionPercent() const
 		return State == EExQuestState::Completed ? 100.0f : 0.0f;
 	}
 
-	return (float)CompletedItems / (float)TotalItems * 100.0f;
+	return static_cast<float>(CompletedItems) / static_cast<float>(TotalItems) * 100.0f;
 }
 
 bool FExQuestData::FindTaskById(const FGameplayTag& TaskId, FExQuestTask& OutTask) const
 {
 	return FindTaskInList(AllTasks, TaskId, OutTask);
+}
+
+bool FExQuestData::CanActivateTask(const FGameplayTag& TaskId) const
+{
+	FExQuestTask Task;
+	if (!FindTaskById(TaskId, Task))
+	{
+		return false;
+	}
+
+	if (!Task.CanActivate())
+	{
+		return false;
+	}
+
+	return Task.ArePreTasksSatisfied(*this);
 }
 
 bool FExQuestData::FindTaskInList(const TArray<FExQuestTask>& Tasks, const FGameplayTag& TaskId, FExQuestTask& OutTask) const

@@ -161,12 +161,16 @@ public:
 	static bool IsQuestFullyCompleted(const FExQuestTask& Task);
 
 	/**
-	 * 检查任务是否可激活
-	 * @param Task 任务
-	 * @return 是否可激活
+	 * 检查任务状态是否允许激活（不含前置任务校验）
 	 */
 	UFUNCTION(BlueprintPure, Category = "Quest System|State")
 	static bool CanQuestActivate(const FExQuestTask& Task);
+
+	/**
+	 * 检查任务是否可激活（含前置任务校验）
+	 */
+	UFUNCTION(BlueprintPure, Category = "Quest System|State")
+	static bool CanQuestActivateWithData(const FExQuestData& QuestData, const FGameplayTag& TaskId);
 
 	/**
 	 * 检查任务是否锁定

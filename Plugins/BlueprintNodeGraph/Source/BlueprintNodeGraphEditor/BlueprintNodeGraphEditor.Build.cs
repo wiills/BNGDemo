@@ -34,7 +34,6 @@ public class BlueprintNodeGraphEditor : ModuleRules
 			"SlateCore",
 			"GameplayTags",
 			"UMG",
-			"PlacementMode",
 			"EditorStyle",
 			"GraphEditor",
 			"Kismet",

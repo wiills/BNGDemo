@@ -114,6 +114,7 @@ struct BLUEPRINTNODEGRAPH_API FExQuestTask
 	}
 
 	bool CanActivate() const;
+	bool ArePreTasksSatisfied(const FExQuestData& QuestData) const;
 	bool IsFullyCompleted() const;
 	float GetCompletionPercent() const;
 };
@@ -145,6 +146,7 @@ struct BLUEPRINTNODEGRAPH_API FExQuestData
 	}
 
 	bool FindTaskById(const FGameplayTag& TaskId, FExQuestTask& OutTask) const;
+	bool CanActivateTask(const FGameplayTag& TaskId) const;
 	TArray<FExQuestTask> GetAllActiveTasks() const;
 	TArray<FExQuestTask> GetAllCompletedTasks() const;
 	TArray<FExQuestTask> GetRootTasks() const;

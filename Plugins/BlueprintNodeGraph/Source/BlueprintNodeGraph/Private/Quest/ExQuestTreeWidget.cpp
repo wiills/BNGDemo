@@ -50,8 +50,30 @@ void UExQuestTreeWidget::HandleQuestProgressChanged(const FGameplayTag& TaskId, 
 	RefreshQuestTree();
 }
 
+void UExQuestTreeWidget::SyncDisplayedDataFromManager()
+{
+	if (!bAutoSyncFromManager)
+	{
+		return;
+	}
+
+	if (UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(GetWorld()))
+	{
+		if (UExQuestManagerSubsystem* QuestManager = GameInstance->GetSubsystem<UExQuestManagerSubsystem>())
+		{
+			const FExQuestData& ManagerData = QuestManager->GetQuestData();
+			if (ManagerData.AllTasks.Num() > 0)
+			{
+				DisplayedQuestData = ManagerData;
+			}
+		}
+	}
+}
+
 void UExQuestTreeWidget::RefreshQuestTree()
 {
+	SyncDisplayedDataFromManager();
+
 	if (RootQuestContainer)
 	{
 		RootQuestContainer->ClearChildren();
@@ -63,6 +85,15 @@ void UExQuestTreeWidget::RefreshQuestTree()
 void UExQuestTreeWidget::SetQuestData(const FExQuestData& QuestData)
 {
 	DisplayedQuestData = QuestData;
+
+	if (UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(GetWorld()))
+	{
+		if (UExQuestManagerSubsystem* QuestManager = GameInstance->GetSubsystem<UExQuestManagerSubsystem>())
+		{
+			QuestManager->LoadQuestData(QuestData);
+		}
+	}
+
 	RefreshQuestTree();
 }
 

@@ -19,16 +19,17 @@ void UExQuestManagerSubsystem::LoadQuestData(const FExQuestData& QuestData)
 
 bool UExQuestManagerSubsystem::ActivateQuest(const FGameplayTag& TaskId)
 {
+	if (!CurrentQuestData.CanActivateTask(TaskId))
+	{
+		return false;
+	}
+
 	return FindAndUpdateTask(CurrentQuestData.AllTasks, TaskId, [this](FExQuestTask& Task) -> bool
 	{
-		if (Task.CanActivate())
-		{
-			Task.State = EExQuestState::Active;
-			OnQuestStateChanged.Broadcast(Task);
-			OnQuestProgressChanged.Broadcast(Task.TaskId, Task.GetCompletionPercent());
-			return true;
-		}
-		return false;
+		Task.State = EExQuestState::Active;
+		OnQuestStateChanged.Broadcast(Task);
+		OnQuestProgressChanged.Broadcast(Task.TaskId, Task.GetCompletionPercent());
+		return true;
 	});
 }
 
@@ -179,7 +180,10 @@ bool UExQuestManagerSubsystem::LoadQuestProgress(const FString& SaveData)
 	for (const FString& Line : Lines)
 	{
 		FString TrimmedLine = Line.TrimStartAndEnd();
-		if (TrimmedLine.IsEmpty()) continue;
+		if (TrimmedLine.IsEmpty())
+		{
+			continue;
+		}
 
 		if (!TrimmedLine.StartsWith(TEXT("  ")))
 		{
@@ -188,11 +192,36 @@ bool UExQuestManagerSubsystem::LoadQuestProgress(const FString& SaveData)
 			if (Parts.Num() >= 2)
 			{
 				CurrentTaskId = FGameplayTag::RequestGameplayTag(FName(*Parts[0]));
-				EExQuestState State = (EExQuestState)FCString::Atoi(*Parts[1]);
+				const EExQuestState State = static_cast<EExQuestState>(FCString::Atoi(*Parts[1]));
 				FindAndUpdateTask(CurrentQuestData.AllTasks, CurrentTaskId, [State](FExQuestTask& Task) -> bool
 				{
 					Task.State = State;
 					return true;
+				});
+			}
+		}
+		else if (CurrentTaskId.IsValid())
+		{
+			FString ObjectiveLine = TrimmedLine.Mid(2).TrimStartAndEnd();
+			TArray<FString> Parts;
+			ObjectiveLine.ParseIntoArray(Parts, TEXT("|"), true);
+			if (Parts.Num() >= 3)
+			{
+				const FGameplayTag ObjectiveId = FGameplayTag::RequestGameplayTag(FName(*Parts[0]));
+				const int32 Progress = FCString::Atoi(*Parts[1]);
+				const bool bCompleted = FCString::Atoi(*Parts[2]) != 0;
+				FindAndUpdateTask(CurrentQuestData.AllTasks, CurrentTaskId, [ObjectiveId, Progress, bCompleted](FExQuestTask& Task) -> bool
+				{
+					for (FExQuestObjective& Objective : Task.Objectives)
+					{
+						if (Objective.ObjectiveId == ObjectiveId)
+						{
+							Objective.CurrentProgress = Progress;
+							Objective.bIsCompleted = bCompleted;
+							return true;
+						}
+					}
+					return false;
 				});
 			}
 		}

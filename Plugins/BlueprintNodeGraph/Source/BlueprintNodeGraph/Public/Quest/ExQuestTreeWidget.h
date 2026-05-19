@@ -55,13 +55,22 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* TitleText;
 
-	/** 当前显示的任务数据 */
+	/** 绑定到 QuestManager 后，刷新时自动从 Subsystem 同步数据 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest UI")
+	bool bAutoSyncFromManager = true;
+
+	/** 当前显示的任务数据（本地缓存，Refresh 时可能被 Manager 覆盖） */
 	UPROPERTY()
 	FExQuestData DisplayedQuestData;
 
 	/** 展开的任务ID集合 */
 	UPROPERTY()
 	TSet<FString> ExpandedTaskIds;
+
+	/**
+	 * 从 QuestManager Subsystem 同步 DisplayedQuestData
+	 */
+	void SyncDisplayedDataFromManager();
 
 	/**
 	 * 构建任务树

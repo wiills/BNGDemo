@@ -104,6 +104,6 @@ private:
 	UPROPERTY()
 	FExQuestData CurrentQuestData;
 
-	/** 递归查找并更新任务 */
+	/** 在扁平任务列表中查找并更新 */
 	bool FindAndUpdateTask(TArray<FExQuestTask>& Tasks, const FGameplayTag& TaskId, TFunctionRef<bool(FExQuestTask&)> UpdateFunc);
 };
