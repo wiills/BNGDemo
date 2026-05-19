@@ -7,6 +7,8 @@
 #include "ExQuestTypes.h"
 #include "ExQuestBlueprintLibrary.generated.h"
 
+class UExQuestDataAsset;
+
 /**
  * @class UExQuestBlueprintLibrary
  * @brief 任务系统蓝图函数库
@@ -161,6 +163,12 @@ public:
 	static bool IsQuestFullyCompleted(const FExQuestTask& Task);
 
 	/**
+	 * 检查任务是否可解锁（Locked 且前置满足）
+	 */
+	UFUNCTION(BlueprintPure, Category = "Quest System|State")
+	static bool CanQuestUnlockWithData(const FExQuestData& QuestData, const FGameplayTag& TaskId);
+
+	/**
 	 * 检查任务状态是否允许激活（不含前置任务校验）
 	 */
 	UFUNCTION(BlueprintPure, Category = "Quest System|State")
@@ -221,6 +229,30 @@ public:
 	 */
 	UFUNCTION(BlueprintPure, Category = "Quest System|Helper", meta = (WorldContext = "WorldContextObject"))
 	static class UExQuestManagerSubsystem* GetQuestManager(UObject* WorldContextObject);
+
+	UFUNCTION(BlueprintCallable, Category = "Quest System|Helper", meta = (WorldContext = "WorldContextObject"))
+	static bool UnlockQuest(UObject* WorldContextObject, const FGameplayTag& TaskId);
+
+	UFUNCTION(BlueprintCallable, Category = "Quest System|Helper", meta = (WorldContext = "WorldContextObject"))
+	static bool IncrementQuestObjective(UObject* WorldContextObject, const FGameplayTag& TaskId, const FGameplayTag& ObjectiveId, int32 Delta = 1);
+
+	UFUNCTION(BlueprintCallable, Category = "Quest System|DataAsset", meta = (WorldContext = "WorldContextObject"))
+	static void LoadQuestFromAsset(UObject* WorldContextObject, UExQuestDataAsset* QuestAsset, bool bPreserveRuntime = false);
+
+	UFUNCTION(BlueprintPure, Category = "Quest System|DataAsset")
+	static FExQuestData BuildQuestDataFromAsset(const UExQuestDataAsset* QuestAsset);
+
+	UFUNCTION(BlueprintCallable, Category = "Quest System|Save", meta = (WorldContext = "WorldContextObject"))
+	static FString SaveQuestProgressAsJson(UObject* WorldContextObject);
+
+	UFUNCTION(BlueprintCallable, Category = "Quest System|Save", meta = (WorldContext = "WorldContextObject"))
+	static bool LoadQuestProgressFromJson(UObject* WorldContextObject, const FString& JsonSaveData);
+
+	UFUNCTION(BlueprintPure, Category = "Quest System|Runtime")
+	static FExQuestRuntimeState ExtractRuntimeStateFromData(const FExQuestData& QuestData);
+
+	UFUNCTION(BlueprintCallable, Category = "Quest System|Runtime", meta = (WorldContext = "WorldContextObject"))
+	static void ApplyRuntimeStateToManager(UObject* WorldContextObject, const FExQuestRuntimeState& RuntimeState);
 
 	/**
 	 * 从字符串创建GameplayTag

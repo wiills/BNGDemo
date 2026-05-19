@@ -114,29 +114,81 @@ struct BLUEPRINTNODEGRAPH_API FExQuestTask
 	}
 
 	bool CanActivate() const;
+	bool CanUnlock() const;
 	bool ArePreTasksSatisfied(const FExQuestData& QuestData) const;
 	bool IsFullyCompleted() const;
 	float GetCompletionPercent() const;
 };
 
 /**
+ * @struct FExQuestObjectiveRuntime
+ * @brief 目标运行时进度（可单独存档）
+ */
+USTRUCT(BlueprintType)
+struct BLUEPRINTNODEGRAPH_API FExQuestObjectiveRuntime
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	FGameplayTag ObjectiveId;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	int32 CurrentProgress = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	bool bIsCompleted = false;
+};
+
+/**
+ * @struct FExQuestTaskRuntime
+ * @brief 任务运行时状态（可单独存档）
+ */
+USTRUCT(BlueprintType)
+struct BLUEPRINTNODEGRAPH_API FExQuestTaskRuntime
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	FGameplayTag TaskId;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	EExQuestState State = EExQuestState::Locked;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	TArray<FExQuestObjectiveRuntime> Objectives;
+};
+
+/**
+ * @struct FExQuestRuntimeState
+ * @brief 任务集运行时状态（与 DataAsset 定义分离）
+ */
+USTRUCT(BlueprintType)
+struct BLUEPRINTNODEGRAPH_API FExQuestRuntimeState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	FString QuestSetId;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	TArray<FExQuestTaskRuntime> TaskStates;
+};
+
+/**
  * @struct FExQuestData
- * @brief 完整的任务数据
+ * @brief 完整的任务数据（定义 + 运行时合并视图）
  */
 USTRUCT(BlueprintType)
 struct BLUEPRINTNODEGRAPH_API FExQuestData
 {
 	GENERATED_BODY()
 
-	/** 任务集唯一ID */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	FString QuestSetId;
 
-	/** 任务集名称 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	FText QuestSetName;
 
-	/** 所有任务列表（扁平存储） */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	TArray<FExQuestTask> AllTasks;
 
@@ -145,13 +197,26 @@ struct BLUEPRINTNODEGRAPH_API FExQuestData
 	{
 	}
 
+	void RebuildIndices();
+	int32 FindTaskIndex(const FGameplayTag& TaskId) const;
 	bool FindTaskById(const FGameplayTag& TaskId, FExQuestTask& OutTask) const;
+	bool FindMutableTaskById(const FGameplayTag& TaskId, FExQuestTask*& OutTask);
+	bool FindTaskIdByObjectiveId(const FGameplayTag& ObjectiveId, FGameplayTag& OutTaskId) const;
 	bool CanActivateTask(const FGameplayTag& TaskId) const;
 	TArray<FExQuestTask> GetAllActiveTasks() const;
 	TArray<FExQuestTask> GetAllCompletedTasks() const;
 	TArray<FExQuestTask> GetRootTasks() const;
 	TArray<FExQuestTask> GetSubTasks(const FGameplayTag& ParentTaskId) const;
+	TArray<FGameplayTag> GetTaskIdsWithPreTask(const FGameplayTag& PreTaskId) const;
+
+	FExQuestRuntimeState ExtractRuntimeState() const;
+	void ApplyRuntimeState(const FExQuestRuntimeState& RuntimeState);
 
 private:
+	TMap<FGameplayTag, int32> TaskIdToIndex;
+	TMap<FGameplayTag, int32> ObjectiveIdToTaskIndex;
+	TMap<FGameplayTag, TArray<int32>> ParentTaskIdToChildIndices;
+	TMap<FGameplayTag, TArray<int32>> PreTaskIdToDependentIndices;
+
 	bool FindTaskInList(const TArray<FExQuestTask>& Tasks, const FGameplayTag& TaskId, FExQuestTask& OutTask) const;
 };

@@ -24,6 +24,7 @@ public class BlueprintNodeGraph : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"Json",
+			"JsonUtilities",
 			"AssetRegistry",
 			"Slate",
 			"SlateCore",

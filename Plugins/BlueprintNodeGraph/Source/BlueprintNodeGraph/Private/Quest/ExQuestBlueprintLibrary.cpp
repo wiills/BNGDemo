@@ -2,6 +2,7 @@
 
 #include "Quest/ExQuestBlueprintLibrary.h"
 #include "Quest/ExQuestManagerSubsystem.h"
+#include "Quest/ExQuestDefinition.h"
 #include "Kismet/GameplayStatics.h"
 
 FExQuestData UExQuestBlueprintLibrary::CreateExampleQuestData()
@@ -66,6 +67,7 @@ FExQuestData UExQuestBlueprintLibrary::CreateExampleQuestData()
 	QuestData.AllTasks.Add(MainQuest);
 	QuestData.AllTasks.Add(SubQuest);
 	QuestData.AllTasks.Add(MainQuest2);
+	QuestData.RebuildIndices();
 
 	return QuestData;
 }
@@ -109,6 +111,7 @@ FExQuestData UExQuestBlueprintLibrary::CreateQuestData(
 	QuestData.QuestSetId = FGuid::NewGuid().ToString();
 	QuestData.QuestSetName = QuestSetName;
 	QuestData.AllTasks = AllTasks;
+	QuestData.RebuildIndices();
 	return QuestData;
 }
 
@@ -163,6 +166,16 @@ float UExQuestBlueprintLibrary::GetQuestCompletionPercent(const FExQuestTask& Ta
 bool UExQuestBlueprintLibrary::IsQuestFullyCompleted(const FExQuestTask& Task)
 {
 	return Task.IsFullyCompleted();
+}
+
+bool UExQuestBlueprintLibrary::CanQuestUnlockWithData(const FExQuestData& QuestData, const FGameplayTag& TaskId)
+{
+	FExQuestTask Task;
+	if (!QuestData.FindTaskById(TaskId, Task) || !Task.CanUnlock())
+	{
+		return false;
+	}
+	return Task.ArePreTasksSatisfied(QuestData);
 }
 
 bool UExQuestBlueprintLibrary::CanQuestActivate(const FExQuestTask& Task)
@@ -233,6 +246,72 @@ UExQuestManagerSubsystem* UExQuestBlueprintLibrary::GetQuestManager(UObject* Wor
 		return GameInstance->GetSubsystem<UExQuestManagerSubsystem>();
 	}
 	return nullptr;
+}
+
+bool UExQuestBlueprintLibrary::UnlockQuest(UObject* WorldContextObject, const FGameplayTag& TaskId)
+{
+	if (UExQuestManagerSubsystem* QuestManager = GetQuestManager(WorldContextObject))
+	{
+		return QuestManager->UnlockQuest(TaskId);
+	}
+	return false;
+}
+
+bool UExQuestBlueprintLibrary::IncrementQuestObjective(UObject* WorldContextObject, const FGameplayTag& TaskId, const FGameplayTag& ObjectiveId, int32 Delta)
+{
+	if (UExQuestManagerSubsystem* QuestManager = GetQuestManager(WorldContextObject))
+	{
+		return QuestManager->IncrementQuestObjective(TaskId, ObjectiveId, Delta);
+	}
+	return false;
+}
+
+void UExQuestBlueprintLibrary::LoadQuestFromAsset(UObject* WorldContextObject, UExQuestDataAsset* QuestAsset, bool bPreserveRuntime)
+{
+	if (UExQuestManagerSubsystem* QuestManager = GetQuestManager(WorldContextObject))
+	{
+		QuestManager->LoadQuestFromAsset(QuestAsset, bPreserveRuntime);
+	}
+}
+
+FExQuestData UExQuestBlueprintLibrary::BuildQuestDataFromAsset(const UExQuestDataAsset* QuestAsset)
+{
+	if (QuestAsset)
+	{
+		return QuestAsset->BuildInitialQuestData();
+	}
+	return FExQuestData();
+}
+
+FString UExQuestBlueprintLibrary::SaveQuestProgressAsJson(UObject* WorldContextObject)
+{
+	if (const UExQuestManagerSubsystem* QuestManager = GetQuestManager(WorldContextObject))
+	{
+		return QuestManager->SaveQuestProgressAsJson();
+	}
+	return FString();
+}
+
+bool UExQuestBlueprintLibrary::LoadQuestProgressFromJson(UObject* WorldContextObject, const FString& JsonSaveData)
+{
+	if (UExQuestManagerSubsystem* QuestManager = GetQuestManager(WorldContextObject))
+	{
+		return QuestManager->LoadQuestProgressFromJson(JsonSaveData);
+	}
+	return false;
+}
+
+FExQuestRuntimeState UExQuestBlueprintLibrary::ExtractRuntimeStateFromData(const FExQuestData& QuestData)
+{
+	return QuestData.ExtractRuntimeState();
+}
+
+void UExQuestBlueprintLibrary::ApplyRuntimeStateToManager(UObject* WorldContextObject, const FExQuestRuntimeState& RuntimeState)
+{
+	if (UExQuestManagerSubsystem* QuestManager = GetQuestManager(WorldContextObject))
+	{
+		QuestManager->ApplyRuntimeState(RuntimeState);
+	}
 }
 
 FGameplayTag UExQuestBlueprintLibrary::MakeQuestTag(const FString& TagString)

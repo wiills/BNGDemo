@@ -7,8 +7,10 @@ BlueprintNodeGraph 插件提供层级任务系统，支持：
 - **扁平存储 + 父子关系**：`AllTasks` 列表 + `ParentTaskId` / `SubTaskIds`
 - **GameplayTag ID**：任务与目标均使用 `FGameplayTag`
 - **目标进度**：多目标、可选目标、自动完成流转
-- **前置任务**：`PreTaskIds` 在激活时校验
-- **存档**：`SaveQuestProgress` / `LoadQuestProgress`
+- **前置任务**：`PreTaskIds` 在激活时校验；前置完成后自动 `Locked` → `Inactive`
+- **解锁**：`UnlockQuest` 将满足条件的 `Locked` 任务变为 `Inactive`
+- **DataAsset 配置**：`UExQuestDataAsset` 存静态定义，运行时由 Manager 合并
+- **存档**：默认 JSON `#ExQuestSaveV2`；兼容加载 V1 文本
 - **UI**：`UExQuestTreeWidget` 自动同步 Subsystem 数据
 
 ---
@@ -59,6 +61,8 @@ QuestData.AllTasks.Add(SubQuest);
 
 ### 2. 初始化任务管理器
 
+#### 方式 A：运行时数据（代码/蓝图构建）
+
 ```cpp
 #include "Quest/ExQuestManagerSubsystem.h"
 
@@ -68,15 +72,35 @@ if (UExQuestManagerSubsystem* QuestManager = GameInstance->GetSubsystem<UExQuest
 }
 ```
 
-或使用蓝图：**Get Quest Manager** → **Load Quest Data**。
+#### 方式 B：DataAsset（推荐策划配置）
+
+1. 内容浏览器 → **右键** → **杂项** → **数据资产** → `ExQuestDataAsset`
+2. 填写 `TaskDefinitions`（`InitialState`、目标、前置、父子关系）
+3. 加载：
+
+```cpp
+#include "Quest/ExQuestDefinition.h"
+
+QuestManager->LoadQuestFromAsset(MyQuestAsset, /*bPreserveRuntime*/ false);
+// 热更资产且保留进度：
+QuestManager->LoadQuestFromAsset(MyQuestAsset, true);
+```
+
+蓝图：**Load Quest From Asset**。
 
 ### 3. 激活与更新
 
 ```cpp
-// 激活（会校验状态 + PreTaskIds 前置任务是否已完成）
+// 激活（仅 Inactive 可激活；会校验 PreTaskIds）
 QuestManager->ActivateQuest(FGameplayTag::RequestGameplayTag(FName("Quest.Main_001")));
 
-// 更新目标进度（全部必选目标完成后自动将任务设为 Completed）
+// 手动解锁 Locked 任务（前置已满足时）
+QuestManager->UnlockQuest(FGameplayTag::RequestGameplayTag(FName("Quest.Main_002")));
+
+// 增量更新目标
+QuestManager->IncrementQuestObjective(TaskId, ObjectiveId, 1);
+
+// 更新目标进度（全部必选目标完成后自动将任务设为 Completed，并解锁后续任务）
 QuestManager->UpdateQuestObjective(
 	FGameplayTag::RequestGameplayTag(FName("Quest.Main_001")),
 	FGameplayTag::RequestGameplayTag(FName("Quest.Main_001.Obj_001")),
@@ -94,6 +118,7 @@ QuestManager->CompleteQuestObjective(
 QuestManager->OnQuestStateChanged.AddDynamic(this, &UMyClass::HandleQuestStateChanged);
 QuestManager->OnQuestProgressChanged.AddDynamic(this, &UMyClass::HandleQuestProgressChanged);
 QuestManager->OnQuestObjectiveUpdated.AddDynamic(this, &UMyClass::HandleQuestObjectiveUpdated);
+QuestManager->OnQuestDataLoaded.AddDynamic(this, &UMyClass::HandleQuestDataLoaded);
 ```
 
 ### 5. 任务树 UI
@@ -115,17 +140,28 @@ Widget->SetQuestData(QuestManager->GetQuestData()); // 同时写入 Manager
 ### 6. 存档
 
 ```cpp
+// 默认 JSON V2
 FString SaveData = QuestManager->SaveQuestProgress();
 QuestManager->LoadQuestProgress(SaveData);
+
+// 仅运行时进度（不含文案，适合嵌入总存档）
+FExQuestRuntimeState Runtime = QuestManager->GetRuntimeState();
+QuestManager->ApplyRuntimeState(Runtime);
+
+// 显式旧版文本 V1 导出
+FString Legacy = QuestManager->SaveQuestProgressAsTextV1();
 ```
 
-存档格式：
+**JSON V2**（`SaveQuestProgress` / `SaveQuestProgressAsJson`）示例头：
 
 ```
-Quest.Main_001|1
-  Quest.Main_001.Obj_001|1|1
-  Quest.Main_001.Obj_002|0|0
+#ExQuestSaveV2
+{"Version":2,"QuestSetId":"ExampleQuestSet","Tasks":[...]}
 ```
+
+**V1 文本**仍可通过 `LoadQuestProgress` 加载；`SaveQuestProgressAsTextV1` 可导出。
+
+`LoadQuestProgress` / `LoadQuestProgressFromJson` 失败返回 `false`；成功广播 `OnQuestDataLoaded`。
 
 ---
 
@@ -160,9 +196,17 @@ Quest.Main_001|1
 |------|------|------|
 | QuestSetId | FString | 任务集 ID |
 | QuestSetName | FText | 任务集名称 |
-| AllTasks | TArray\<FExQuestTask\> | 所有任务（扁平） |
+| AllTasks | TArray\<FExQuestTask\> | 所有任务（扁平，定义+运行时合并） |
 
-查询辅助：`GetRootTasks()`、`GetSubTasks(ParentId)`、`CanActivateTask(TaskId)`。
+查询辅助：`GetRootTasks()`、`GetSubTasks(ParentId)`、`CanActivateTask(TaskId)`、`RebuildIndices()`。
+
+### FExQuestRuntimeState / UExQuestDataAsset
+
+| 类型 | 用途 |
+|------|------|
+| `UExQuestDataAsset` | 策划配置：`TaskDefinitions`、`InitialState` |
+| `FExQuestRuntimeState` | 仅状态与目标进度，可单独序列化 |
+| `FExQuestTaskDefinition` | 单任务静态定义 → `ToRuntimeTask()` |
 
 ---
 
@@ -171,13 +215,20 @@ Quest.Main_001|1
 ```cpp
 enum class EExQuestState : uint8
 {
-	Inactive,   // 可激活
+	Inactive,   // 可激活（ActivateQuest）
 	Active,     // 进行中
 	Completed,  // 已完成
 	Failed,     // 失败
-	Locked      // 锁定
+	Locked      // 锁定（需 UnlockQuest 或满足前置后自动解锁为 Inactive）
 };
 ```
+
+**状态流转要点**：
+
+- `Locked` 不能直接 `ActivateQuest`，需先变为 `Inactive`
+- 前置任务 `Completed` 后，依赖该前置的 `Locked` 任务自动变为 `Inactive`
+- 父任务 `Completed` 后，子任务（`ParentTaskId`）若为 `Locked` 也会自动变为 `Inactive`
+- `bIsRepeatable` 为 true 时，完成后重置为 `Inactive` 并清空目标进度
 
 ---
 
@@ -208,9 +259,16 @@ TaskProxy->Activate();
 | 创建示例数据 | Create Example Quest Data |
 | 获取 Manager | Get Quest Manager |
 | 激活任务 | Activate Quest |
+| 解锁任务 | Unlock Quest |
 | 更新目标 | Update Quest Objective |
+| 增量目标 | Increment Quest Objective |
 | 检查可激活 | Can Quest Activate With Data |
+| 检查可解锁 | Can Quest Unlock With Data |
 | 获取根任务 | Get Root Quests In Data |
+| 从资产加载 | Load Quest From Asset |
+| 资产转数据 | Build Quest Data From Asset |
+| JSON 存档 | Save / Load Quest Progress As Json |
+| 提取运行时 | Extract Runtime State From Data |
 
 ---
 

@@ -10,6 +10,26 @@
 class UVerticalBox;
 class UTextBlock;
 class UScrollBox;
+class UExQuestTreeWidget;
+
+/** UButton::OnClicked 为动态委托，需通过 UFUNCTION 转发点击 */
+UCLASS()
+class UExQuestExpandClickHandler : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	void Setup(UExQuestTreeWidget* InOwner, const FString& InTaskId);
+
+	UFUNCTION()
+	void OnClicked();
+
+private:
+	UPROPERTY()
+	TWeakObjectPtr<UExQuestTreeWidget> OwnerWidget;
+
+	FString TaskIdStr;
+};
 
 /**
  * @class UExQuestTreeWidget
@@ -43,6 +63,12 @@ protected:
 	UFUNCTION()
 	void HandleQuestProgressChanged(const FGameplayTag& TaskId, float CompletionPercent);
 
+	UFUNCTION()
+	void HandleQuestObjectiveUpdated(const FExQuestObjective& Objective);
+
+	UFUNCTION()
+	void HandleQuestDataLoaded();
+
 	/** 根任务容器 */
 	UPROPERTY(meta = (BindWidget))
 	UVerticalBox* RootQuestContainer;
@@ -66,6 +92,10 @@ protected:
 	/** 展开的任务ID集合 */
 	UPROPERTY()
 	TSet<FString> ExpandedTaskIds;
+
+	/** 保持展开按钮点击处理器存活（Refresh 时重建） */
+	UPROPERTY()
+	TArray<TObjectPtr<UExQuestExpandClickHandler>> ExpandClickHandlers;
 
 	/**
 	 * 从 QuestManager Subsystem 同步 DisplayedQuestData
@@ -95,11 +125,11 @@ protected:
 	 */
 	FText GetStateText(EExQuestState State) const;
 
-	/**
-	 * 切换任务展开状态
-	 */
+	/** 切换任务展开状态（供 UExQuestExpandClickHandler 调用） */
 	UFUNCTION()
 	void ToggleQuestExpansion(const FString& TaskId);
+
+	friend class UExQuestExpandClickHandler;
 
 	/**
 	 * 检查任务是否展开
