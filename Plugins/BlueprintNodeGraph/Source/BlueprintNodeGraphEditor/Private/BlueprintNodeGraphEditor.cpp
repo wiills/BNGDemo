@@ -5,6 +5,7 @@
 #include "AssetToolsModule.h"
 #include "AssetTypeCategories.h"
 #include "BlueprintTool/AssetActions/ExAssetTypeActions_FlowGraph.h"
+#include "Quest/ExQuestDataImportEditor.h"
 #include "IAssetTools.h"
 
 #define LOCTEXT_NAMESPACE "FBlueprintNodeGraphEditorModule"
@@ -32,6 +33,8 @@ void FBlueprintNodeGraphEditorModule::StartupModule()
 			AssetTools.RegisterAssetTypeActions(Action.ToSharedRef());
 		}
 	}
+
+	FExQuestDataImportEditor::RegisterContentBrowserMenus();
 }
 
 void FBlueprintNodeGraphEditorModule::ShutdownModule()
@@ -48,6 +51,8 @@ void FBlueprintNodeGraphEditorModule::ShutdownModule()
 		}
 	}
 	RegisteredAssetTypeActions.Empty();
+
+	FExQuestDataImportEditor::UnregisterContentBrowserMenus();
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -41,7 +41,7 @@ PLAN = r'''# Quest 开发计划
 - [ ] `Quest.Event.Objective.Complete` / `Quest.Event.Task.Unlock` 等频道
 - [ ] 示例 `UExQuestDataAsset`（全局 + 多 POI）
 - [x] `FExQuestTaskTableRow` + `BuildQuestDataFromTaskTable`（DataTable 行结构与 DA 任务行一致）
-- [ ] DataTable → DA 编辑器一键导入（可选）
+- [x] DataTable → DA 编辑器导入（`DT_Quest_*` → `DA_Quest_*`，内容浏览器右键）
 
 ### 子 Task 汇总（设计说明）
 

@@ -198,7 +198,7 @@ UGameplayMessageSubsystem::Get(World).BroadcastMessage(
 ### 接入步骤
 
 1. 将 GameState 设为 `AExQuestGameStateBase`，或在自有 GameState 上添加 **`UExQuestReplicationComponent`**。
-2. 开局在 **Server / Standalone** 调用 **Load Quest From Asset**（会复制到所有客户端）。
+2. 关卡中放置 **`AExQuestAgentActor`**（每图实例化 `QuestDataAsset`），或手动在 **Server / Standalone** 调用 **Load Quest From Asset**。
 3. 玩法侧统一使用蓝图库节点（内部已走 Route）：
    - `Unlock Quest` / `Increment Quest Objective` / `Notify Objective Progress By Tag`
    - `Load Quest Progress From Json` / `Apply Runtime State To Manager`
@@ -222,8 +222,18 @@ Client OnRep → ApplyReplicatedQuestView → 本地 Manager + UI 刷新
 
 ---
 
+## 关卡 Agent（`AExQuestAgentActor`）
+
+- 创建蓝图子类（如 `BP_QuestFlow_Map_xxx`），**父类即 Agent**；在 Actor 蓝图里直接拉 Quest Task 链，**无需** `QuestFlowClass`。
+- 放在地图里，**实例属性**指定本图 `QuestDataAsset`。
+- `bAutoLoadOnBeginPlay`：Server / Standalone 在 `BeginPlay` 时 Load 并走联机 Route。
+- 完整示例见 **[QuestMapFlowExample.md](./QuestMapFlowExample.md)**。
+
+---
+
 ## 相关文档
 
+- [QuestMapFlowExample.md](./QuestMapFlowExample.md) — 单地图 Agent=Flow 示例
 - [QuestDevPlan.md](./QuestDevPlan.md) — 开发阶段
 - [README.md](./README.md) — **文档 UTF-8 约定**
 - [Usage.md](./Usage.md) / [Architecture.md](./Architecture.md) — 插件节点与架构

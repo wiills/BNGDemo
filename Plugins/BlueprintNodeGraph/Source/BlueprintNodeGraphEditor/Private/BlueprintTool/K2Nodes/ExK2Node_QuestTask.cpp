@@ -16,16 +16,14 @@
 
 #define LOCTEXT_NAMESPACE "UExK2Node_QuestTask"
 
-using LatentTaskClassDefine = UExLatentTask_Quest;
-
 UExK2Node_QuestTask::UExK2Node_QuestTask(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(LatentTaskClassDefine, CreateQuestProxy);
-	ProxySetK2NodeInfoFunctionName = GET_FUNCTION_NAME_CHECKED(LatentTaskClassDefine, SetK2NodeInfo);
-	ProxyActivateFunctionName = GET_FUNCTION_NAME_CHECKED(LatentTaskClassDefine, Activate);
-	ProxyFactoryClass = LatentTaskClassDefine::StaticClass();
-	ProxyClass = LatentTaskClassDefine::StaticClass();
+	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(UExLatentTask_Quest, CreateQuestProxy);
+	ProxySetK2NodeInfoFunctionName = GET_FUNCTION_NAME_CHECKED(UExLatentTask_Quest, SetK2NodeInfo);
+	ProxyActivateFunctionName = GET_FUNCTION_NAME_CHECKED(UExLatentTask_Quest, Activate);
+	ProxyFactoryClass = UExLatentTask_Quest::StaticClass();
+	ProxyClass = UExLatentTask_Quest::StaticClass();
 }
 
 FText UExK2Node_QuestTask::GetNodeTitle(ENodeTitleType::Type TitleType) const

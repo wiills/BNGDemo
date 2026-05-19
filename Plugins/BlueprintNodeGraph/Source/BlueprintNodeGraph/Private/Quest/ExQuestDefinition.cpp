@@ -2,6 +2,7 @@
 
 #include "Quest/ExQuestDefinition.h"
 
+#include "Quest/ExQuestDataImport.h"
 #include "BlueprintTool/Common/ExLatentProxyDefine.h"
 
 FExQuestTaskDefinition FExQuestTaskTableRow::ToTaskDefinition() const
@@ -119,5 +120,38 @@ void UExQuestDataAsset::PostLoad()
 	{
 		QuestSetId = GetFName().ToString();
 	}
+}
+
+void UExQuestDataAsset::SetSourceTaskTable(const UDataTable* TaskTable)
+{
+	SourceTaskTable = const_cast<UDataTable*>(TaskTable);
+}
+
+void UExQuestDataAsset::EditorImportFromSourceTaskTable()
+{
+	if (!SourceTaskTable)
+	{
+		UE_LOG(LogBlueprintNodeGraph, Warning, TEXT("EditorImportFromSourceTaskTable: SourceTaskTable is not set"));
+		return;
+	}
+
+	ImportTaskDefinitionsFromDataTable(SourceTaskTable);
+}
+
+FExQuestDataImportResult UExQuestDataAsset::ImportTaskDefinitionsFromDataTable(UDataTable* TaskTable)
+{
+	FExQuestDataImportResult Result;
+
+	TArray<FExQuestTaskDefinition> Definitions;
+	int32 SkippedRows = 0;
+	if (!FExQuestDataImportUtil::GatherTaskDefinitionsFromTable(TaskTable, Definitions, SkippedRows))
+	{
+		Result.Message = TEXT("Incompatible DataTable (row struct must be FExQuestTaskTableRow)");
+		return Result;
+	}
+
+	Result = FExQuestDataImportUtil::ApplyDefinitionsToDataAsset(this, Definitions, TaskTable);
+	Result.SkippedRowCount = SkippedRows;
+	return Result;
 }
 #endif

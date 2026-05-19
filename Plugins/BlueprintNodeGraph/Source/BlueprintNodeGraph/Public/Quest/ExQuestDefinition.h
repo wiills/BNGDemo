@@ -7,6 +7,7 @@
 #include "Engine/DataTable.h"
 #include "GameplayTagContainer.h"
 #include "Quest/ExQuestTypes.h"
+#include "Quest/ExQuestDataImport.h"
 #include "ExQuestDefinition.generated.h"
 
 /** Static objective definition (no runtime progress) */
@@ -121,6 +122,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
 	TArray<FExQuestTaskDefinition> TaskDefinitions;
 
+#if WITH_EDITORONLY_DATA
+	/** Optional source table for re-import (DT_Quest_* ? paired DA_Quest_*). */
+	UPROPERTY(EditAnywhere, Category = "Quest|Import")
+	TObjectPtr<UDataTable> SourceTaskTable = nullptr;
+#endif
+
 	/** Build FExQuestData with zero objective progress */
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	FExQuestData BuildInitialQuestData() const;
@@ -134,5 +141,13 @@ public:
 
 #if WITH_EDITOR
 	virtual void PostLoad() override;
+
+	UFUNCTION(CallInEditor, Category = "Quest|Import", meta = (DisplayName = "Import From Source Task Table"))
+	void EditorImportFromSourceTaskTable();
+
+	/** Replace TaskDefinitions from a FExQuestTaskTableRow DataTable. */
+	FExQuestDataImportResult ImportTaskDefinitionsFromDataTable(UDataTable* TaskTable);
+
+	void SetSourceTaskTable(const UDataTable* TaskTable);
 #endif
 };

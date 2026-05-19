@@ -15,18 +15,14 @@
 
 #define LOCTEXT_NAMESPACE "UExK2Node_LatentTaskObject"
 
-
-// proxy class
-using LatentTaskClassDefine = UExLatentTask_Custom;
-
 UExK2Node_LatentTaskObject::UExK2Node_LatentTaskObject(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(LatentTaskClassDefine, CreateProxy);
-	ProxySetK2NodeInfoFunctionName = GET_FUNCTION_NAME_CHECKED(LatentTaskClassDefine, SetK2NodeInfo);
-	ProxyActivateFunctionName = GET_FUNCTION_NAME_CHECKED(LatentTaskClassDefine, Activate);
-	ProxyFactoryClass = LatentTaskClassDefine::StaticClass();
-	ProxyClass = LatentTaskClassDefine::StaticClass();
+	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(UExLatentTask_Custom, CreateProxy);
+	ProxySetK2NodeInfoFunctionName = GET_FUNCTION_NAME_CHECKED(UExLatentTask_Custom, SetK2NodeInfo);
+	ProxyActivateFunctionName = GET_FUNCTION_NAME_CHECKED(UExLatentTask_Custom, Activate);
+	ProxyFactoryClass = UExLatentTask_Custom::StaticClass();
+	ProxyClass = UExLatentTask_Custom::StaticClass();
 }
 
 bool UExK2Node_LatentTaskObject::CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const

@@ -30,6 +30,9 @@ public class BlueprintNodeGraphEditor : ModuleRules
 		{
 			"UnrealEd",
 			"AssetTools",
+			"AssetRegistry",
+			"ContentBrowser",
+			"ToolMenus",
 			"Slate",
 			"SlateCore",
 			"GameplayTags",
