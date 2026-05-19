@@ -16,7 +16,7 @@ public class BlueprintNodeGraph : ModuleRules
 		
 		PublicDependencyModuleNames.AddRange(new[]
 		{
-			"Core", "GameplayTags"
+			"Core", "GameplayTags", "UMG"
 		});
 		
 		PrivateDependencyModuleNames.AddRange(new[]
@@ -28,7 +28,8 @@ public class BlueprintNodeGraph : ModuleRules
 			"Slate",
 			"SlateCore",
 			"GameplayTags",
-			"GameplayTasks"
+			"GameplayTasks",
+			"UMG"
 		});
 	}
 }
