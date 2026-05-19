@@ -37,7 +37,7 @@ void UExLatentTask_Quest::OnStop()
 
 void UExLatentTask_Quest::ApplyQuestOnComplete_Implementation()
 {
-	if (!BoundQuestTag.IsValid() || !BoundObjectiveTag.IsValid())
+	if (!QuestTag.IsValid() || !ObjectiveTag.IsValid())
 	{
 		return;
 	}
@@ -51,14 +51,14 @@ void UExLatentTask_Quest::ApplyQuestOnComplete_Implementation()
 	switch (CompleteAction)
 	{
 	case EExQuestCompleteAction::CompleteObjective:
-		UExQuestReplicationComponent::RouteCompleteQuestObjective(WorldContext, BoundQuestTag, BoundObjectiveTag);
+		UExQuestReplicationComponent::RouteCompleteQuestObjective(WorldContext, QuestTag, ObjectiveTag);
 		break;
 	case EExQuestCompleteAction::IncrementProgress:
 	default:
 		UExQuestReplicationComponent::RouteIncrementQuestObjective(
 			WorldContext,
-			BoundQuestTag,
-			BoundObjectiveTag,
+			QuestTag,
+			ObjectiveTag,
 			ProgressDeltaOnStop);
 		break;
 	}

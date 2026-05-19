@@ -28,7 +28,7 @@ public:
 		bool bIsOptional = false);
 
 	/** Builds FExQuestTask definition data (not the Quest Task latent node). */
-	UFUNCTION(BlueprintCallable, Category = "Quest System|Create", meta = (DisplayName = "Make Quest Task Data", ToolTip = "Builds quest task struct for arrays or DataAsset authoring. For runtime latent flow use the Quest Task graph node."))
+	UFUNCTION(BlueprintPure, Category = "Quest System|Create", meta = (DisplayName = "Make Quest Task Data", ToolTip = "Builds quest task struct for arrays or DataAsset authoring. For runtime latent flow use the Quest Task graph node."))
 	static FExQuestTask MakeQuestTaskData(
 		const FGameplayTag& TaskId,
 		const FText& TaskName,

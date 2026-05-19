@@ -102,7 +102,7 @@ BeginPlay → Unlock/Activate Quest.Op.Global
 ```
 BP_Terminal_A → OnTerminalAUsed
   → Activate Quest.POI.Factory
-  → Quest Task (BoundQuestTag=Quest.POI.Factory, BoundObjectiveTag=Quest.POI.Factory.Defend, CompleteAction=Complete Objective)
+  → Quest Task（Class=`BP_Quest_DefendFactory`；节点上可改 QuestTag/ObjectiveTag，默认来自该 BP Class Defaults）
       Latent: 刷怪 → 全灭 → Completed
       Completed → 音效/UI（可选）
 ```
@@ -132,7 +132,7 @@ Volume → OnPOIOutpostEntered
 | 任务列表 UI | **WBP_QuestHUD**（Manager 委托） |
 | 战役完成庆祝 | Agent 链尾或 HUD 判 `Quest.Op.Global` Completed（勿只绑某一子 Task） |
 
-改顺序 → 只改 Agent；改树/汇总 → 改 DA 且 Flow 须 Complete 各 SubTask。`BoundQuestTag` / `BoundObjectiveTag` 必须在 DA 中存在。
+改顺序 → 只改 Agent；改树/汇总 → 改 DA 且 Flow 须 Complete 各 SubTask。`QuestTag` / `ObjectiveTag` 须在 DA 中存在；可在任务 BP Class Defaults 预设，图上 Quest Task 选 Class 后会带出引脚并可覆盖。
 
 ---
 
@@ -147,8 +147,20 @@ Volume → OnPOIOutpostEntered
 
 ---
 
+## DataTable → DA 速查
+
+| 问题 | 答案 |
+|------|------|
+| 只保存 DT 会更新 DA 吗？ | **不会**，须右键 **Import To Paired Quest Data Asset** |
+| 命名 | `DT_Quest_Test` → `DA_Quest_Test`（`DT_` 换 `DA_`） |
+| DA 与 DT 运行时关系 | 仅 **拷贝**；游戏只 Load **DA** |
+| 成功提示 | 右下角绿色通知（非错误） |
+
+---
+
 ## 相关文档
 
-- [QuestSystemGuide.md](./QuestSystemGuide.md) — API、术语、联机
+- [QuestSystemGuide.md](./QuestSystemGuide.md) — API、术语、联机、DataTable 小节
+- [Usage.md](./Usage.md) — 节点速查 + **DT→DA 步骤**
 - [QuestDevPlan.md](./QuestDevPlan.md) — 阶段与待办
 - [Architecture.md](./Architecture.md) — Latent / Quest 类关系

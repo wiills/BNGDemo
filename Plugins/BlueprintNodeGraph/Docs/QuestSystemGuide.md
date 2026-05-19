@@ -92,13 +92,17 @@ FExQuestData QuestData = UExQuestBlueprintLibrary::CreateExampleQuestData();
 
 或蓝图 **Create Example Quest Data**；拼装单条任务用 **Make Quest Task Data**（不是 Quest Task 节点）。
 
-### DataTable（表驱动，与 DA 二选一或导入用）
+### DataTable → DA（策划推荐工作流）
 
-1. 新建 DataTable，**Row Type** = `FExQuestTaskTableRow`（每行一条 Task，字段同 DA 里的 Task 行）。
-2. 蓝图：**Build Quest Data From Task Table** → 得到 `FExQuestData`。
-3. **Load Quest Data** 或 **Load Quest From Asset**（若仍用 DA 作主入口，可只在编辑器把表烘进 DA）。
+1. 新建 DataTable，**Row Type** = `FExQuestTaskTableRow`（每行一条 Task，字段同 DA）。
+2. 填行并 **保存表**（保存 ≠ 导出 DA）。
+3. 内容浏览器 **右键表** → **Import To Paired Quest Data Asset** → 同目录 **`DA_Quest_*`**（`DT_Quest_TestMap` → `DA_Quest_TestMap`）。
+4. 打开 DA 可看到 **Source Task Table**；改表后重新右键导入，或 DA 上 **Import From Source Task Table**。
+5. 运行时：**Agent / Load Quest From Asset** 只加载 **DA**，不读表。
 
-行内 `Objectives` 为数组列；`SubTaskIds` / `PreTaskIds` 填 GameplayTag。运行时入口仍建议 **一次 Load** 一个 QuestSet。
+行内 `Objectives` 为数组；`SubTaskIds` / `PreTaskIds` 填 GameplayTag。详见 [QuestMapFlowExample.md](./QuestMapFlowExample.md)。
+
+**运行时直读表（可选，无 DA）**：蓝图 **Build Quest Data From Task Table** → **Load Quest Data**（调试用，正式仍建议 DA 入口）。
 
 ### 加载
 
@@ -144,7 +148,7 @@ QuestManager->IncrementQuestObjective(TaskId, ObjectiveTag, 1);
 
 - **基类**：所有 Quest 相关 Latent 蓝图继承 **`UExLatentTask_Quest`**（勿用 `UExLatentTask_Custom`）。
 - **Quest Task** 节点 → `CreateQuestProxy`；`TryStop` 成功且 `bApplyQuestOnSuccessfulStop` 时写回 Objective（可 Blueprint 重写 `ApplyQuestOnComplete`）。
-- 字段：`BoundQuestTag`（TaskId）、`BoundObjectiveTag`；`CompleteAction` 选增量或一次完成。
+- 字段：`QuestTag`（TaskId）、`ObjectiveTag`；`CompleteAction` 选增量或一次完成。
 - 仅特殊流程：**Create Latent Task** + 手动 Quest API。
 
 ---

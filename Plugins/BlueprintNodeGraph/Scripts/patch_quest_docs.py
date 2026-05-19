@@ -17,7 +17,7 @@ latent_new = """## 与 BlueprintNodeGraph 延迟任务集成
 使用 **Quest Task**（`UExK2Node_QuestTask`），**不要**用 Create Latent Task 创建 `UExLatentTask_Quest` 体系。
 
 1. 蓝图继承 `UExLatentTask_Quest`
-2. 配置 `BoundQuestTag`、`BoundObjectiveTag`（配置 Tag，非实例 ID）
+2. 配置 `QuestTag`、`ObjectiveTag`（配置 Tag，非实例 ID）
 3. Latent 成功完成时自动更新 Quest 进度
 
 ```cpp
@@ -32,7 +32,7 @@ UExLatentTask_Quest* Task = UExLatentTask_Quest::CreateQuestProxy(
 | 字段 | 含义 |
 |------|------|
 | `ObjectiveTag` | 目标配置 GameplayTag，**不是** Actor/实例 ID |
-| `BoundQuestTag` / `BoundObjectiveTag` | UExLatentTask_Quest 上的绑定字段 |
+| `QuestTag` / `ObjectiveTag` | UExLatentTask_Quest 上的任务与目标 Tag |
 """
 
 pattern = r"## 与 BlueprintNodeGraph 延迟任务集成.*?(?=\n---\n|\n## 蓝图)"

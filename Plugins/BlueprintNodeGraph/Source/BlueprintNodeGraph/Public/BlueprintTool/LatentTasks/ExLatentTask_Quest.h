@@ -18,8 +18,9 @@ enum class EExQuestCompleteAction : uint8
  * Base class for all quest-related latent tasks.
  * Blueprint subclasses implement gameplay; on successful TryStop the task can push progress to the quest system.
  * Created via UExK2Node_QuestTask / CreateQuestProxy (not CreateLatentTask).
+ * Quest fields use ExposeOnSpawn so the Quest Task node shows pins after Class is selected (defaults from BP Class Defaults).
  */
-UCLASS(Blueprintable, BlueprintType, meta = (ExposedAsyncProxy = AsyncTask, SafeHideThen, DontUseGenericSpawnObject))
+UCLASS(HideDropdown, Blueprintable, BlueprintType, meta = (ExposedAsyncProxy = AsyncTask, SafeHideThen, DontUseGenericSpawnObject))
 class BLUEPRINTNODEGRAPH_API UExLatentTask_Quest : public UExBase_LatentTask
 {
 	GENERATED_BODY()
@@ -27,11 +28,11 @@ class BLUEPRINTNODEGRAPH_API UExLatentTask_Quest : public UExBase_LatentTask
 public:
 	/** Quest configuration tag (TaskId), not a world instance id */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest", ExposeOnSpawn = true))
-	FGameplayTag BoundQuestTag;
+	FGameplayTag QuestTag;
 
 	/** Objective configuration tag, not a world instance id */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest", ExposeOnSpawn = true))
-	FGameplayTag BoundObjectiveTag;
+	FGameplayTag ObjectiveTag;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (ExposeOnSpawn = true))
 	EExQuestCompleteAction CompleteAction = EExQuestCompleteAction::IncrementProgress;

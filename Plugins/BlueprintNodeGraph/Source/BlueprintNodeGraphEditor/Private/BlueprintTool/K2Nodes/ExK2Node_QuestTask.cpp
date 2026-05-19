@@ -33,7 +33,8 @@ FText UExK2Node_QuestTask::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 FText UExK2Node_QuestTask::GetTooltipText() const
 {
-	return LOCTEXT("QuestTaskNodeTooltip", "Create a quest-bound latent task; updates quest progress on successful completion. Do not use Create Latent Task.");
+	return LOCTEXT("QuestTaskNodeTooltip",
+		"Create a quest-bound latent task. Select Class to expose QuestTag/ObjectiveTag pins (defaults from task BP Class Defaults). Do not use Create Latent Task.");
 }
 
 FText UExK2Node_QuestTask::GetMenuCategory() const

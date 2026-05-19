@@ -104,6 +104,26 @@ Content/
 
 ---
 
+
+---
+
+## 任务 DataTable → DA（编辑器导入）
+
+> 完整流程见 [QuestMapFlowExample.md](./QuestMapFlowExample.md)。**保存 DataTable 不会自动更新 DA**，须执行导入。
+
+| 步骤 | 操作 |
+|------|------|
+| 1 | 新建 **DataTable**，Row Type = **FExQuestTaskTableRow** |
+| 2 | 填写行（TaskId 须为有效 GameplayTag） |
+| 3 | 保存表（Ctrl+S） |
+| 4 | 右键表 → **Import To Paired Quest Data Asset** |
+| 5 | 同目录 **DA_Quest_***（DT_Quest_Test → DA_Quest_Test） |
+| 6 | 改表后重复步骤 4，或 DA 上 **Import From Source Task Table** |
+
+- 命名：DT_ → DA_；导入为拷贝到 TaskDefinitions，SourceTaskTable 记来源。
+- 运行时只 **Load DA**（Agent），不读表。
+- 成功：右下角 **绿色通知**。
+
 ## 延伸阅读
 
 | 文档 | 内容 |
