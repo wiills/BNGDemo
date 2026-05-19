@@ -32,7 +32,7 @@ void UK2Node_ShowBase::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionR
 	{
 		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 		check(NodeSpawner != nullptr);
-		// 添加过就可以在蓝图中显示了
+		// ?
 		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
 	}
 
@@ -53,7 +53,7 @@ UEdGraphPin* UK2Node_ShowBase::GetThenPin() const
 
 TSharedPtr<SGraphNode> UK2Node_ShowBase::CreateVisualWidget()
 {
-	// 创建自定义的GraphNode样式
+	// GraphNode
 	return SNew(SGraphNode_ShowBase, this);
 }
 

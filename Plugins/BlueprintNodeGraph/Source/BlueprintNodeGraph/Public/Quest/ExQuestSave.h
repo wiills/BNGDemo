@@ -3,10 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ExQuestTypes.h"
+#include "Quest/ExQuestTypes.h"
 #include "ExQuestSave.generated.h"
 
-/** JSON 存档格式版本（对应 #ExQuestSaveV2 文本头） */
+/** JSON save format version (matches #ExQuestSaveV2 text header) */
 static constexpr int32 ExQuestSaveJsonVersion = 2;
 
 USTRUCT()
@@ -15,7 +15,7 @@ struct FExQuestObjectiveSaveJson
 	GENERATED_BODY()
 
 	UPROPERTY()
-	FString ObjectiveId;
+	FString ObjectiveTag;
 
 	UPROPERTY()
 	int32 CurrentProgress = 0;
@@ -54,10 +54,6 @@ struct FExQuestProgressSaveJson
 	TArray<FExQuestTaskSaveJson> Tasks;
 };
 
-/**
- * @class UExQuestSaveHelper
- * @brief 任务进度 JSON 序列化（FJsonObjectConverter）
- */
 class BLUEPRINTNODEGRAPH_API FExQuestSaveHelper
 {
 public:

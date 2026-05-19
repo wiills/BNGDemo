@@ -28,7 +28,7 @@ FString FExQuestSaveHelper::SerializeProgressToJson(const FExQuestData& QuestDat
 		for (const FExQuestObjective& Objective : Task.Objectives)
 		{
 			FExQuestObjectiveSaveJson ObjJson;
-			ObjJson.ObjectiveId = Objective.ObjectiveId.ToString();
+			ObjJson.ObjectiveTag = Objective.ObjectiveTag.ToString();
 			ObjJson.CurrentProgress = Objective.CurrentProgress;
 			ObjJson.bIsCompleted = Objective.bIsCompleted;
 			TaskJson.Objectives.Add(ObjJson);
@@ -94,15 +94,15 @@ bool FExQuestSaveHelper::DeserializeProgressFromJson(const FString& SaveData, FE
 
 		for (const FExQuestObjectiveSaveJson& ObjJson : TaskJson.Objectives)
 		{
-			const FGameplayTag ObjectiveId = FGameplayTag::RequestGameplayTag(FName(*ObjJson.ObjectiveId), false);
-			if (!ObjectiveId.IsValid())
+			const FGameplayTag ObjectiveTag = FGameplayTag::RequestGameplayTag(FName(*ObjJson.ObjectiveTag), false);
+			if (!ObjectiveTag.IsValid())
 			{
 				continue;
 			}
 
 			for (FExQuestObjective& Objective : Task->Objectives)
 			{
-				if (Objective.ObjectiveId == ObjectiveId)
+				if (Objective.ObjectiveTag == ObjectiveTag)
 				{
 					Objective.CurrentProgress = ObjJson.CurrentProgress;
 					Objective.bIsCompleted = ObjJson.bIsCompleted;

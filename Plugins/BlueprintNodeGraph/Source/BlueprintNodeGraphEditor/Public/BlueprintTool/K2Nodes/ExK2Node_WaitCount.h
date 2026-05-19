@@ -6,7 +6,7 @@
 #include "BlueprintTool/K2Nodes/ExK2Node_AsyncBase.h"
 #include "ExK2Node_WaitCount.generated.h"
 
-/** 多路汇入：成功报告次数达到 Required Success Count 后继续（EExBranchMode::Count）。 */
+/** Multi-branch merge: continue after success count reaches Required Success Count (EExBranchMode::Count). */
 UCLASS()
 class BLUEPRINTNODEGRAPHEDITOR_API UExK2Node_WaitCount : public UExK2Node_AsyncBase
 {

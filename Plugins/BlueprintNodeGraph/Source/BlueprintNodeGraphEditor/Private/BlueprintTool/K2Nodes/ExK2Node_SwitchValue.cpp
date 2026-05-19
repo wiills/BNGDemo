@@ -37,7 +37,7 @@ void UExK2Node_SwitchValue::GetMenuActions(FBlueprintActionDatabaseRegistrar& Ac
 	{
 		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 		check(NodeSpawner != nullptr);
-		// 添加过就可以在蓝图中显示了
+		// ?
 		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
 	}
 
@@ -69,7 +69,7 @@ void UExK2Node_SwitchValue::AddPinToNode()
 
 TSharedPtr<SGraphNode> UExK2Node_SwitchValue::CreateVisualWidget()
 {
-	// 创建自定义的GraphNode样式
+	// GraphNode
 	return SNew(SGraphNode_AddInputPin, this);
 }
 

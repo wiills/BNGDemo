@@ -70,11 +70,14 @@
 
 ---
 
-## P3 — 玩法集成（后续）
+## P3 — 玩法集成（进行中）
 
-- [ ] `NotifyObjectiveByTag(ObjectiveTag, Delta)` 全局映射
-- [ ] `UExLatentTask_Custom` 可选 `QuestTaskId` / `ObjectiveId` 属性
+- [x] ObjectiveId 重命名为 ObjectiveTag（配置 Tag，非实例 ID）
+- [x] UExLatentTask_QuestBound + UExK2Node_QuestTask（CreateQuestBoundProxy）
+- [x] ExK2Node_LatentTaskObject 禁止选择 QuestBound 子类
+- [ ] NotifyObjectiveProgressByTag(ObjectiveTag, Delta) 全局映射
 - [ ] DefaultGameplayTags.ini 示例 Tag 列表
+
 
 ---
 

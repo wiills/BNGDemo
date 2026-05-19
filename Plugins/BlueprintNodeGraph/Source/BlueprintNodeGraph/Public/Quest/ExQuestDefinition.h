@@ -8,17 +8,15 @@
 #include "Quest/ExQuestTypes.h"
 #include "ExQuestDefinition.generated.h"
 
-/**
- * @struct FExQuestObjectiveDefinition
- * @brief 任务目标静态定义（无运行时进度）
- */
+/** Static objective definition (no runtime progress) */
 USTRUCT(BlueprintType)
 struct BLUEPRINTNODEGRAPH_API FExQuestObjectiveDefinition
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
-	FGameplayTag ObjectiveId;
+	/** Register in DefaultGameplayTags.ini under Quest.* */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest", meta = (Categories = "Quest"))
+	FGameplayTag ObjectiveTag;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
 	FText Description;
@@ -30,10 +28,7 @@ struct BLUEPRINTNODEGRAPH_API FExQuestObjectiveDefinition
 	bool bIsOptional = false;
 };
 
-/**
- * @struct FExQuestTaskDefinition
- * @brief 任务静态定义（无运行时状态）
- */
+/** Static task definition (no runtime state) */
 USTRUCT(BlueprintType)
 struct BLUEPRINTNODEGRAPH_API FExQuestTaskDefinition
 {
@@ -69,10 +64,7 @@ struct BLUEPRINTNODEGRAPH_API FExQuestTaskDefinition
 	FExQuestTask ToRuntimeTask() const;
 };
 
-/**
- * @class UExQuestDataAsset
- * @brief 任务集 DataAsset（策划配置入口）
- */
+/** Quest set authored as a DataAsset */
 UCLASS(BlueprintType)
 class BLUEPRINTNODEGRAPH_API UExQuestDataAsset : public UDataAsset
 {
@@ -88,7 +80,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
 	TArray<FExQuestTaskDefinition> TaskDefinitions;
 
-	/** 由静态定义构建可运行的 FExQuestData（目标进度为 0） */
+	/** Build FExQuestData with zero objective progress */
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	FExQuestData BuildInitialQuestData() const;
 

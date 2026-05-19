@@ -247,11 +247,11 @@ bool UExQuestManagerSubsystem::FailQuest(const FGameplayTag& TaskId)
 	return bResult;
 }
 
-bool UExQuestManagerSubsystem::ApplyObjectiveProgress(FExQuestTask& Task, const FGameplayTag& ObjectiveId, int32 NewProgress)
+bool UExQuestManagerSubsystem::ApplyObjectiveProgress(FExQuestTask& Task, const FGameplayTag& ObjectiveTag, int32 NewProgress)
 {
 	for (FExQuestObjective& Objective : Task.Objectives)
 	{
-		if (Objective.ObjectiveId != ObjectiveId)
+		if (Objective.ObjectiveTag != ObjectiveTag)
 		{
 			continue;
 		}
@@ -280,15 +280,15 @@ bool UExQuestManagerSubsystem::ApplyObjectiveProgress(FExQuestTask& Task, const 
 	return false;
 }
 
-bool UExQuestManagerSubsystem::UpdateQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveId, int32 NewProgress)
+bool UExQuestManagerSubsystem::UpdateQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 NewProgress)
 {
-	return FindAndUpdateTask(TaskId, [this, &ObjectiveId, NewProgress](FExQuestTask& Task) -> bool
+	return FindAndUpdateTask(TaskId, [this, &ObjectiveTag, NewProgress](FExQuestTask& Task) -> bool
 	{
-		return ApplyObjectiveProgress(Task, ObjectiveId, NewProgress);
+		return ApplyObjectiveProgress(Task, ObjectiveTag, NewProgress);
 	});
 }
 
-bool UExQuestManagerSubsystem::IncrementQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveId, int32 Delta)
+bool UExQuestManagerSubsystem::IncrementQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 Delta)
 {
 	FExQuestTask Task;
 	if (!CurrentQuestData.FindTaskById(TaskId, Task))
@@ -298,16 +298,16 @@ bool UExQuestManagerSubsystem::IncrementQuestObjective(const FGameplayTag& TaskI
 
 	for (const FExQuestObjective& Objective : Task.Objectives)
 	{
-		if (Objective.ObjectiveId == ObjectiveId)
+		if (Objective.ObjectiveTag == ObjectiveTag)
 		{
-			return UpdateQuestObjective(TaskId, ObjectiveId, Objective.CurrentProgress + Delta);
+			return UpdateQuestObjective(TaskId, ObjectiveTag, Objective.CurrentProgress + Delta);
 		}
 	}
 
 	return false;
 }
 
-bool UExQuestManagerSubsystem::CompleteQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveId)
+bool UExQuestManagerSubsystem::CompleteQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag)
 {
 	FExQuestTask Task;
 	if (!CurrentQuestData.FindTaskById(TaskId, Task))
@@ -317,9 +317,9 @@ bool UExQuestManagerSubsystem::CompleteQuestObjective(const FGameplayTag& TaskId
 
 	for (const FExQuestObjective& Objective : Task.Objectives)
 	{
-		if (Objective.ObjectiveId == ObjectiveId)
+		if (Objective.ObjectiveTag == ObjectiveTag)
 		{
-			return UpdateQuestObjective(TaskId, ObjectiveId, Objective.TargetProgress);
+			return UpdateQuestObjective(TaskId, ObjectiveTag, Objective.TargetProgress);
 		}
 	}
 
@@ -404,7 +404,7 @@ FString UExQuestManagerSubsystem::SaveQuestProgressAsTextV1() const
 		{
 			SaveString += FString::Printf(
 				TEXT("  %s|%d|%d\n"),
-				*Objective.ObjectiveId.ToString(),
+				*Objective.ObjectiveTag.ToString(),
 				Objective.CurrentProgress,
 				Objective.bIsCompleted ? 1 : 0);
 		}
@@ -486,8 +486,8 @@ bool UExQuestManagerSubsystem::LoadQuestProgressLegacyText(const FString& SaveDa
 				continue;
 			}
 
-			const FGameplayTag ObjectiveId = FGameplayTag::RequestGameplayTag(FName(*Parts[0]), false);
-			if (!ObjectiveId.IsValid())
+			const FGameplayTag ObjectiveTag = FGameplayTag::RequestGameplayTag(FName(*Parts[0]), false);
+			if (!ObjectiveTag.IsValid())
 			{
 				continue;
 			}
@@ -495,11 +495,11 @@ bool UExQuestManagerSubsystem::LoadQuestProgressLegacyText(const FString& SaveDa
 			const int32 Progress = FCString::Atoi(*Parts[1]);
 			const bool bCompleted = FCString::Atoi(*Parts[2]) != 0;
 
-			const bool bUpdated = FindAndUpdateTask(CurrentTaskId, [ObjectiveId, Progress, bCompleted](FExQuestTask& Task) -> bool
+			const bool bUpdated = FindAndUpdateTask(CurrentTaskId, [ObjectiveTag, Progress, bCompleted](FExQuestTask& Task) -> bool
 			{
 				for (FExQuestObjective& Objective : Task.Objectives)
 				{
-					if (Objective.ObjectiveId == ObjectiveId)
+					if (Objective.ObjectiveTag == ObjectiveTag)
 					{
 						Objective.CurrentProgress = Progress;
 						Objective.bIsCompleted = bCompleted;

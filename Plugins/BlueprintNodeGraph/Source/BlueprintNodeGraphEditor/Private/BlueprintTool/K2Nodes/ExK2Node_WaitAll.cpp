@@ -20,7 +20,7 @@ UExK2Node_WaitAll::UExK2Node_WaitAll(const FObjectInitializer& ObjectInitializer
 FText UExK2Node_WaitAll::GetTooltipText() const
 {
 	return NSLOCTEXT("ExK2Node_WaitAll", "Tooltip",
-		"全部输入分支都报告后沿 Then 继续（Activate 计成功，ReportBranchFailed 计失败但仍算已报告）。对应完成模式 All。");
+		"Continues on Then after all input branches report. Activate counts success; ReportBranchFailed counts failure but still counts as reported. Mode: All.");
 }
 
 FText UExK2Node_WaitAll::GetNodeTitle(ENodeTitleType::Type TitleType) const

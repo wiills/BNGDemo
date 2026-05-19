@@ -9,9 +9,9 @@
 
 /**
  * @struct FExLatentNodeInfo
- * @brief 延迟节点配置信息结构体
+ * @brief 延迟节点配置信息结构�?
  * 
- * 用于存储延迟节点的配置信息，包括唯一标识、日志内容和超时时间等。
+ * 用于存储延迟节点的配置信息，包括唯一标识、日志内容和超时时间等�?
  */
 USTRUCT(BlueprintType)
 struct FExLatentNodeInfo
@@ -22,15 +22,15 @@ struct FExLatentNodeInfo
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NodeInfo", meta = (DisplayName = "资源UUID", AllowPrivateAccess = true))
 	FString UUID;
 
-	/** 编辑器调试用：对应图表节点的 NodeGuid（编译时由 ExK2Node_AsyncBase 写入）。旧蓝图需重新编译以填充。 */
+	/** 编辑器调试用：对应图表节点的 NodeGuid（编译时�?ExK2Node_AsyncBase 写入）。旧蓝图需重新编译以填充�?*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NodeInfo", meta = (DisplayName = "图表节点Guid", AllowPrivateAccess = true))
 	FString GraphNodeGuid;
 
-	/** 节点唯一ID（UUID + Owner唯一ID） */
+	/** 节点唯一ID（UUID + Owner唯一ID�?*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NodeInfo", meta = (DisplayName = "唯一ID", AllowPrivateAccess = true))
 	FString UniqueId;
 
-	/** 开始执行时的日志内容 */
+	/** 开始执行时的日志内�?*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NodeInfo", meta = (DisplayName = "开始日志", AllowPrivateAccess = true))
 	FString StartLog;
 
@@ -38,7 +38,7 @@ struct FExLatentNodeInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NodeInfo", meta = (DisplayName = "结束日志", AllowPrivateAccess = true))
 	FString EndLog;
 
-	/** 超时时间（秒），0表示不启用超时 */
+	/** 超时时间（秒），0表示不启用超�?*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NodeInfo", meta = (DisplayName = "超时时间", AllowPrivateAccess = true, MinValue = 0.0f, ClampMin = "0.0"))
 	float TimeOut = 0.f;
 };
@@ -54,7 +54,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnExLatentTaskAsyncDelegate);
 namespace ExLatentTaskHelper
 {
 	/**
-	 * 获取枚举值的字符串表示
+	 * 获取枚举值的字符串表�?
 	 * Example Call:
 	 * ExLatentTaskHelper::EnumToString(EExLatentTaskState::Pending);
 	 */

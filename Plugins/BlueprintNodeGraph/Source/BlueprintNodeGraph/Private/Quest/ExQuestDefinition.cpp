@@ -17,7 +17,7 @@ FExQuestTask FExQuestTaskDefinition::ToRuntimeTask() const
 	for (const FExQuestObjectiveDefinition& ObjDef : Objectives)
 	{
 		FExQuestObjective Objective;
-		Objective.ObjectiveId = ObjDef.ObjectiveId;
+		Objective.ObjectiveTag = ObjDef.ObjectiveTag;
 		Objective.Description = ObjDef.Description;
 		Objective.TargetProgress = ObjDef.TargetProgress;
 		Objective.bIsOptional = ObjDef.bIsOptional;

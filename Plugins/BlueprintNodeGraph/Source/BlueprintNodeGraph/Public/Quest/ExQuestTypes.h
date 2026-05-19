@@ -6,10 +6,7 @@
 #include "GameplayTagContainer.h"
 #include "ExQuestTypes.generated.h"
 
-/**
- * @enum EExQuestState
- * @brief 任务状态枚举
- */
+/** Quest lifecycle state */
 UENUM(BlueprintType)
 enum class EExQuestState : uint8
 {
@@ -20,36 +17,28 @@ enum class EExQuestState : uint8
 	Locked
 };
 
-/**
- * @struct FExQuestObjective
- * @brief 任务目标数据
- */
+/** Single objective with progress (runtime + definition merged in FExQuestData) */
 USTRUCT(BlueprintType)
 struct BLUEPRINTNODEGRAPH_API FExQuestObjective
 {
 	GENERATED_BODY()
 
-	/** 目标唯一ID */
+	/** Objective configuration GameplayTag (not a world instance id) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
-	FGameplayTag ObjectiveId;
+	FGameplayTag ObjectiveTag;
 
-	/** 目标描述 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	FText Description;
 
-	/** 当前进度 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	int32 CurrentProgress = 0;
 
-	/** 目标进度 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	int32 TargetProgress = 1;
 
-	/** 是否完成 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	bool bIsCompleted = false;
 
-	/** 是否可选 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	bool bIsOptional = false;
 
@@ -62,48 +51,36 @@ struct BLUEPRINTNODEGRAPH_API FExQuestObjective
 	}
 };
 
-/**
- * @struct FExQuestTask
- * @brief 任务数据
- */
+/** Single quest task */
 USTRUCT(BlueprintType)
 struct BLUEPRINTNODEGRAPH_API FExQuestTask
 {
 	GENERATED_BODY()
 
-	/** 任务唯一ID（使用GameplayTag） */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest"))
 	FGameplayTag TaskId;
 
-	/** 任务名称 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	FText TaskName;
 
-	/** 任务描述 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	FText Description;
 
-	/** 任务状态 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	EExQuestState State = EExQuestState::Locked;
 
-	/** 任务目标列表 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	TArray<FExQuestObjective> Objectives;
 
-	/** 子任务ID列表 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	FGameplayTagContainer SubTaskIds;
 
-	/** 前置任务ID列表 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	FGameplayTagContainer PreTaskIds;
 
-	/** 父任务ID（如果是子任务） */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest"))
 	FGameplayTag ParentTaskId;
 
-	/** 是否可重复 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	bool bIsRepeatable = false;
 
@@ -120,17 +97,14 @@ struct BLUEPRINTNODEGRAPH_API FExQuestTask
 	float GetCompletionPercent() const;
 };
 
-/**
- * @struct FExQuestObjectiveRuntime
- * @brief 目标运行时进度（可单独存档）
- */
+/** Runtime objective progress (save-friendly) */
 USTRUCT(BlueprintType)
 struct BLUEPRINTNODEGRAPH_API FExQuestObjectiveRuntime
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
-	FGameplayTag ObjectiveId;
+	FGameplayTag ObjectiveTag;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	int32 CurrentProgress = 0;
@@ -139,10 +113,7 @@ struct BLUEPRINTNODEGRAPH_API FExQuestObjectiveRuntime
 	bool bIsCompleted = false;
 };
 
-/**
- * @struct FExQuestTaskRuntime
- * @brief 任务运行时状态（可单独存档）
- */
+/** Runtime task state (save-friendly) */
 USTRUCT(BlueprintType)
 struct BLUEPRINTNODEGRAPH_API FExQuestTaskRuntime
 {
@@ -158,10 +129,7 @@ struct BLUEPRINTNODEGRAPH_API FExQuestTaskRuntime
 	TArray<FExQuestObjectiveRuntime> Objectives;
 };
 
-/**
- * @struct FExQuestRuntimeState
- * @brief 任务集运行时状态（与 DataAsset 定义分离）
- */
+/** Runtime state for a quest set (separate from UExQuestDataAsset definitions) */
 USTRUCT(BlueprintType)
 struct BLUEPRINTNODEGRAPH_API FExQuestRuntimeState
 {
@@ -174,10 +142,7 @@ struct BLUEPRINTNODEGRAPH_API FExQuestRuntimeState
 	TArray<FExQuestTaskRuntime> TaskStates;
 };
 
-/**
- * @struct FExQuestData
- * @brief 完整的任务数据（定义 + 运行时合并视图）
- */
+/** Flat quest set: definition + runtime merged view */
 USTRUCT(BlueprintType)
 struct BLUEPRINTNODEGRAPH_API FExQuestData
 {
@@ -201,7 +166,7 @@ struct BLUEPRINTNODEGRAPH_API FExQuestData
 	int32 FindTaskIndex(const FGameplayTag& TaskId) const;
 	bool FindTaskById(const FGameplayTag& TaskId, FExQuestTask& OutTask) const;
 	bool FindMutableTaskById(const FGameplayTag& TaskId, FExQuestTask*& OutTask);
-	bool FindTaskIdByObjectiveId(const FGameplayTag& ObjectiveId, FGameplayTag& OutTaskId) const;
+	bool FindTaskIdByObjectiveTag(const FGameplayTag& ObjectiveTag, FGameplayTag& OutTaskId) const;
 	bool CanActivateTask(const FGameplayTag& TaskId) const;
 	TArray<FExQuestTask> GetAllActiveTasks() const;
 	TArray<FExQuestTask> GetAllCompletedTasks() const;
@@ -214,7 +179,7 @@ struct BLUEPRINTNODEGRAPH_API FExQuestData
 
 private:
 	TMap<FGameplayTag, int32> TaskIdToIndex;
-	TMap<FGameplayTag, int32> ObjectiveIdToTaskIndex;
+	TMap<FGameplayTag, int32> ObjectiveTagToTaskIndex;
 	TMap<FGameplayTag, TArray<int32>> ParentTaskIdToChildIndices;
 	TMap<FGameplayTag, TArray<int32>> PreTaskIdToDependentIndices;
 

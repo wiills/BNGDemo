@@ -5,9 +5,7 @@
 #include "CoreMinimal.h"
 #include "ExK2Node_ShowBase.generated.h"
 
-/**
- * 必要的基础实现 用于蓝图显示: GetMenuActions必要
- */
+/** Base K2 node for editor display; provides GetMenuActions. */
 UCLASS(Abstract)
 class BLUEPRINTNODEGRAPHEDITOR_API UK2Node_ShowBase : public UK2Node
 {
@@ -21,13 +19,13 @@ public:
 	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual bool ShouldShowNodeProperties() const override { return true; }
-	// 重载Node样式
+	// Override node visual style
 	virtual TSharedPtr<SGraphNode> CreateVisualWidget() override;
 	/* UEdGraphNode interface */
 
 	/* UK2Node interface */
 	virtual FText GetMenuCategory() const override;
-	// most important：把这个节点的创建操作添加到右键菜单中
+	// Register this node in the context menu
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	/* UK2Node interface */
 

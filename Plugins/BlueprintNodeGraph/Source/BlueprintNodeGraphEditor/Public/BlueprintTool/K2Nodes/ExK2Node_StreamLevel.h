@@ -8,10 +8,7 @@
 
 /**
  * @class UExK2Node_StreamLevel
- * @brief 异步加载/卸载关卡的蓝图节点
- * 
- * 在蓝图编辑器中提供异步加载和卸载关卡的功能。
- * 支持延迟执行和完成回调。
+ * @brief Async stream load/unload level with optional delay and completion callback.
  */
 UCLASS()
 class BLUEPRINTNODEGRAPHEDITOR_API UExK2Node_StreamLevel : public UExK2Node_AsyncBase

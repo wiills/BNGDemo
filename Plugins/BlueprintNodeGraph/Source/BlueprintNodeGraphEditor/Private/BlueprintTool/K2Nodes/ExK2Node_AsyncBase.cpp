@@ -185,7 +185,7 @@ void UExK2Node_AsyncBase::ExpandNode(FKismetCompilerContext& CompilerContext, UE
 	}
 
 	// --------------------------------------------------------------------------------------
-	// 主 Then：接到 Activate 链末端（原默认行为；无子类覆盖，不保留虚函数钩子）
+	// ?Then?Activate ?
 	// --------------------------------------------------------------------------------------
 	UEdGraphPin* OriginalThenPin = FindPin(UEdGraphSchema_K2::PN_Then);
 	if (OriginalThenPin && LastThenPin)

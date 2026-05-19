@@ -1,7 +1,9 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintTool/K2Nodes/ExK2Node_LatentTaskObject.h"
+#include "BlueprintTool/K2Nodes/ExK2Node_QuestTask.h"
 
+#include "BlueprintActionDatabaseRegistrar.h"
+#include "BlueprintNodeSpawner.h"
 #include "EdGraphSchema_K2.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "K2Node_CallFunction.h"
@@ -10,31 +12,54 @@
 #include "K2Node_TemporaryVariable.h"
 #include "KismetCompiler.h"
 #include "Kismet2/BlueprintEditorUtils.h"
-#include "BlueprintTool/LatentTasks/ExLatentTask_Custom.h"
 #include "BlueprintTool/LatentTasks/ExLatentTask_QuestBound.h"
 
-#define LOCTEXT_NAMESPACE "UExK2Node_LatentTaskObject"
+#define LOCTEXT_NAMESPACE "UExK2Node_QuestTask"
 
+using LatentTaskClassDefine = UExLatentTask_QuestBound;
 
-// proxy class
-using LatentTaskClassDefine = UExLatentTask_Custom;
-
-UExK2Node_LatentTaskObject::UExK2Node_LatentTaskObject(const FObjectInitializer& ObjectInitializer)
+UExK2Node_QuestTask::UExK2Node_QuestTask(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(LatentTaskClassDefine, CreateProxy);
+	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(LatentTaskClassDefine, CreateQuestBoundProxy);
 	ProxySetK2NodeInfoFunctionName = GET_FUNCTION_NAME_CHECKED(LatentTaskClassDefine, SetK2NodeInfo);
 	ProxyActivateFunctionName = GET_FUNCTION_NAME_CHECKED(LatentTaskClassDefine, Activate);
 	ProxyFactoryClass = LatentTaskClassDefine::StaticClass();
 	ProxyClass = LatentTaskClassDefine::StaticClass();
 }
 
-bool UExK2Node_LatentTaskObject::CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const
+FText UExK2Node_QuestTask::GetNodeTitle(ENodeTitleType::Type TitleType) const
+{
+	return LOCTEXT("QuestTaskNodeTitle", "Quest Task");
+}
+
+FText UExK2Node_QuestTask::GetTooltipText() const
+{
+	return LOCTEXT("QuestTaskNodeTooltip", "Create a quest-bound latent task; updates quest progress on successful completion. Do not use Create Latent Task.");
+}
+
+FText UExK2Node_QuestTask::GetMenuCategory() const
+{
+	return LOCTEXT("QuestBoundNodeCategory", "Blueprint Node Graph|Quest");
+}
+
+void UExK2Node_QuestTask::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
+{
+	const UClass* ActionKey = GetClass();
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
+	}
+}
+
+bool UExK2Node_QuestTask::CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const
 {
 	return Super::CanCreateUnderSpecifiedSchema(DesiredSchema);
 }
 
-void UExK2Node_LatentTaskObject::AllocateDefaultPins()
+void UExK2Node_QuestTask::AllocateDefaultPins()
 {
 	Super::AllocateDefaultPins();
 	
@@ -49,7 +74,7 @@ void UExK2Node_LatentTaskObject::AllocateDefaultPins()
 	}
 }
 
-FSlateIcon UExK2Node_LatentTaskObject::GetIconAndTint(FLinearColor& OutColor) const
+FSlateIcon UExK2Node_QuestTask::GetIconAndTint(FLinearColor& OutColor) const
 {
 	static FSlateIcon Icon("EditorStyle", "GraphEditor.Default_16x");
 	return Icon;
@@ -68,7 +93,7 @@ FSlateIcon UExK2Node_LatentTaskObject::GetIconAndTint(FLinearColor& OutColor) co
 
 // -------------------------------------------------
 
-void UExK2Node_LatentTaskObject::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
+void UExK2Node_QuestTask::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
 {
 	AllocateDefaultPins();
 	UClass* UseSpawnClass = GetClassToSpawn(&OldPins);
@@ -79,7 +104,7 @@ void UExK2Node_LatentTaskObject::ReallocatePinsDuringReconstruction(TArray<UEdGr
 	RestoreSplitPins(OldPins);
 }
 
-UEdGraphPin* UExK2Node_LatentTaskObject::GetClassPin(const TArray<UEdGraphPin*>* InPinsToSearch /*= NULL*/) const
+UEdGraphPin* UExK2Node_QuestTask::GetClassPin(const TArray<UEdGraphPin*>* InPinsToSearch /*= NULL*/) const
 {
 	const TArray<UEdGraphPin*>* PinsToSearch = InPinsToSearch ? InPinsToSearch : &Pins;
 
@@ -96,7 +121,7 @@ UEdGraphPin* UExK2Node_LatentTaskObject::GetClassPin(const TArray<UEdGraphPin*>*
 	return Pin;
 }
 
-UClass* UExK2Node_LatentTaskObject::GetClassToSpawn(const TArray<UEdGraphPin*>* InPinsToSearch) const
+UClass* UExK2Node_QuestTask::GetClassToSpawn(const TArray<UEdGraphPin*>* InPinsToSearch) const
 {
 	UClass* UseSpawnClass = nullptr;
 	const TArray<UEdGraphPin*>* PinsToSearch = InPinsToSearch ? InPinsToSearch : &Pins;
@@ -112,15 +137,15 @@ UClass* UExK2Node_LatentTaskObject::GetClassToSpawn(const TArray<UEdGraphPin*>* 
 		UseSpawnClass = SourcePin ? Cast<UClass>(SourcePin->PinType.PinSubCategoryObject.Get()) : nullptr;
 	}
 
-	if (UseSpawnClass && UseSpawnClass->IsChildOf(UExLatentTask_QuestBound::StaticClass()))
+	if (UseSpawnClass && !UseSpawnClass->IsChildOf(UExLatentTask_QuestBound::StaticClass()))
 	{
-		UseSpawnClass = UExLatentTask_Custom::StaticClass();
+		UseSpawnClass = UExLatentTask_QuestBound::StaticClass();
 	}
 
 	return UseSpawnClass;
 }
 
-void UExK2Node_LatentTaskObject::CreatePinsForClass(UClass* InClass)
+void UExK2Node_QuestTask::CreatePinsForClass(UClass* InClass)
 {
 	check(InClass != nullptr);
 
@@ -180,7 +205,7 @@ void UExK2Node_LatentTaskObject::CreatePinsForClass(UClass* InClass)
 	}
 }
 
-void UExK2Node_LatentTaskObject::PinDefaultValueChanged(UEdGraphPin* ChangedPin)
+void UExK2Node_QuestTask::PinDefaultValueChanged(UEdGraphPin* ChangedPin)
 {
 	if (ChangedPin->PinName == ExLatentTaskHelper::ClassPinName)
 	{
@@ -221,14 +246,14 @@ void UExK2Node_LatentTaskObject::PinDefaultValueChanged(UEdGraphPin* ChangedPin)
 	}
 }
 
-UEdGraphPin* UExK2Node_LatentTaskObject::GetResultPin() const
+UEdGraphPin* UExK2Node_QuestTask::GetResultPin() const
 {
 	UEdGraphPin* Pin = FindPinChecked(UEdGraphSchema_K2::PN_ReturnValue);
 	check(Pin->Direction == EGPD_Output);
 	return Pin;
 }
 
-UEdGraphPin* UExK2Node_LatentTaskObject::GetThenPin() const
+UEdGraphPin* UExK2Node_QuestTask::GetThenPin() const
 {
 	UEdGraphPin* Pin = FindPinChecked(UEdGraphSchema_K2::PN_Then);
 	check(Pin->Direction == EGPD_Output);
@@ -242,7 +267,7 @@ UEdGraphPin* UExK2Node_LatentTaskObject::GetThenPin() const
  *		-Task return delegates are created and hooked up (K2Node_BaseAsyncTask)
  *	
  */
-void UExK2Node_LatentTaskObject::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
+void UExK2Node_QuestTask::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
 {
 	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
 	check(SourceGraph && Schema);

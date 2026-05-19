@@ -40,7 +40,7 @@ MainQuest.TaskName = FText::FromString(TEXT("主线任务：拯救世界"));
 MainQuest.State = EExQuestState::Inactive;
 
 FExQuestObjective Obj1;
-Obj1.ObjectiveId = FGameplayTag::RequestGameplayTag(FName("Quest.Main_001.Obj_001"));
+Obj1.ObjectiveTag = FGameplayTag::RequestGameplayTag(FName("Quest.Main_001.Obj_001"));
 Obj1.Description = FText::FromString(TEXT("找到勇者之剑"));
 Obj1.TargetProgress = 1;
 MainQuest.Objectives.Add(Obj1);
@@ -98,7 +98,7 @@ QuestManager->ActivateQuest(FGameplayTag::RequestGameplayTag(FName("Quest.Main_0
 QuestManager->UnlockQuest(FGameplayTag::RequestGameplayTag(FName("Quest.Main_002")));
 
 // 增量更新目标
-QuestManager->IncrementQuestObjective(TaskId, ObjectiveId, 1);
+QuestManager->IncrementQuestObjective(TaskId, ObjectiveTag, 1);
 
 // 更新目标进度（全部必选目标完成后自动将任务设为 Completed，并解锁后续任务）
 QuestManager->UpdateQuestObjective(
@@ -171,7 +171,7 @@ FString Legacy = QuestManager->SaveQuestProgressAsTextV1();
 
 | 属性 | 类型 | 说明 |
 |------|------|------|
-| ObjectiveId | FGameplayTag | 目标 ID |
+| ObjectiveTag | FGameplayTag | 目标配置 Tag（非实例 ID） |
 | Description | FText | 描述 |
 | CurrentProgress | int32 | 当前进度 |
 | TargetProgress | int32 | 目标进度 |
@@ -234,21 +234,31 @@ enum class EExQuestState : uint8
 
 ## 与 BlueprintNodeGraph 延迟任务集成
 
-任务系统与 LatentTask **无内置硬耦合**，可按需在蓝图/C++ 中桥接：
+### 通用 Latent（无任务绑定）
+
+使用 **Create Latent Task**（`ExK2Node_LatentTaskObject`）+ `UExLatentTask_Custom` 子类；在 `OnComplete` 中手动调用 Quest API。
+
+### 任务绑定 Latent（推荐）
+
+使用 **Quest Task**（`UExK2Node_QuestTask`），**不要**用 Create Latent Task 创建 `UExLatentTask_QuestBound` 体系。
+
+1. 蓝图继承 `UExLatentTask_QuestBound`
+2. 配置 `BoundQuestTag`、`BoundObjectiveTag`（配置 Tag，非实例 ID）
+3. Latent 成功完成时自动更新 Quest 进度
 
 ```cpp
-#include "BlueprintTool/LatentTasks/ExLatentTask_Custom.h"
+#include "BlueprintTool/LatentTasks/ExLatentTask_QuestBound.h"
 
-// K2 工厂：创建可 BP 继承的 Latent Task
-UExLatentTask_Custom* TaskProxy = UExLatentTask_Custom::CreateProxy(
-	WorldContextObject, MyLatentTaskClass);
-
-// 绑定 UExBase_LatentTask 的委托
-TaskProxy->CompleteDelegate.AddDynamic(this, &UMyClass::OnLatentTaskComplete);
-TaskProxy->Activate();
+UExLatentTask_QuestBound* Task = UExLatentTask_QuestBound::CreateQuestBoundProxy(
+	WorldContextObject, MyQuestBoundClass);
 ```
 
-自定义 Latent Task 应继承 `UExLatentTask_Custom`（自定义）或 `UExLatentTask_Saveable`（需存档）。
+### 术语
+
+| 字段 | 含义 |
+|------|------|
+| `ObjectiveTag` | 目标配置 GameplayTag，**不是** Actor/实例 ID |
+| `BoundQuestTag` / `BoundObjectiveTag` | QuestBound Latent 上的绑定字段 |
 
 ---
 

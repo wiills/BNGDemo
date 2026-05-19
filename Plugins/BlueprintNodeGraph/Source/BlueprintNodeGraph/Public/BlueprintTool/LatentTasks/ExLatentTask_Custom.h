@@ -8,9 +8,10 @@
 
 /**
  * @class UExLatentTask_Custom
- * @brief 用户自定义延迟任务（蓝图子类的推荐父类）
+ * @brief User-defined latent task (blueprint subclass base).
  *
- * 表示流程中的一个可复用任务单元，由 ExK2Node_LatentTaskObject 调用 CreateProxy 创建实例。
+ * Created via ExK2Node_LatentTaskObject / CreateProxy.
+ * For quest binding use UExLatentTask_QuestBound and UExK2Node_QuestTask instead.
  */
 UCLASS(Blueprintable, BlueprintType, HideDropdown, meta = (ExposedAsyncProxy = AsyncTask, SafeHideThen))
 class BLUEPRINTNODEGRAPH_API UExLatentTask_Custom : public UExBase_LatentTask
@@ -24,7 +25,7 @@ public:
 
 /**
  * @class UExLatentTask_BranchSync
- * @brief 多分支同步延迟任务（K2 内部，等待所有输入分支完成）
+ * @brief Multi-branch sync latent task (internal K2 use).
  */
 UCLASS(NotBlueprintable, NotBlueprintType, HideDropdown, meta = (ExposedAsyncProxy = AsyncTask, SafeHideThen))
 class BLUEPRINTNODEGRAPH_API UExLatentTask_BranchSync : public UExBase_LatentTask

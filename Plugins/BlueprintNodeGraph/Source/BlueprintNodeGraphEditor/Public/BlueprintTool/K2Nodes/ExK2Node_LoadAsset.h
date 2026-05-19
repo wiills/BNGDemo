@@ -8,10 +8,7 @@
 
 /**
  * @class UExK2Node_LoadAsset
- * @brief 异步加载资产的蓝图节点
- * 
- * 在蓝图编辑器中提供异步加载资产的功能。
- * 支持按路径和按类加载两种模式。
+ * @brief Async load asset blueprint node (path or class-based load).
  */
 UCLASS()
 class BLUEPRINTNODEGRAPHEDITOR_API UExK2Node_LoadAsset : public UExK2Node_AsyncBase

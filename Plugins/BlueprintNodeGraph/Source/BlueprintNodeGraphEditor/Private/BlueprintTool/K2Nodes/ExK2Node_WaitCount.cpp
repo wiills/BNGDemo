@@ -20,7 +20,7 @@ UExK2Node_WaitCount::UExK2Node_WaitCount(const FObjectInitializer& ObjectInitial
 FText UExK2Node_WaitCount::GetTooltipText() const
 {
 	return NSLOCTEXT("ExK2Node_WaitCount", "Tooltip",
-		"成功报告（Activate）次数达到 Required Success Count 后沿 Then 继续；失败报告不计入成功次数。对应完成模式 Count。");
+		"Continues on Then after successful Activate reports reach Required Success Count. Failed reports do not count. Mode: Count.");
 }
 
 FText UExK2Node_WaitCount::GetNodeTitle(ENodeTitleType::Type TitleType) const

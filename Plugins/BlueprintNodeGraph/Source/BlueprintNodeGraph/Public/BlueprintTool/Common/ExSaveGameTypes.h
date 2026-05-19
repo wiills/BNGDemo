@@ -7,7 +7,7 @@
 
 /**
  * @struct FExFlowTaskState
- * @brief 单个流程任务的状态数据
+ * @brief 单个流程任务的状态数�?
  */
 USTRUCT(BlueprintType)
 struct BLUEPRINTNODEGRAPH_API FExFlowTaskState
@@ -22,11 +22,11 @@ struct BLUEPRINTNODEGRAPH_API FExFlowTaskState
 	UPROPERTY(BlueprintReadWrite, Category = "FlowState")
 	FString TaskClassName;
 
-	/** 当前状态 */
+	/** 当前状�?*/
 	UPROPERTY(BlueprintReadWrite, Category = "FlowState")
 	FString CurrentState;
 
-	/** 任务参数（JSON格式） */
+	/** 任务参数（JSON格式�?*/
 	UPROPERTY(BlueprintReadWrite, Category = "FlowState")
 	FString TaskParameters;
 
@@ -42,7 +42,7 @@ struct BLUEPRINTNODEGRAPH_API FExFlowTaskState
 	UPROPERTY(BlueprintReadWrite, Category = "FlowState")
 	bool bIsCompleted = false;
 
-	/** 完成时间戳 */
+	/** 完成时间�?*/
 	UPROPERTY(BlueprintReadWrite, Category = "FlowState")
 	float CompletedTimestamp = 0.f;
 
@@ -53,7 +53,7 @@ struct BLUEPRINTNODEGRAPH_API FExFlowTaskState
 
 /**
  * @struct FExFlowState
- * @brief 流程状态数据，用于存档和断点续跑
+ * @brief 流程状态数据，用于存档和断点续�?
  */
 USTRUCT(BlueprintType)
 struct BLUEPRINTNODEGRAPH_API FExFlowState
@@ -84,11 +84,11 @@ struct BLUEPRINTNODEGRAPH_API FExFlowState
 	UPROPERTY(BlueprintReadWrite, Category = "FlowState")
 	TArray<FExFlowTaskState> ActiveTasks;
 
-	/** 已完成任务列表 */
+	/** 已完成任务列�?*/
 	UPROPERTY(BlueprintReadWrite, Category = "FlowState")
 	TArray<FExFlowTaskState> CompletedTasks;
 
-	/** 流程变量（键值对） */
+	/** 流程变量（键值对�?*/
 	UPROPERTY(BlueprintReadWrite, Category = "FlowState")
 	TMap<FString, FString> FlowVariables;
 
@@ -96,7 +96,7 @@ struct BLUEPRINTNODEGRAPH_API FExFlowState
 	UPROPERTY(BlueprintReadWrite, Category = "FlowState")
 	int32 CheckpointIndex = 0;
 
-	/** 元数据 */
+	/** 元数�?*/
 	UPROPERTY(BlueprintReadWrite, Category = "FlowState")
 	TMap<FString, FString> Metadata;
 };

@@ -20,7 +20,7 @@ UExK2Node_WaitAny::UExK2Node_WaitAny(const FObjectInitializer& ObjectInitializer
 FText UExK2Node_WaitAny::GetTooltipText() const
 {
 	return NSLOCTEXT("ExK2Node_WaitAny", "Tooltip",
-		"任意一路 Activate（成功报告）后即沿 Then 继续，无需等待其它分支。对应完成模式 Any。");
+		"Continues on Then after any branch Activate (success report). Other branches need not complete. Mode: Any.");
 }
 
 FText UExK2Node_WaitAny::GetNodeTitle(ENodeTitleType::Type TitleType) const

@@ -14,6 +14,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnQuestObjectiveUpdated, const FExQ
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnQuestProgressChanged, const FGameplayTag&, TaskId, float, CompletionPercent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnQuestDataLoaded);
 
+/** Game-instance quest manager */
 UCLASS()
 class BLUEPRINTNODEGRAPH_API UExQuestManagerSubsystem : public UGameInstanceSubsystem
 {
@@ -39,7 +40,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	void LoadQuestData(const FExQuestData& QuestData);
 
-	/** 从 DataAsset 加载任务定义，可选保留当前运行时进度 */
+	/** Load from DataAsset; optionally keep current runtime progress when QuestSetId matches */
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	void LoadQuestFromAsset(UExQuestDataAsset* QuestAsset, bool bPreserveRuntime = false);
 
@@ -58,6 +59,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	bool ActivateQuest(const FGameplayTag& TaskId);
 
+	/** Locked -> Inactive when prerequisites are met */
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	bool UnlockQuest(const FGameplayTag& TaskId);
 
@@ -68,13 +70,13 @@ public:
 	bool FailQuest(const FGameplayTag& TaskId);
 
 	UFUNCTION(BlueprintCallable, Category = "Quest")
-	bool UpdateQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveId, int32 NewProgress);
+	bool UpdateQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 NewProgress);
 
 	UFUNCTION(BlueprintCallable, Category = "Quest")
-	bool IncrementQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveId, int32 Delta = 1);
+	bool IncrementQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 Delta = 1);
 
 	UFUNCTION(BlueprintCallable, Category = "Quest")
-	bool CompleteQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveId);
+	bool CompleteQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag);
 
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	TArray<FExQuestTask> GetActiveQuests() const;
@@ -94,7 +96,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	void ResetAllQuests();
 
-	/** 默认保存为 JSON V2；兼容加载 V1 文本与 V2 JSON */
+	/** Default save: JSON V2; LoadQuestProgress also accepts legacy V1 text */
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	FString SaveQuestProgress() const;
 
@@ -107,7 +109,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	bool LoadQuestProgressFromJson(const FString& JsonSaveData);
 
-	/** 保存为旧版 V1 文本格式 */
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	FString SaveQuestProgressAsTextV1() const;
 
@@ -134,7 +135,7 @@ private:
 	void HandleQuestCompleted(FExQuestTask& Task);
 	void ResetTaskObjectives(FExQuestTask& Task);
 
-	bool ApplyObjectiveProgress(FExQuestTask& Task, const FGameplayTag& ObjectiveId, int32 NewProgress);
+	bool ApplyObjectiveProgress(FExQuestTask& Task, const FGameplayTag& ObjectiveTag, int32 NewProgress);
 
 	FExQuestRuntimeState CachedRuntimeState;
 };

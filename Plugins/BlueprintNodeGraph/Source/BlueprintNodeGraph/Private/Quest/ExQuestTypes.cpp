@@ -77,7 +77,7 @@ float FExQuestTask::GetCompletionPercent() const
 void FExQuestData::RebuildIndices()
 {
 	TaskIdToIndex.Empty();
-	ObjectiveIdToTaskIndex.Empty();
+	ObjectiveTagToTaskIndex.Empty();
 	ParentTaskIdToChildIndices.Empty();
 	PreTaskIdToDependentIndices.Empty();
 
@@ -103,9 +103,9 @@ void FExQuestData::RebuildIndices()
 
 		for (const FExQuestObjective& Objective : Task.Objectives)
 		{
-			if (Objective.ObjectiveId.IsValid())
+			if (Objective.ObjectiveTag.IsValid())
 			{
-				ObjectiveIdToTaskIndex.Add(Objective.ObjectiveId, TaskIndex);
+				ObjectiveTagToTaskIndex.Add(Objective.ObjectiveTag, TaskIndex);
 			}
 		}
 	}
@@ -155,9 +155,9 @@ bool FExQuestData::FindMutableTaskById(const FGameplayTag& TaskId, FExQuestTask*
 	return false;
 }
 
-bool FExQuestData::FindTaskIdByObjectiveId(const FGameplayTag& ObjectiveId, FGameplayTag& OutTaskId) const
+bool FExQuestData::FindTaskIdByObjectiveTag(const FGameplayTag& ObjectiveTag, FGameplayTag& OutTaskId) const
 {
-	if (const int32* TaskIndex = ObjectiveIdToTaskIndex.Find(ObjectiveId))
+	if (const int32* TaskIndex = ObjectiveTagToTaskIndex.Find(ObjectiveTag))
 	{
 		if (AllTasks.IsValidIndex(*TaskIndex))
 		{
@@ -170,7 +170,7 @@ bool FExQuestData::FindTaskIdByObjectiveId(const FGameplayTag& ObjectiveId, FGam
 	{
 		for (const FExQuestObjective& Objective : Task.Objectives)
 		{
-			if (Objective.ObjectiveId == ObjectiveId)
+			if (Objective.ObjectiveTag == ObjectiveTag)
 			{
 				OutTaskId = Task.TaskId;
 				return true;
@@ -196,7 +196,7 @@ FExQuestRuntimeState FExQuestData::ExtractRuntimeState() const
 		for (const FExQuestObjective& Objective : Task.Objectives)
 		{
 			FExQuestObjectiveRuntime ObjRuntime;
-			ObjRuntime.ObjectiveId = Objective.ObjectiveId;
+			ObjRuntime.ObjectiveTag = Objective.ObjectiveTag;
 			ObjRuntime.CurrentProgress = Objective.CurrentProgress;
 			ObjRuntime.bIsCompleted = Objective.bIsCompleted;
 			TaskRuntime.Objectives.Add(ObjRuntime);
@@ -229,7 +229,7 @@ void FExQuestData::ApplyRuntimeState(const FExQuestRuntimeState& RuntimeState)
 		{
 			for (FExQuestObjective& Objective : Task->Objectives)
 			{
-				if (Objective.ObjectiveId == ObjRuntime.ObjectiveId)
+				if (Objective.ObjectiveTag == ObjRuntime.ObjectiveTag)
 				{
 					Objective.CurrentProgress = ObjRuntime.CurrentProgress;
 					Objective.bIsCompleted = ObjRuntime.bIsCompleted;
