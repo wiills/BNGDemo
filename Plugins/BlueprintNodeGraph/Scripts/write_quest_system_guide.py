@@ -1,4 +1,7 @@
-# 任务系统使用指南
+# -*- coding: utf-8 -*-
+from pathlib import Path
+
+GUIDE = r'''# 任务系统使用指南
 
 > 编码：UTF-8。术语说明见下文「概念与术语」。
 
@@ -134,3 +137,9 @@ QuestManager->IncrementQuestObjective(TaskId, ObjectiveTag, 1);
 - [QuestDevPlan.md](./QuestDevPlan.md) — 开发阶段
 - [README.md](./README.md) — **文档 UTF-8 约定**
 - [Usage.md](./Usage.md) / [Architecture.md](./Architecture.md) — 插件节点与架构
+'''
+
+Path(__file__).resolve().parents[1].joinpath("Docs", "QuestSystemGuide.md").write_text(
+    GUIDE, encoding="utf-8", newline="\n"
+)
+print("QuestSystemGuide.md written (UTF-8)")

@@ -1,402 +1,134 @@
-# BlueprintNodeGraph 架构文档
+# BlueprintNodeGraph 架构指南
 
-## 架构概览
+> 编码：UTF-8。说明插件**模块划分、类职责与运行时机制**；蓝图节点用法见 [Usage.md](./Usage.md)，Quest 业务见 [QuestSystemGuide.md](./QuestSystemGuide.md)。
 
-```
-┌─────────────────────────────────────────────────�?
-�?             BlueprintNodeGraph                   �?
-├─────────────────────────────────────────────────�?
-�? ┌─────────────────�?   ┌────────────────────�?�?
-�? �?Runtime Module   �?   �?Editor Module      �?�?
-�? �?(运行时模�?      �?   �?(编辑器模�?        �?�?
-�? └────────┬────────�?   └─────────┬──────────�?�?
-�?          �?                     �?           �?
-�? ┌────────▼────────�?   ┌─────────▼─────────�? �?
-�? �?核心类库          �?   �?K2节点扩展        �? �?
-�? �?�?异步代理基类    �?   �?�?自定义节�?     �? �?
-�? �?�?延迟任务基类    �?   �?�?Slate UI       �? �?
-�? �?�?子系统管�?     �?   �?�?编辑器集�?     �? �?
-�? └─────────────────�?   └───────────────────�? �?
-└─────────────────────────────────────────────────�?
-```
+---
 
-## 核心类层�?
+## 总览
 
-```
-UObject
-�?
-├── UExBase_AsyncAction                    # 异步操作基类
-�?  ├── UExAsyncActionProxy
-�?  ├── UExAsyncAction_BranchSync
-�?  ├── UExAsyncAction_LoadAsset
-�?  └── ...
-�?
-├── UExBase_FlowProxy                      # 流程控制代理基类
-�?  ├── UExProxy_WaitCondition
-�?  ├── UExProxy_WaitBranch
-�?  ├── UExProxy_BlendPercent
-�?  ├── UExProxy_LoopDelay
-�?  └── UExProxy_ForLoopWithDelay
-�?
-└── UExBase_LatentTask                     # 延迟任务基类
-    ├── UExLatentTask_ForAttach
-    ├── UExLatentTask_Saveable
-    ├── UExLatentTask_Custom               # 用户自定义任务（K2 入口�?
-    └── UExLatentTask_BranchSync           # 多分支同步（K2 内部�?
-```
+插件拆为两个模块，运行时负责逻辑与网络，编辑器负责 K2 节点编译与 Slate。
 
-## 模块结构
+| 模块 | 职责 |
+|------|------|
+| **BlueprintNodeGraph** | Proxy、LatentTask、AsyncAction、Subsystem、Quest 运行时 |
+| **BlueprintNodeGraphEditor** | ExK2Node_* 节点、ExpandNode 编译、资产菜单、调试 UI |
 
-```
-Source/
-�?
-├── BlueprintNodeGraph/              # 运行�?
-�?  ├── Public/BlueprintTool/
-�?  �?  ├── AsyncActions/            # 异步操作
-�?  �?  ├── Proxies/                 # 流程代理
-�?  �?  ├── LatentTasks/             # 延迟任务
-�?  �?  ├── Subsystems/              # 子系�?
-�?  �?  ├── Common/                  # 公共定义
-�?  �?  ├── Libraries/               # 函数�?
-�?  �?  ├── Assets/                  # 资产�?
-�?  �?  └── Quest/                   # 任务系统
-�?  �?      ├── ExQuestTypes.h
-�?  �?      ├── ExQuestManagerSubsystem.h
-�?  �?      ├── ExQuestBlueprintLibrary.h
-�?  �?      └── ExQuestTreeWidget.h
-�?  └── Private/BlueprintTool/       # 同上目录结构
-�?
-└── BlueprintNodeGraphEditor/        # 编辑�?
-    ├── Public/BlueprintTool/
-    �?  ├── K2Nodes/                 # K2 节点
-    �?  ├── Slate/                   # Slate UI
-    �?  └── AssetActions/            # 资产操作
-    └── Private/BlueprintTool/       # 同上目录结构
-```
+三条主线：
 
-## 核心流程
+1. **Flow Proxy**（UExBase_FlowProxy）— 蓝图异步流程节点，多路 Exec 汇合、定时、条件等待。  
+2. **Latent Task**（UExBase_LatentTask）— 可 Spawn、可复制的 UObject 任务，适合长流程与存档。  
+3. **Async Action**（UExBase_AsyncAction）— 资源加载、关卡流、GameplayTag、网络存档等一次性异步。
 
-### 1. 代理创建流程
+---
 
-```
-CreateWaitProxyCall<T>()
-    �?
-    ├─�?Get UExLatentActionManager
-    �?      �?
-    �?      └─�?Generate ObjectUUID
-    �?              �?
-    �?              └─�?Check ProxyMap
-    �?                      �?
-    �?          ┌───────────┴───────────�?
-    �?      存在�?                      │不存在
-    �?          �?                      �?
-    �?      Return existing         Create NewObject
-    �?          �?                      �?
-    �?          �?                      └─�?SetUUIDAndCount()
-    �?          �?                              �?
-    �?          �?                              └─�?Register()
-    �?          �?                                      �?
-    �?          └───────────────────────────────────────�?
-    �?                      �?
-    └───────────────────────�?
-                �?
-        Return Proxy
-```
+## 核心类（运行时）
 
-### 2. 节点执行流程
+| 基类 | 典型子类 | 用途 |
+|------|----------|------|
+| UExBase_FlowProxy | UExProxy_LoopDelay、UExProxy_ForLoopWithDelay、UExProxy_WaitCondition、UExProxy_WaitBranch、UExProxy_BlendPercent | 由 K2 节点创建，经 UExLatentActionManager 按 UUID 复用/缓存 |
+| UExBase_LatentTask | UExLatentTask_Custom（蓝图父类）、UExLatentTask_Saveable、UExLatentTask_QuestBound、UExLatentTask_BranchSync（K2 内部） | TryStart / TryStop / Terminate，RunningState 可复制 |
+| UExBase_AsyncAction | UExAsyncAction_LoadAsset、UExAsyncAction_StreamLevel、UExAsyncAction_GameplayTag*、UExAsyncAction_*（网络/存档） | 委托驱动，常配合 RegisterWithGameInstance |
 
-```
-Activate()
-    �?
-    ├─�?Decrement InputCount
-    �?      �?
-    �?      └─�?Count <= 0 ?
-    �?              �?
-    �?      ┌───────┴───────�?
-    �?     Yes             No
-    �?      �?              �?
-    �?  Set Finished      Wait...
-    �?      �?
-    �?      └─�?OnBranchesFinished()
-    �?
-    └───────────────  （完成时是否调用 TryFinish 由具体子类逻辑与外部调用决定）
-```
+**蓝图作者入口**：任务蓝图继承 UExLatentTask_Custom 或 UExLatentTask_Saveable；Quest 绑定用 UExLatentTask_QuestBound + UExK2Node_QuestTask。
 
-### 3. 任务生命周期
+---
 
-```
-┌─────────�?
-�?Create  �?── CreateTask()
-└────┬────�?
-     �?
-┌─────────�?
-�?Pending �?── Initial State
-└────┬────�?
-     �?Activate()
-┌─────────�?
-�?Running �?── OnStart() �?Execute �?OnStop()
-└────┬────�?
-     �?
-┌─────────�?
-�?────────┼── Completed ──�?Destroy
-└─────────�?
-     �?
-     └─�?Cancelled ──�?Destroy
-```
+## 目录结构（Source/）
 
-## 关键组件
+| 路径 | 内容 |
+|------|------|
+| BlueprintNodeGraph/Public/BlueprintTool/Proxies/ | 流程代理实现 |
+| BlueprintNodeGraph/.../LatentTasks/ | 延迟任务基类与用户扩展点 |
+| BlueprintNodeGraph/.../AsyncActions/ | 异步 Action |
+| BlueprintNodeGraph/.../Subsystems/ | UExLatentActionManager、调试、WorldPartition 等 |
+| BlueprintNodeGraph/.../Common/ | FExLatentNodeInfo、分支模式、超时 Action |
+| BlueprintNodeGraph/Public/Quest/ | UExQuestManagerSubsystem、UExQuestDataAsset、UI、BlueprintLibrary |
+| BlueprintNodeGraphEditor/.../K2Nodes/ | 全部 UExK2Node_* |
+| BlueprintNodeGraphEditor/.../Slate/、AssetActions/ | 编辑器 UI 与资产操作 |
 
-### UExLatentActionManager
+---
 
-```cpp
-UCLASS()
-class UExLatentActionManager : public UGameInstanceSubsystem
-{
-    // 代理对象存储
-    UPROPERTY()
-    TMap<FString, UObject*> ProxyMap;
-    
-    // 管理方法
-    void SetProxyObject(const FString& Key, UObject* Proxy);
-    void RemoveProxyObject(const FString& Key);
-    
-    template<class T>
-    T* GetProxyObject(const FString& Key);
-};
-```
+## K2 节点 ↔ 运行时（对照）
 
-### IExLatentTaskInterface
+| K2 节点（编辑器） | 运行时对象 |
+|-------------------|------------|
+| DelayInLoop | UExProxy_LoopDelay |
+| For Loop With Delay | UExProxy_ForLoopWithDelay |
+| Wait Condition | UExProxy_WaitCondition |
+| Wait All / Wait Any / Wait Count | UExProxy_WaitBranch |
+| AsyncBlendPercent | UExProxy_BlendPercent |
+| Create Latent Task | UExLatentTask_Custom（Spawn + Activate） |
+| Quest Task 等 | UExLatentTask_QuestBound |
+| Async Load Asset / Stream Level / GameplayTag* | 对应 UExAsyncAction_* |
 
-```cpp
-UENUM(BlueprintType)
-enum class EExLatentTaskState : uint8
-{
-    Pending,
-    Running,
-    Completed,
-    Failed,
-    Cancelled
-};
+节点编译由 UExK2Node_AsyncBase（继承引擎 UK2Node_BaseAsyncTask）展开为 CreateProxy → SetK2NodeInfo → Activate，并注入 FExLatentNodeInfo。
 
-class IExLatentTaskInterface
-{
-    // 状态管�?
-    virtual EExLatentTaskState GetState() const = 0;
-    virtual void SetState(EExLatentTaskState InState) = 0;
-    
-    // 生命周期
-    virtual void TryStart();
-    virtual void TryStop();
-    virtual void Terminate();
-};
-```
+---
 
-### FExLatentNodeInfo
+## 运行时机制
 
-```cpp
-USTRUCT(BlueprintType)
-struct FExLatentNodeInfo
-{
-    UPROPERTY()
-    FString UUID;              // 资源UUID
-    
-    UPROPERTY()
-    FString UniqueId;          // 唯一ID
-    
-    UPROPERTY()
-    FString StartLog;          // 开始日�?
-    
-    UPROPERTY()
-    FString EndLog;            // 结束日志
-    
-    UPROPERTY()
-    float TimeOut = 0.f;       // 超时时间
-};
-```
+### Proxy 创建（Flow 节点）
 
-## 编辑器节点扩�?
+1. 从 WorldContext 取 UExLatentActionManager（UGameInstanceSubsystem）。  
+2. 用 ObjectUUID + 节点 UUID 查 ProxyMap；已存在则复用，否则 NewObject 并注册。  
+3. 多路 Exec 进入时递减 **InputCount**，归零后触发 OnBranchesFinished()（子类里启动 Timer / Tick / 条件检测）。
 
-```
-UK2Node_ShowBase (基础节点�?
-�?
-├── UK2Node_AsyncBase
-�?  ├── UK2Node_AsyncBlendPercent
-�?  └── UK2Node_CreateTaskAsync
-�?
-├── UK2Node_LatentTaskCall
-�?  └── UK2Node_LatentTaskObject
-�?
-├── UK2Node_LoopDelay
-�?  └── UK2Node_ForLoopWithDelay
-�?
-├── UK2Node_WaitCondition
-�?  └── UK2Node_WaitBranch
-�?
-└── UK2Node_SwitchValue
-```
+### Latent Task 生命周期
 
-## 内存管理
+CreateTask / Spawn → **Pending** → Activate → **Running**（ReceiveOnStart、StartDelegate）→ TryStop → **Completed**（ReceiveOnStop、CompleteDelegate）→ 回收。  
+Terminate → **Cancelled** 并 MarkAsGarbage。
 
-### GC 防护机制
+### 关键类型
 
-```
-┌─────────────────────────────────�?
-�?     RF_StrongRefOnFrame        �?
-�? (帧强引用，防止GC回收)           �?
-└─────────────────────────────────�?
-                �?
-┌─────────────────────────────────�?
-�? RegisterWithGameInstance()      �?
-�? (注册到GameInstance)            �?
-└─────────────────────────────────�?
-                �?
-┌─────────────────────────────────�?
-�?     TWeakObjectPtr<>            �?
-�? (弱引用存储，避免循环引用)        �?
-└─────────────────────────────────�?
-                �?
-┌─────────────────────────────────�?
-�?    SetReadyToDestroy()          �?
-�? (标记可销�?                      �?
-└─────────────────────────────────�?
-```
+| 类型 | 作用 |
+|------|------|
+| UExLatentActionManager | ProxyMap：按 Key 存取 Flow Proxy，节点结束可 RemoveProxyObject |
+| IExLatentTaskInterface | 状态与 TryStart / TryStop / Terminate 统一入口 |
+| FExLatentNodeInfo | UUID、GraphNodeGuid、StartLog/EndLog、TimeOut（秒，0=禁用） |
+| EExLatentTaskState | Pending / Running / Completed / Failed / Cancelled |
 
-### 对象生命周期
+### 内存与 GC
 
-```cpp
-// 1. 创建时设置强引用
-UExBase_FlowProxy(const FObjectInitializer& OI)
-{
-    SetFlags(RF_StrongRefOnFrame);
-}
+- Proxy / Task 创建时常带 RF_StrongRefOnFrame，避免执行中被 GC。  
+- AsyncAction 可用 RegisterWithGameInstance 挂到 UGameInstance。  
+- 完成路径：SetReadyToDestroy、从 ProxyMap 移除、弱引用（TWeakObjectPtr）避免循环引用。
 
-// 2. 注册到子系统
-RegisterWithGameInstance(WorldContext);
+### 超时
 
-// 3. 完成时释放引�?
-SetReadyToDestroy();
+SetK2NodeInfo 若 TimeOut > 0，启动 FTimer；到期且仍在 Running 则 TryStop()。
 
-// 4. 子系统自动清�?
-RemoveProxyObject(UUID);
-```
+### 网络
 
-## 超时机制
+UExBase_LatentTask::RunningState 带 ReplicatedUsing=OnRep_RunningState；需在合适 Authority 上创建/停止。Standalone 与 AutonomousProxy 下 IsLocal() 为 true。
 
-```
-SetK2NodeInfo()
-    �?
-    ├─�?Check TimeOut > 0
-    �?      �?
-    �?      └─�?SetTimer()
-    �?              �?
-    �?              └─�?Lambda Callback
-    �?                      �?
-    �?                      ├─�?IsValid(Object)
-    �?                      �?      �?
-    �?                      �?      └─�?TryFinish()
-    �?                      �?
-    �?                      └─�?Log Timeout
-```
+---
 
-## 网络复制
+## 扩展入口（C++）
 
-```
-Server                              Client
-  �?                                  �?
-  ├─�?CreateTask()                   �?
-  �?      �?                          �?
-  �?      ├─�?SetReplicates(true)     �?
-  �?      �?                          �?
-  �?      └─�?Replicate State         �?
-  �?              �?                  �?
-  �?              └─�?OnRep_State ────�?
-  �?                                  �?
-  └── TryStop()                       �?
-          �?                          �?
-          └─�?Replicate Stop ─────────�?
-```
+| 目标 | 继承 | 必做 |
+|------|------|------|
+| 新流程节点 | UExBase_FlowProxy + UExK2Node_AsyncBase 子类 | 实现 OnBranchesFinished；K2 侧配置 Factory/Activate、ExpandNode |
+| 新 Latent Task | UExBase_LatentTask 或 UExLatentTask_Saveable | 重写 OnStart/OnStop 或蓝图 ReceiveOnStart/ReceiveOnStop；结束调 TryStop |
+| 新 AsyncAction | UExBase_AsyncAction | 工厂函数 + 委托；可选 UExK2Node_LatentTaskCall 注册专用节点 |
+| Quest 联动 | UExLatentTask_QuestBound | 完成时写回 Quest 状态（见 Quest 文档） |
 
-## 扩展指南
+---
 
-### 扩展异步代理
+## 子系统与其它
 
-```cpp
-UCLASS()
-class UMyAsyncProxy : public UExBase_FlowProxy
-{
-    GENERATED_BODY()
-    
-public:
-    // 重写分支完成回调
-    virtual void OnBranchesFinished() override;
-    
-    // 重写完成回调
-    virtual void OnFinishCall() override;
-};
-```
+| 组件 | 说明 |
+|------|------|
+| UExQuestManagerSubsystem | 任务状态、解锁链、存档（JSON V2） |
+| UExBlueprintNodeGraphDebugSubsystem | 运行时调试辅助 |
+| UExWorldPartitionSubsystem | 大世界分区相关工具 |
+| UExBlueprintNodeLibrary / UExSaveGameLibrary | 蓝图与存档便捷 API |
 
-### 扩展延迟任务
+---
 
-```cpp
-UCLASS(Blueprintable)
-class UMyLatentTask : public UExBase_LatentTask
-{
-    GENERATED_BODY()
-    
-public:
-    // C++ 实现
-    virtual void OnStart() override;
-    virtual void OnStop() override;
-    
-    // 蓝图实现
-    UFUNCTION(BlueprintImplementableEvent)
-    void ReceiveOnStart();
-    
-    UFUNCTION(BlueprintImplementableEvent)
-    void ReceiveOnStop();
-};
-```
+## 延伸阅读
 
-### 扩展 K2 节点
-
-```cpp
-class UMyK2Node : public UK2Node_ShowBase
-{
-public:
-    // 创建引脚
-    virtual void AllocateDefaultPins() override;
-    
-    // 节点展开
-    virtual void ExpandNode(FKismetCompilerContext& CompilerContext, UEdGraph* OutputGraph) override;
-    
-    // 菜单分类
-    virtual FText GetMenuCategory() const override;
-    
-    // 节点标题
-    virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-};
-```
-
-## 数据流图
-
-```
-输入流程�?
-Input A ──�?
-Input B ──┼──�?Wait All ──�?Output
-Input C ──�?
-
-条件流程�?
-Condition ──�?Is True? ──�?Yes ──�?Continue
-                    �?
-                    No
-                    �?
-               Wait...
-
-循环流程�?
-Start ──�?Loop ──�?Body ──�?Delay ──�?Loop?
-                                   �?
-                         ┌─────────┴─────────�?
-                        Yes                  No
-                         �?                   �?
-                      Continue            Completed
-```
+| 文档 | 内容 |
+|------|------|
+| [Usage.md](./Usage.md) | 节点参数、Latent Task 五步、FAQ |
+| [QuestSystemGuide.md](./QuestSystemGuide.md) | Task / Objective / SubTask、DataAsset |
+| [QuestDevPlan.md](./QuestDevPlan.md) | 阶段规划与 P3 |

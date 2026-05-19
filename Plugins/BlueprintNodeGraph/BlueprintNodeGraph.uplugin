@@ -26,5 +26,11 @@
 			"Type": "UncookedOnly",
 			"LoadingPhase": "Default"
 		}
+	],
+	"Plugins": [
+		{
+			"Name": "GameplayMessageRouter",
+			"Enabled": true
+		}
 	]
 }

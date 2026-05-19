@@ -30,6 +30,7 @@ public class BlueprintNodeGraph : ModuleRules
 			"SlateCore",
 			"GameplayTags",
 			"GameplayTasks",
+			"GameplayMessageRuntime",
 			"UMG"
 		});
 	}

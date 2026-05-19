@@ -92,7 +92,7 @@ FExQuestObjective UExQuestBlueprintLibrary::CreateQuestObjective(
 	return Objective;
 }
 
-FExQuestTask UExQuestBlueprintLibrary::CreateQuestTask(
+FExQuestTask UExQuestBlueprintLibrary::MakeQuestTaskData(
 	const FGameplayTag& TaskId,
 	const FText& TaskName,
 	const FText& Description,
