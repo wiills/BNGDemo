@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "BlueprintTool/Proxies/ExBase_FlowProxy.h"
 #include "BlueprintTool/Subsystems/ExLatentActionManager.h"
 #include "ExProxy_WaitCondition.generated.h"
 

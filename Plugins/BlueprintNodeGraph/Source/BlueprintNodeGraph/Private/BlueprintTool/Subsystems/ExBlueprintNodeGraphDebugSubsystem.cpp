@@ -47,14 +47,14 @@ static bool FormatBubbleText(UWorld* World, const FExAsyncProxyDebugEntry& Found
 	{
 		const float Remaining = FMath::Max(0.f, Found.TimeoutSeconds - Elapsed);
 		OutText = FText::Format(
-			NSLOCTEXT("BlueprintNodeGraph", "ExK2NodeTimeoutDescFmt", "{0} ({1} seconds left)"),
+			NSLOCTEXT("BlueprintNodeGraph", "ExLatentTimeoutDescFmt", "{0} ({1} seconds left)"),
 			FText::FromString(Found.TipPrefix),
 			FText::AsNumber(Remaining, &Opt)).ToString();
 	}
 	else
 	{
 		OutText = FText::Format(
-			NSLOCTEXT("BlueprintNodeGraph", "ExK2NodeElapsedDescFmt", "{0} ({1} seconds elapsed)"),
+			NSLOCTEXT("BlueprintNodeGraph", "ExLatentTimeoutElapsedDescFmt", "{0} ({1} seconds elapsed)"),
 			FText::FromString(Found.TipPrefix),
 			FText::AsNumber(Elapsed, &Opt)).ToString();
 	}

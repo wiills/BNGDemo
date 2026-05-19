@@ -13,9 +13,9 @@ SOURCE_ROOT = PLUGIN_ROOT / "Source"
 FILE_MAP_RUNTIME = {
     # Common
     "ExLatentProxyDefine.h": "Common/ExLatentProxyDefine.h",
-    "ExWaitBranchCompletionMode.h": "Common/ExWaitBranchCompletionMode.h",
+    "ExWaitBranchCompletionMode.h": "Common/ExBranchMode.h",
     "ExBlueprintDebugBubble.h": "Common/ExBlueprintDebugBubble.h",
-    "ExK2NodeTimeoutLatentAction.h": "Common/ExK2NodeTimeoutLatentAction.h",
+    "ExK2NodeTimeoutLatentAction.h": "Common/ExLatentTimeoutAction.h",
     "ExWaitAction.h": "Common/ExWaitAction.h",
     "ExSubsystemGetter.h": "Common/ExSubsystemGetter.h",
     "ExSaveGameTypes.h": "Common/ExSaveGameTypes.h",
@@ -35,7 +35,7 @@ FILE_MAP_RUNTIME = {
     "ExAsyncBlendPercent.h": "Proxies/ExProxy_BlendPercent.h",
     "ExLoopDelayProxy.h": "Proxies/ExProxy_LoopDelay.h",
     "ExForLoopWithDelayProxy.h": "Proxies/ExProxy_ForLoopWithDelay.h",
-    "ExLatentTaskProxy.h": "Proxies/ExProxy_LatentTask.h",
+    "ExLatentTaskProxy.h": "LatentTasks/ExLatentTask_Custom.h",
     # LatentTasks
     "ExLatentTaskBase.h": "LatentTasks/ExBase_LatentTask.h",
     "ExLatentTaskInterface.h": "LatentTasks/ExLatentTaskInterface.h",
@@ -87,7 +87,8 @@ CLASS_RENAMES = [
     ("UExGameplayTagModifierProxy", "UExAsyncAction_GameplayTagModifier"),
     ("UExGameplayTagQueryProxy", "UExAsyncAction_GameplayTagQuery"),
     ("UExAsyncLoadAssetCallbackProxy", "UExAsyncAction_LoadAssetCallbackProxy"),
-    ("UExLatentTaskUUIDProxy", "UExProxy_LatentTaskUUID"),
+    ("UExLatentTaskUUIDProxy", "UExLatentTask_BranchSync"),
+    ("UExProxy_LatentTaskUUID", "UExLatentTask_BranchSync"),
     ("UExLatentActionProxyBase", "UExBase_FlowProxy"),
     ("UExLatentActionProxy", "UExAsyncAction_BranchSync"),
     ("UExAsyncLoadAsset", "UExAsyncAction_LoadAsset"),
@@ -100,7 +101,9 @@ CLASS_RENAMES = [
     ("UExLatentTaskForAttach", "UExLatentTask_ForAttach"),
     ("UExLoopDelayProxy", "UExProxy_LoopDelay"),
     ("UExSaveGameProxy", "UExAsyncAction_SaveGame"),
-    ("UExLatentTaskProxy", "UExProxy_LatentTask"),
+    ("UExLatentTaskProxy", "UExLatentTask_Custom"),
+    ("UExProxy_LatentTask", "UExLatentTask_Custom"),
+    ("UExLatentTask_Graph", "UExLatentTask_Custom"),
     ("UExAsyncActionBase", "UExBase_AsyncAction"),
     ("UExLatentTaskBase", "UExBase_LatentTask"),
     ("IExLatentTaskInterface", "IExLatentTaskInterface"),  # no-op anchor

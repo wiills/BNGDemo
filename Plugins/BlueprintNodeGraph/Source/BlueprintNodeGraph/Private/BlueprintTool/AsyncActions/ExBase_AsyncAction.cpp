@@ -3,10 +3,9 @@
 #include "BlueprintTool/AsyncActions/ExBase_AsyncAction.h"
 
 #include "BlueprintTool/Common/ExBlueprintDebugBubble.h"
-#include "BlueprintTool/Common/ExK2NodeTimeoutLatentAction.h"
+#include "BlueprintTool/Common/ExLatentTimeoutAction.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
-#include "Kismet/GameplayStatics.h"
 
 UExBase_AsyncAction::UExBase_AsyncAction(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -23,7 +22,7 @@ void UExBase_AsyncAction::SetK2NodeInfo(const FExLatentNodeInfo K2NodeInfo)
 	{
 		return;
 	}
-	if (FExK2NodeTimeoutLatentAction::HasExistingForProxy(this, K2NodeInfo.UUID))
+	if (FExLatentTimeoutAction::HasExistingForProxy(this, K2NodeInfo.UUID))
 	{
 		return;
 	}
@@ -42,7 +41,7 @@ void UExBase_AsyncAction::SetK2NodeInfo(const FExLatentNodeInfo K2NodeInfo)
 
 	if (m_NodeInfo.TimeOut > 0.f)
 	{
-		FExK2NodeTimeoutLatentAction::TryRegister(this, m_NodeInfo);
+		FExLatentTimeoutAction::TryRegister(this, m_NodeInfo);
 	}
 }
 

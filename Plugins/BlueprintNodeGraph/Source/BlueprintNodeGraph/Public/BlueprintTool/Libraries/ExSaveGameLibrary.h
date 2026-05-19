@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "BlueprintTool/Common/ExSaveGameTypes.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "ExSaveGameLibrary.generated.h"
 

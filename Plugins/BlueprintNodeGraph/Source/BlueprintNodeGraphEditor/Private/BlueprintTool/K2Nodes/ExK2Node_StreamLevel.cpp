@@ -2,7 +2,6 @@
 
 #include "BlueprintTool/K2Nodes/ExK2Node_StreamLevel.h"
 #include "BlueprintTool/AsyncActions/ExAsyncAction_StreamLevel.h"
-#include "K2Node_CallFunction.h"
 #include "KismetCompiler.h"
 
 #define LOCTEXT_NAMESPACE "ExK2Node_StreamLevel"

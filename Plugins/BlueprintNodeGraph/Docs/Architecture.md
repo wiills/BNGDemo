@@ -41,7 +41,8 @@ UObject
 └── UExBase_LatentTask                     # 延迟任务基类
     ├── UExLatentTask_ForAttach
     ├── UExLatentTask_Saveable
-    └── UExProxy_LatentTask                # K2 工厂类
+    ├── UExLatentTask_Custom               # 用户自定义任务（K2 入口）
+    └── UExLatentTask_BranchSync           # 多分支同步（K2 内部）
 ```
 
 ## 模块结构

@@ -6,7 +6,7 @@
 #include "BlueprintTool/K2Nodes/ExK2Node_AsyncBase.h"
 #include "ExK2Node_WaitAny.generated.h"
 
-/** 多路汇入：任一支路成功报告后继续（EExWaitBranchCompletionMode::Any）。 */
+/** 多路汇入：任一支路成功报告后继续（EExBranchMode::Any）。 */
 UCLASS()
 class BLUEPRINTNODEGRAPHEDITOR_API UExK2Node_WaitAny : public UExK2Node_AsyncBase
 {

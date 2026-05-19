@@ -26,7 +26,7 @@
 
 | 目录 | 文件 |
 |------|------|
-| **Common/** | ExLatentProxyDefine, ExWaitBranchCompletionMode, ExBlueprintDebugBubble, ExK2NodeTimeoutLatentAction, ExWaitAction, ExSubsystemGetter, ExSaveGameTypes |
+| **Common/** | ExLatentProxyDefine, ExBranchMode, ExBlueprintDebugBubble, ExLatentTimeoutAction, ExWaitAction, ExSubsystemGetter, ExSaveGameTypes |
 | **AsyncActions/** | ExBase_AsyncAction, ExAsyncAction_LoadAsset, StreamLevel, SpawnActor, GameplayTag, Network |
 | **Proxies/** | ExBase_FlowProxy, ExProxy_WaitCondition, WaitBranch, BlendPercent, LoopDelay, ForLoopWithDelay, LatentTask |
 | **LatentTasks/** | ExBase_LatentTask, ExLatentTaskInterface, ForAttach, Saveable |
@@ -48,7 +48,7 @@
 |------|------|
 | `README.md` / `README_CN.md` | ✅ 已更新路径 |
 | `Docs/Architecture.md` | ✅ 已更新继承关系与目录结构 |
-| `Docs/Usage.md` | ✅ 已更新 ExProxy_LatentTask 示例 |
+| `Docs/Usage.md` | ✅ 已更新 ExLatentTask_Custom 示例 |
 | `Docs/QuestSystemGuide.md` | ✅ 已使用新类名 |
 
 ---
@@ -80,10 +80,10 @@ UObject
 │
 └── UExBase_LatentTask                     # 可 Blueprint 子类化的延迟任务
     ├── IExLatentTaskInterface
+    ├── UExLatentTask_Custom                # 用户自定义任务（原 ExProxy_LatentTask）
+    ├── UExLatentTask_BranchSync           # 多分支同步（原 ExProxy_LatentTaskUUID）
     ├── UExLatentTask_ForAttach
-    ├── UExLatentTask_Saveable
-    ├── UExProxy_LatentTask                # K2 工厂（原 ExLatentTaskProxy）
-    └── UExProxy_LatentTaskUUID            # 带 UUID 同步的工厂
+    └── UExLatentTask_Saveable
 ```
 
 ### 类型对照表
@@ -93,7 +93,7 @@ UObject
 | **AsyncAction** | `ExAsyncAction_` | `UExBase_AsyncAction` | 一次性异步，Activate → 完成 | 加载资源、流关卡、Spawn、网络同步 |
 | **FlowProxy** | `ExProxy_` | `UExBase_FlowProxy` | K2 节点驱动，多输入分支、Tick 轮询 | WaitCondition、LoopDelay、BlendPercent |
 | **LatentTask** | `ExLatentTask_` | `UExBase_LatentTask` | 可持续运行，支持超时/暂停，可 BP 继承 | 自定义任务逻辑、Quest Task |
-| **LatentTask 工厂** | `ExProxy_LatentTask` | `UExBase_LatentTask` | K2 用来 **创建** LatentTask 实例 | `CreateLatentTask` 节点 |
+| **LatentTask（自定义）** | `ExLatentTask_Custom` | `UExBase_LatentTask` | 可 BP 子类化 + K2 `CreateLatentTask` | 用户自定义单任务 |
 
 ### 易混淆点（必读）
 
@@ -102,7 +102,7 @@ UObject
 | `ExLatentSpawnProxy` | LatentTask | **AsyncAction**（继承 `UExAsyncActionBase`） |
 | `ExAsyncBlendPercentProxy` | AsyncAction | **FlowProxy**（继承 `UExLatentActionProxyBase`） |
 | `ExGameplayTagProxy` | FlowProxy | **AsyncAction**（继承 `UExAsyncActionBase`） |
-| `ExLatentTaskProxy` | LatentTask 基类 | **工厂 Proxy**（K2 创建入口） |
+| `ExLatentTaskProxy` | LatentTask 基类 | 已改为 **`ExLatentTask_Custom`**（与 `ExLatentTask_Saveable` 同前缀） |
 | `UExLatentActionProxy` | FlowProxy | **AsyncAction 分支**（继承 `UExBase_AsyncAction`） |
 
 ---
@@ -114,6 +114,7 @@ UObject
 | 类别 | 文件前缀 | 类名模式 | 示例 |
 |------|----------|----------|------|
 | K2 节点 | `ExK2Node_` | `ExK2Node_` + 功能 | `ExK2Node_WaitCondition` |
+| Latent Action（`FPendingLatentAction`） | `Ex` + 功能 + `Action` | `FEx*` + `Action` | `FExLatentTimeoutAction`、`FExWaitAction`（**禁止** `ExK2Node_` 前缀） |
 | 异步操作 | `ExAsyncAction_` | `UExAsyncAction_` + 功能 | `UExAsyncAction_LoadAsset` |
 | 流程代理 | `ExProxy_` | `UExProxy_` + 功能 | `UExProxy_WaitCondition` |
 | 延迟任务 | `ExLatentTask_` | `UExLatentTask_` + 功能 | `UExLatentTask_ForAttach` |
@@ -154,11 +155,11 @@ BlueprintTool/
 │   ├── ExProxy_BlendPercent.h
 │   ├── ExProxy_LoopDelay.h
 │   ├── ExProxy_ForLoopWithDelay.h
-│   └── ExProxy_LatentTask.h              # UExProxy_LatentTask + UExProxy_LatentTaskUUID
 │
 ├── LatentTasks/
 │   ├── ExBase_LatentTask.h
 │   ├── ExLatentTaskInterface.h
+│   ├── ExLatentTask_Custom.h              # UExLatentTask_Custom + UExLatentTask_BranchSync
 │   ├── ExLatentTask_ForAttach.h
 │   └── ExLatentTask_Saveable.h
 │
@@ -173,10 +174,10 @@ BlueprintTool/
 │
 ├── Common/
 │   ├── ExLatentProxyDefine.h
-│   ├── ExWaitBranchCompletionMode.h
+│   ├── ExBranchMode.h
 │   ├── ExSaveGameTypes.h
 │   ├── ExBlueprintDebugBubble.h
-│   ├── ExK2NodeTimeoutLatentAction.h
+│   ├── ExLatentTimeoutAction.h
 │   ├── ExWaitAction.h
 │   └── ExSubsystemGetter.h
 │
@@ -231,12 +232,12 @@ BlueprintTool/
 | ExLatentTaskForAttach.h | LatentTasks/ExLatentTask_ForAttach.h | UExLatentTaskForAttach | UExLatentTask_ForAttach |
 | ExSaveableLatentTask.h | LatentTasks/ExLatentTask_Saveable.h | UExSaveableLatentTask | UExLatentTask_Saveable |
 
-### 6.4 LatentTask 工厂（归入 Proxies/）✅
+### 6.4 LatentTask 图任务（归入 LatentTasks/）✅
 
 | 原文件 | 新文件 | 原类名 | 新类名 |
 |--------|--------|--------|--------|
-| ExLatentTaskProxy.h | Proxies/ExProxy_LatentTask.h | UExLatentTaskProxy | UExProxy_LatentTask |
-| ExLatentTaskProxy.h | Proxies/ExProxy_LatentTask.h | UExLatentTaskUUIDProxy | UExProxy_LatentTaskUUID |
+| ExLatentTaskProxy.h | LatentTasks/ExLatentTask_Custom.h | UExLatentTaskProxy | UExLatentTask_Custom |
+| ExLatentTaskProxy.h | LatentTasks/ExLatentTask_Custom.h | UExLatentTaskUUIDProxy | UExLatentTask_BranchSync |
 
 ### 6.5 Subsystems / Common / Libraries / Assets ✅
 
@@ -305,9 +306,14 @@ UExBase_AsyncAction* AsyncProxy = Cast<UExBase_AsyncAction>(ProxyObject);
 
 1. **框架阶段可大胆改**：当前无已发布蓝图资产依赖，无需 CoreRedirects。
 2. **归类看继承，不看文件名**：文件名含 `Proxy` 或 `Async` 不代表真实类型。
-3. **工厂类单独命名**：`ExLatentTaskProxy` → `ExProxy_LatentTask`，避免与 `ExBase_LatentTask` 混淆。
+3. **LatentTask 统一前缀**：用户入口均为 `ExLatentTask_*`（`Custom` / `Saveable`），不再使用 `ExProxy_LatentTask`。
 4. **废弃类**：`UExProxy_LoopDelay` 仍保留 `UE_DEPRECATED` 标记，后续可评估移除。
 5. **编译验证**：重构后需全量编译，让 UHT 重新生成 `.generated.h`。
+6. **蓝图父类选择（2026-05-19）**：
+   - `UExBase_LatentTask`：`NotBlueprintType`，不出现在 Reparent 列表。
+   - `UExLatentTask_Custom` / `UExLatentTask_Saveable`：用户入口，命名风格一致。
+   - `UExLatentTask_BranchSync`、`UExLatentTask_ForAttach`：`NotBlueprintable, NotBlueprintType`，K2/内联专用。
+   - `CoreRedirects`：`ExProxy_LatentTask` / `ExLatentTask_Graph` → `ExLatentTask_Custom`（见 `Config/DefaultBlueprintNodeGraph.ini`）。
 
 ---
 
@@ -319,8 +325,8 @@ UExBase_AsyncAction* AsyncProxy = Cast<UExBase_AsyncAction>(ProxyObject);
 UExBase_AsyncAction   →  异步操作根
 UExAsyncAction_*      →  具体异步操作
 UExBase_FlowProxy     →  流程代理根（K2 多分支/Tick）
-UExProxy_*            →  具体流程代理 或 LatentTask 工厂
-UExBase_LatentTask    →  可 BP 继承的延迟任务根
-UExLatentTask_*       →  具体延迟任务
+UExProxy_*            →  流程代理（WaitCondition、LoopDelay 等）
+UExBase_LatentTask    →  延迟任务 C++ 根（不可直接建 BP）
+UExLatentTask_*       →  延迟任务（Custom / Saveable / ForAttach 等）
 ExK2Node_*            →  编辑器蓝图节点（Editor 模块）
 ```

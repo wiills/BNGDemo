@@ -4,7 +4,7 @@
 
 #include "BlueprintTool/Common/ExBlueprintDebugBubble.h"
 #include "BlueprintTool/Subsystems/ExLatentActionManager.h"
-#include "BlueprintTool/Common/ExK2NodeTimeoutLatentAction.h"
+#include "BlueprintTool/Common/ExLatentTimeoutAction.h"
 
 void UExBase_FlowProxy::Activate()
 {
@@ -33,7 +33,7 @@ void UExBase_FlowProxy::SetK2NodeInfo(const FExLatentNodeInfo K2NodeInfo)
 	{
 		return;
 	}
-	if (FExK2NodeTimeoutLatentAction::HasExistingForProxy(this, K2NodeInfo.UUID))
+	if (FExLatentTimeoutAction::HasExistingForProxy(this, K2NodeInfo.UUID))
 	{
 		return;
 	}
@@ -45,7 +45,7 @@ void UExBase_FlowProxy::SetK2NodeInfo(const FExLatentNodeInfo K2NodeInfo)
 	if (m_NodeInfo.TimeOut > 0.f)
 	{
 		UE_LOG(LogAsyncAction, Display, TEXT("[StartLog][UExBase_FlowProxy::SetK2NodeInfo] - %s, latent timeout %f + debug bubble"), *GetName(), m_NodeInfo.TimeOut);
-		FExK2NodeTimeoutLatentAction::TryRegister(this, m_NodeInfo);
+		FExLatentTimeoutAction::TryRegister(this, m_NodeInfo);
 	}
 	else
 	{

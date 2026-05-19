@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "BlueprintTool/Subsystems/ExLatentActionManager.h"
-#include "BlueprintTool/Common/ExWaitBranchCompletionMode.h"
+#include "BlueprintTool/Common/ExBranchMode.h"
 #include "ExProxy_WaitBranch.generated.h"
 
 /**
@@ -39,8 +39,8 @@ protected:
 	virtual void OnBranchesFinished() override;
 
 private:
-	void InitializeForRun(EExWaitBranchCompletionMode InMode, int32 InRequiredSuccess);
+	void InitializeForRun(EExBranchMode InMode, int32 InRequiredSuccess);
 
 	UPROPERTY()
-	EExWaitBranchCompletionMode CompletionMode = EExWaitBranchCompletionMode::All;
+	EExBranchMode BranchMode = EExBranchMode::All;
 };

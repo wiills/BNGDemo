@@ -13,6 +13,7 @@
  * 
  * 提供基础的存档和断点续跑能力。
  * 子类可以重写 SerializeState 和 DeserializeState 来实现自定义的序列化逻辑。
+ * 需要存档/断点续跑时的蓝图父类。
  */
 UCLASS(Abstract, HideDropdown, Blueprintable, BlueprintType)
 class BLUEPRINTNODEGRAPH_API UExLatentTask_Saveable : public UExBase_LatentTask

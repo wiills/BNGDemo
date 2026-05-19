@@ -1,14 +1,14 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintTool/Common/ExK2NodeTimeoutLatentAction.h"
+#include "BlueprintTool/Common/ExLatentTimeoutAction.h"
 
 #include "BlueprintTool/AsyncActions/ExBase_AsyncAction.h"
 #include "BlueprintTool/Proxies/ExBase_FlowProxy.h"
 #include "Engine/LatentActionManager.h"
 
-#define LOCTEXT_NAMESPACE "ExK2NodeTimeoutLatentAction"
+#define LOCTEXT_NAMESPACE "ExLatentTimeoutAction"
 
-namespace ExK2NodeTimeoutLatentActionPrivate
+namespace ExLatentTimeoutActionPrivate
 {
 	static int32 UUIDStringToLatentInt32(const FString& UUIDStr)
 	{
@@ -24,7 +24,7 @@ namespace ExK2NodeTimeoutLatentActionPrivate
 	}
 }
 
-bool FExK2NodeTimeoutLatentAction::HasExistingForProxy(UObject* ProxyObject, const FString& UUIDStr)
+bool FExLatentTimeoutAction::HasExistingForProxy(UObject* ProxyObject, const FString& UUIDStr)
 {
 	if (!ProxyObject)
 	{
@@ -38,17 +38,17 @@ bool FExK2NodeTimeoutLatentAction::HasExistingForProxy(UObject* ProxyObject, con
 		return false;
 	}
 
-	const int32 LatentUUID = ExK2NodeTimeoutLatentActionPrivate::UUIDStringToLatentInt32(UUIDStr);
+	const int32 LatentUUID = ExLatentTimeoutActionPrivate::UUIDStringToLatentInt32(UUIDStr);
 	if (LatentUUID == 0)
 	{
 		return false;
 	}
 
-	return World->GetLatentActionManager().FindExistingAction<FExK2NodeTimeoutLatentAction>(CallbackTarget,
+	return World->GetLatentActionManager().FindExistingAction<FExLatentTimeoutAction>(CallbackTarget,
 		LatentUUID) != nullptr;
 }
 
-void FExK2NodeTimeoutLatentAction::TryRegister(UObject* ProxyObject, const FExLatentNodeInfo& NodeInfo)
+void FExLatentTimeoutAction::TryRegister(UObject* ProxyObject, const FExLatentNodeInfo& NodeInfo)
 {
 	if (!ProxyObject || NodeInfo.TimeOut <= 0.f)
 	{
@@ -67,14 +67,14 @@ void FExK2NodeTimeoutLatentAction::TryRegister(UObject* ProxyObject, const FExLa
 		return;
 	}
 
-	const int32 LatentUUID = ExK2NodeTimeoutLatentActionPrivate::UUIDStringToLatentInt32(NodeInfo.UUID);
+	const int32 LatentUUID = ExLatentTimeoutActionPrivate::UUIDStringToLatentInt32(NodeInfo.UUID);
 	if (LatentUUID == 0)
 	{
 		return;
 	}
 
 	FLatentActionManager& Manager = World->GetLatentActionManager();
-	if (Manager.FindExistingAction<FExK2NodeTimeoutLatentAction>(CallbackTarget, LatentUUID))
+	if (Manager.FindExistingAction<FExLatentTimeoutAction>(CallbackTarget, LatentUUID))
 	{
 		return;
 	}
@@ -86,19 +86,19 @@ void FExK2NodeTimeoutLatentAction::TryRegister(UObject* ProxyObject, const FExLa
 	}
 	else if (NodeInfo.TimeOut > 0.f)
 	{
-		Prefix = NSLOCTEXT("BlueprintNodeGraph", "ExK2NodeTimeoutDefaultTip", "Timeout").ToString();
+		Prefix = NSLOCTEXT("BlueprintNodeGraph", "ExLatentTimeoutDefaultTip", "Timeout").ToString();
 	}
 	else
 	{
-		Prefix = NSLOCTEXT("BlueprintNodeGraph", "ExK2NodeWaitingDefaultTip", "Waiting").ToString();
+		Prefix = NSLOCTEXT("BlueprintNodeGraph", "ExLatentTimeoutWaitingTip", "Waiting").ToString();
 	}
 
 	Manager.AddNewAction(CallbackTarget, LatentUUID,
-		new FExK2NodeTimeoutLatentAction(ProxyObject, NodeInfo.TimeOut, MoveTemp(Prefix)));
+		new FExLatentTimeoutAction(ProxyObject, NodeInfo.TimeOut, MoveTemp(Prefix)));
 }
 
-FExK2NodeTimeoutLatentAction::FExK2NodeTimeoutLatentAction(UObject* ProxyObject, float TimeoutSeconds,
-                                                           FString InTipPrefix)
+FExLatentTimeoutAction::FExLatentTimeoutAction(UObject* ProxyObject, float TimeoutSeconds,
+                                               FString InTipPrefix)
 	: WeakProxy(ProxyObject)
 	  , TimeoutLimit(TimeoutSeconds)
 	  , RemainingTime(TimeoutSeconds > 0.f ? TimeoutSeconds : 0.f)
@@ -107,7 +107,7 @@ FExK2NodeTimeoutLatentAction::FExK2NodeTimeoutLatentAction(UObject* ProxyObject,
 {
 }
 
-void FExK2NodeTimeoutLatentAction::UpdateOperation(FLatentResponse& Response)
+void FExLatentTimeoutAction::UpdateOperation(FLatentResponse& Response)
 {
 	UObject* Proxy = WeakProxy.Get();
 	if (!Proxy)
@@ -152,7 +152,7 @@ void FExK2NodeTimeoutLatentAction::UpdateOperation(FLatentResponse& Response)
 	Response.DoneIf(false);
 }
 
-void FExK2NodeTimeoutLatentAction::InvokeTryFinish(UObject* ProxyObject)
+void FExLatentTimeoutAction::InvokeTryFinish(UObject* ProxyObject)
 {
 	if (UExBase_AsyncAction* AsyncProxy = Cast<UExBase_AsyncAction>(ProxyObject))
 	{
@@ -170,9 +170,8 @@ void FExK2NodeTimeoutLatentAction::InvokeTryFinish(UObject* ProxyObject)
 	}
 }
 
-// 仅编辑器：蓝图 latent 调试 UI 读取此字符串绘制气泡；非编辑器配置无此函数，亦无节点气泡 overlay。
 #if WITH_EDITOR
-FString FExK2NodeTimeoutLatentAction::GetDescription() const
+FString FExLatentTimeoutAction::GetDescription() const
 {
 	static const FNumberFormattingOptions DelayTimeFormatOptions = FNumberFormattingOptions()
 		                                                              .SetMinimumFractionalDigits(3)
@@ -182,14 +181,14 @@ FString FExK2NodeTimeoutLatentAction::GetDescription() const
 	{
 		const FText SecondsLeft = FText::AsNumber(RemainingTime, &DelayTimeFormatOptions);
 		return FText::Format(
-			NSLOCTEXT("BlueprintNodeGraph", "ExK2NodeTimeoutDescFmt", "{0} ({1} seconds left)"),
+			NSLOCTEXT("BlueprintNodeGraph", "ExLatentTimeoutDescFmt", "{0} ({1} seconds left)"),
 			FText::FromString(TipPrefix),
 			SecondsLeft).ToString();
 	}
 
 	const FText Elapsed = FText::AsNumber(ElapsedTime, &DelayTimeFormatOptions);
 	return FText::Format(
-		NSLOCTEXT("BlueprintNodeGraph", "ExK2NodeElapsedDescFmt", "{0} ({1} seconds elapsed)"),
+		NSLOCTEXT("BlueprintNodeGraph", "ExLatentTimeoutElapsedDescFmt", "{0} ({1} seconds elapsed)"),
 		FText::FromString(TipPrefix),
 		Elapsed).ToString();
 }

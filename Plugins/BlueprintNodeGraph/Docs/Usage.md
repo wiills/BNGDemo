@@ -135,11 +135,11 @@ Open Door
 ```
 1. 打开内容浏览器
 2. 右键 → Blueprint Class
-3. 搜索 "ExProxy_LatentTask"
+3. 搜索 `ExLatentTask_Custom`
 4. 选择并命名（如 BP_LevelTask）
 ```
 
-> ⚠️ 注意：使用 `ExProxy_LatentTask` 而不是 `ExBase_LatentTask`，因为 K2 节点调用的是 `ExProxy_LatentTask` 工厂类
+> ⚠️ 父类列表中应只看到 `ExLatentTask_Custom`（自定义任务）或 `ExLatentTask_Saveable`（可存档任务）。内部基类已标记 `NotBlueprintType`，不会出现在 Reparent 中。
 
 #### 步骤 2：配置任务属性
 
@@ -147,7 +147,7 @@ Open Door
 BP_LevelTask → Class Settings → Details:
 
 ├─ Description: "我的自定义任务"
-├─ Parent Class: ExProxy_LatentTask
+├─ Parent Class: ExLatentTask_Custom
 └─ 保持默认即可
 ```
 

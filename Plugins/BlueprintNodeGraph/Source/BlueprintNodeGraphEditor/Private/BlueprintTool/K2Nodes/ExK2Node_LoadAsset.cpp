@@ -1,7 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintTool/K2Nodes/ExK2Node_LoadAsset.h"
-#include "BlueprintTool/AsyncActions/ExAsyncAction_LoadAsset.h"
 #include "KismetCompiler.h"
 
 #define LOCTEXT_NAMESPACE "ExK2Node_LoadAsset"

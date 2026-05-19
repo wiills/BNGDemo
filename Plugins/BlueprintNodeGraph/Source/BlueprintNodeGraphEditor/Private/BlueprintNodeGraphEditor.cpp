@@ -6,7 +6,6 @@
 #include "AssetTypeCategories.h"
 #include "BlueprintTool/AssetActions/ExAssetTypeActions_FlowGraph.h"
 #include "IAssetTools.h"
-#include "Modules/ModuleManager.h"
 
 #define LOCTEXT_NAMESPACE "FBlueprintNodeGraphEditorModule"
 

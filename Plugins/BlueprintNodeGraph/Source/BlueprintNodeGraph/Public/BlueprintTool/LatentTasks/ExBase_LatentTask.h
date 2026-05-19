@@ -12,8 +12,9 @@
  * @brief 延迟任务基类
  * 
  * 提供基础的延迟任务功能，支持超时控制、网络复制、状态管理等。
+ * C++ 中间层可继承；蓝图请继承 ExLatentTask_Custom 或 ExLatentTask_Saveable。
  */
-UCLASS(Abstract, HideDropdown, Blueprintable, BlueprintType)
+UCLASS(Abstract, HideDropdown, NotBlueprintType)
 class BLUEPRINTNODEGRAPH_API UExBase_LatentTask : public UObject, public IExLatentTaskInterface
 {
 	GENERATED_BODY()

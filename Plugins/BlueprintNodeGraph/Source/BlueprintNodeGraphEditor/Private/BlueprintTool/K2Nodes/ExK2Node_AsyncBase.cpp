@@ -8,7 +8,6 @@
 #include "K2Node_IfThenElse.h"
 #include "K2Node_TemporaryVariable.h"
 #include "KismetCompiler.h"
-#include "BlueprintTool/K2Nodes/ExK2Node_LatentTaskCall.h"
 #include "Kismet/KismetStringLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet2/BlueprintEditorUtils.h"

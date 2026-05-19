@@ -186,10 +186,10 @@ enum class EExQuestState : uint8
 任务系统与 LatentTask **无内置硬耦合**，可按需在蓝图/C++ 中桥接：
 
 ```cpp
-#include "BlueprintTool/Proxies/ExProxy_LatentTask.h"
+#include "BlueprintTool/LatentTasks/ExLatentTask_Custom.h"
 
 // K2 工厂：创建可 BP 继承的 Latent Task
-UExProxy_LatentTask* TaskProxy = UExProxy_LatentTask::CreateProxy(
+UExLatentTask_Custom* TaskProxy = UExLatentTask_Custom::CreateProxy(
 	WorldContextObject, MyLatentTaskClass);
 
 // 绑定 UExBase_LatentTask 的委托
@@ -197,7 +197,7 @@ TaskProxy->CompleteDelegate.AddDynamic(this, &UMyClass::OnLatentTaskComplete);
 TaskProxy->Activate();
 ```
 
-自定义 Latent Task 应继承 `UExBase_LatentTask`（或 `UExProxy_LatentTask` 用于 K2 入口）。
+自定义 Latent Task 应继承 `UExLatentTask_Custom`（自定义）或 `UExLatentTask_Saveable`（需存档）。
 
 ---
 

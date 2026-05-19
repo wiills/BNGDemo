@@ -6,7 +6,6 @@
 #include "GameplayTagContainer.h"
 #include "BlueprintTool/Common/ExWaitAction.h"
 #include "Engine/Engine.h"
-#include "Kismet/GameplayStatics.h"
 
 void UExBlueprintNodeLibrary::WaitAction(const UObject* WorldContextObject, float Duration, FLatentActionInfo LatentInfo)
 {

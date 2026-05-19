@@ -68,11 +68,11 @@ void ExBlueprintDebugBubble::Register(UObject* ProxyObject, const FExLatentNodeI
 	}
 	else if (Info.TimeOut > 0.f)
 	{
-		Prefix = NSLOCTEXT("BlueprintNodeGraph", "ExK2NodeTimeoutDefaultTip", "Timeout").ToString();
+		Prefix = NSLOCTEXT("BlueprintNodeGraph", "ExLatentTimeoutDefaultTip", "Timeout").ToString();
 	}
 	else
 	{
-		Prefix = NSLOCTEXT("BlueprintNodeGraph", "ExK2NodeWaitingDefaultTip", "Waiting").ToString();
+		Prefix = NSLOCTEXT("BlueprintNodeGraph", "ExLatentTimeoutWaitingTip", "Waiting").ToString();
 	}
 
 	if (UExBlueprintNodeGraphDebugSubsystem* Sub = World->GetGameInstance()->GetSubsystem<

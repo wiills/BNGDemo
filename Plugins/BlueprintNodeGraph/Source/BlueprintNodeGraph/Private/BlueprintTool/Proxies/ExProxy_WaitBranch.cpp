@@ -1,14 +1,13 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "BlueprintTool/Proxies/ExProxy_WaitBranch.h"
-#include "BlueprintTool/Proxies/ExBase_FlowProxy.h"
 
 UExProxy_WaitBranch* UExProxy_WaitBranch::CreateProxy_WaitAll(UObject* WorldContextObject, FString UUID, int32 InputCount)
 {
 	UExProxy_WaitBranch* Proxy = CreateWaitProxyCall<UExProxy_WaitBranch>(WorldContextObject, UUID, InputCount);
 	if (Proxy && !Proxy->IsFinished() && !Proxy->IsInitialized())
 	{
-		Proxy->InitializeForRun(EExWaitBranchCompletionMode::All, 1);
+		Proxy->InitializeForRun(EExBranchMode::All, 1);
 	}
 	return Proxy;
 }
@@ -18,7 +17,7 @@ UExProxy_WaitBranch* UExProxy_WaitBranch::CreateProxy_WaitAny(UObject* WorldCont
 	UExProxy_WaitBranch* Proxy = CreateWaitProxyCall<UExProxy_WaitBranch>(WorldContextObject, UUID, InputCount);
 	if (Proxy && !Proxy->IsFinished() && !Proxy->IsInitialized())
 	{
-		Proxy->InitializeForRun(EExWaitBranchCompletionMode::Any, 1);
+		Proxy->InitializeForRun(EExBranchMode::Any, 1);
 	}
 	return Proxy;
 }
@@ -29,26 +28,26 @@ UExProxy_WaitBranch* UExProxy_WaitBranch::CreateProxy_WaitCount(UObject* WorldCo
 	UExProxy_WaitBranch* Proxy = CreateWaitProxyCall<UExProxy_WaitBranch>(WorldContextObject, UUID, InputCount);
 	if (Proxy && !Proxy->IsFinished() && !Proxy->IsInitialized())
 	{
-		Proxy->InitializeForRun(EExWaitBranchCompletionMode::Count, RequiredSuccessCount);
+		Proxy->InitializeForRun(EExBranchMode::Count, RequiredSuccessCount);
 	}
 	return Proxy;
 }
 
-void UExProxy_WaitBranch::InitializeForRun(EExWaitBranchCompletionMode InMode, int32 InRequiredSuccess)
+void UExProxy_WaitBranch::InitializeForRun(EExBranchMode InMode, int32 InRequiredSuccess)
 {
-	CompletionMode = InMode;
+	BranchMode = InMode;
 	
 	/** Count 模式下需要的最少成功分支数 */
 	int32 RequiredSuccessCount = 1;
-	switch (CompletionMode)
+	switch (BranchMode)
 	{
-	case EExWaitBranchCompletionMode::All:
+	case EExBranchMode::All:
 		RequiredSuccessCount = m_ConstInputBranchCount;
 		break;
-	case EExWaitBranchCompletionMode::Any:
+	case EExBranchMode::Any:
 		RequiredSuccessCount = 1;
 		break;
-	case EExWaitBranchCompletionMode::Count:
+	case EExBranchMode::Count:
 		RequiredSuccessCount = InRequiredSuccess;
 		break;
 	default:

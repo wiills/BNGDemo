@@ -10,17 +10,13 @@
 #include "K2Node_TemporaryVariable.h"
 #include "KismetCompiler.h"
 #include "Kismet2/BlueprintEditorUtils.h"
-#include "BlueprintFunctionNodeSpawner.h"
-// #include "BlueprintTool/LatentTasks/ExBase_LatentTask.h"
-#include "BlueprintTool/Proxies/ExProxy_LatentTask.h"
-#include "Kismet/KismetStringLibrary.h"
-
+#include "BlueprintTool/LatentTasks/ExLatentTask_Custom.h"
 
 #define LOCTEXT_NAMESPACE "UExK2Node_LatentTaskObject"
 
 
 // proxy class
-using LatentTaskClassDefine = UExProxy_LatentTask;
+using LatentTaskClassDefine = UExLatentTask_Custom;
 
 UExK2Node_LatentTaskObject::UExK2Node_LatentTaskObject(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

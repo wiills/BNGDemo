@@ -1,7 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintTool/Libraries/ExSaveGameLibrary.h"
-#include "BlueprintTool/Common/ExSaveGameTypes.h"
 #include "Engine/World.h"
 #include "GameFramework/SaveGame.h"
 #include "Kismet/GameplayStatics.h"

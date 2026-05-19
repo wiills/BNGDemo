@@ -2,13 +2,7 @@
 
 
 #include "BlueprintTool/K2Nodes/ExK2Node_WaitCondition.h"
-
-#include "K2Node_CallFunction.h"
-#include "K2Node_TemporaryVariable.h"
-#include "KismetCompiler.h"
 #include "BlueprintTool/Proxies/ExProxy_WaitCondition.h"
-#include "Kismet/KismetStringLibrary.h"
-
 
 #define LOCTEXT_NAMESPACE "UK2Node_BaseAsyncTask"
 
