@@ -2,6 +2,8 @@
 
 #include "Quest/ExQuestTypes.h"
 
+#include "BlueprintTool/Common/ExLatentProxyDefine.h"
+
 bool FExQuestTask::CanActivate() const
 {
 	return State == EExQuestState::Inactive;
@@ -44,6 +46,35 @@ bool FExQuestTask::IsFullyCompleted() const
 	return true;
 }
 
+bool FExQuestTask::AreAllSubTasksCompleted(const FExQuestData& QuestData) const
+{
+	if (SubTaskIds.IsEmpty())
+	{
+		return true;
+	}
+
+	for (const FGameplayTag& SubTaskId : SubTaskIds)
+	{
+		FExQuestTask SubTask;
+		if (!QuestData.FindTaskById(SubTaskId, SubTask))
+		{
+			return false;
+		}
+
+		if (SubTask.State != EExQuestState::Completed)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool FExQuestTask::IsReadyToComplete(const FExQuestData& QuestData) const
+{
+	return IsFullyCompleted() && AreAllSubTasksCompleted(QuestData);
+}
+
 float FExQuestTask::GetCompletionPercent() const
 {
 	if (Objectives.IsEmpty())
@@ -63,6 +94,46 @@ float FExQuestTask::GetCompletionPercent() const
 			{
 				CompletedItems++;
 			}
+		}
+	}
+
+	if (TotalItems == 0)
+	{
+		return State == EExQuestState::Completed ? 100.0f : 0.0f;
+	}
+
+	return static_cast<float>(CompletedItems) / static_cast<float>(TotalItems) * 100.0f;
+}
+
+float FExQuestTask::GetAggregateCompletionPercent(const FExQuestData& QuestData) const
+{
+	int32 TotalItems = 0;
+	int32 CompletedItems = 0;
+
+	for (const FExQuestObjective& Objective : Objectives)
+	{
+		if (!Objective.bIsOptional)
+		{
+			TotalItems++;
+			if (Objective.bIsCompleted)
+			{
+				CompletedItems++;
+			}
+		}
+	}
+
+	for (const FGameplayTag& SubTaskId : SubTaskIds)
+	{
+		FExQuestTask SubTask;
+		if (!QuestData.FindTaskById(SubTaskId, SubTask))
+		{
+			continue;
+		}
+
+		TotalItems++;
+		if (SubTask.State == EExQuestState::Completed)
+		{
+			CompletedItems++;
 		}
 	}
 
@@ -103,10 +174,24 @@ void FExQuestData::RebuildIndices()
 
 		for (const FExQuestObjective& Objective : Task.Objectives)
 		{
-			if (Objective.ObjectiveTag.IsValid())
+			if (!Objective.ObjectiveTag.IsValid())
 			{
-				ObjectiveTagToTaskIndex.Add(Objective.ObjectiveTag, TaskIndex);
+				continue;
 			}
+
+			if (const int32* ExistingTaskIndex = ObjectiveTagToTaskIndex.Find(Objective.ObjectiveTag))
+			{
+				const FGameplayTag ExistingTaskId = AllTasks.IsValidIndex(*ExistingTaskIndex)
+					? AllTasks[*ExistingTaskIndex].TaskId
+					: FGameplayTag();
+				UE_LOG(LogBlueprintNodeGraph, Warning,
+					TEXT("RebuildIndices: duplicate ObjectiveTag '%s' on tasks '%s' and '%s'"),
+					*Objective.ObjectiveTag.ToString(),
+					*ExistingTaskId.ToString(),
+					*Task.TaskId.ToString());
+			}
+
+			ObjectiveTagToTaskIndex.Add(Objective.ObjectiveTag, TaskIndex);
 		}
 	}
 }

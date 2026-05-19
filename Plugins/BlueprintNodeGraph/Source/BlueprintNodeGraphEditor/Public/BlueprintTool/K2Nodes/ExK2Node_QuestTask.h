@@ -11,7 +11,7 @@ class UEdGraphPin;
 
 /**
  * @class UExK2Node_QuestTask
- * @brief Quest-bound latent task K2 node (CreateQuestBoundProxy, not CreateLatentTask).
+ * @brief Quest latent task K2 node (CreateQuestProxy on UExLatentTask_Quest, not CreateLatentTask).
  */
 UCLASS()
 class BLUEPRINTNODEGRAPHEDITOR_API UExK2Node_QuestTask : public UExK2Node_AsyncBase

@@ -25,11 +25,11 @@
 
 | 基类 | 典型子类 | 用途 |
 |------|----------|------|
-| UExBase_FlowProxy | UExProxy_LoopDelay、UExProxy_ForLoopWithDelay、UExProxy_WaitCondition、UExProxy_WaitBranch、UExProxy_BlendPercent | 由 K2 节点创建，经 UExLatentActionManager 按 UUID 复用/缓存 |
-| UExBase_LatentTask | UExLatentTask_Custom（蓝图父类）、UExLatentTask_Saveable、UExLatentTask_QuestBound、UExLatentTask_BranchSync（K2 内部） | TryStart / TryStop / Terminate，RunningState 可复制 |
-| UExBase_AsyncAction | UExAsyncAction_LoadAsset、UExAsyncAction_StreamLevel、UExAsyncAction_GameplayTag*、UExAsyncAction_*（网络/存档） | 委托驱动，常配合 RegisterWithGameInstance |
+| UExBase_FlowProxy | UExProxy_LoopDelay、ForLoopWithDelay、WaitCondition、WaitBranch、BlendPercent | K2 创建，经 UExLatentActionManager 按 UUID 复用 |
+| UExBase_LatentTask | Custom、Saveable、**Quest**（Quest 专用基类）、BranchSync（K2 内部） | TryStart / TryStop；Quest 子类可写回 Objective |
+| UExBase_AsyncAction | LoadAsset、StreamLevel、GameplayTag*、网络/存档 | 委托驱动 |
 
-**蓝图作者入口**：任务蓝图继承 UExLatentTask_Custom 或 UExLatentTask_Saveable；Quest 绑定用 UExLatentTask_QuestBound + UExK2Node_QuestTask。
+**蓝图入口**：通用流程用 UExLatentTask_Custom / Saveable；**所有 Quest Latent 继承 UExLatentTask_Quest**，用 UExK2Node_QuestTask。
 
 ---
 
@@ -37,91 +37,43 @@
 
 | 路径 | 内容 |
 |------|------|
-| BlueprintNodeGraph/Public/BlueprintTool/Proxies/ | 流程代理实现 |
-| BlueprintNodeGraph/.../LatentTasks/ | 延迟任务基类与用户扩展点 |
-| BlueprintNodeGraph/.../AsyncActions/ | 异步 Action |
-| BlueprintNodeGraph/.../Subsystems/ | UExLatentActionManager、调试、WorldPartition 等 |
-| BlueprintNodeGraph/.../Common/ | FExLatentNodeInfo、分支模式、超时 Action |
-| BlueprintNodeGraph/Public/Quest/ | UExQuestManagerSubsystem、UExQuestDataAsset、UI、BlueprintLibrary |
-| BlueprintNodeGraphEditor/.../K2Nodes/ | 全部 UExK2Node_* |
-| BlueprintNodeGraphEditor/.../Slate/、AssetActions/ | 编辑器 UI 与资产操作 |
+| .../Proxies/ | 流程代理 |
+| .../LatentTasks/ | Latent 基类；**ExLatentTask_Quest.h** 为 Quest 基类 |
+| .../AsyncActions/ | 异步 Action |
+| .../Subsystems/ | LatentActionManager、调试等 |
+| Public/Quest/ | Quest 子系统、DataAsset、UI |
+| Editor/.../K2Nodes/ | UExK2Node_* |
 
 ---
 
-## K2 节点 ↔ 运行时（对照）
+## K2 节点 ↔ 运行时
 
-| K2 节点（编辑器） | 运行时对象 |
-|-------------------|------------|
-| DelayInLoop | UExProxy_LoopDelay |
-| For Loop With Delay | UExProxy_ForLoopWithDelay |
-| Wait Condition | UExProxy_WaitCondition |
-| Wait All / Wait Any / Wait Count | UExProxy_WaitBranch |
-| AsyncBlendPercent | UExProxy_BlendPercent |
-| Create Latent Task | UExLatentTask_Custom（Spawn + Activate） |
-| Quest Task 等 | UExLatentTask_QuestBound |
-| Async Load Asset / Stream Level / GameplayTag* | 对应 UExAsyncAction_* |
+| K2 节点 | 运行时 |
+|---------|--------|
+| DelayInLoop 等 Flow 节点 | UExProxy_* |
+| Quest Task | **UExLatentTask_Quest**（CreateQuestProxy） |
+| Create Latent Task | UExLatentTask_Custom（勿用于 Quest） |
 
-节点编译由 UExK2Node_AsyncBase（继承引擎 UK2Node_BaseAsyncTask）展开为 CreateProxy → SetK2NodeInfo → Activate，并注入 FExLatentNodeInfo。
+编译链：UExK2Node_AsyncBase → CreateProxy → SetK2NodeInfo → Activate。
 
 ---
 
-## 运行时机制
+## 运行时要点
 
-### Proxy 创建（Flow 节点）
+- **Proxy**：GameInstance 上 ProxyMap，InputCount 归零 → OnBranchesFinished。  
+- **Latent Task**：Pending → Running → Completed；Quest 基类在 Completed 时可 ApplyQuestOnComplete（可 BlueprintNativeEvent 重写）。  
+- **GC**：RF_StrongRefOnFrame；Async 可 RegisterWithGameInstance。  
+- **网络**：RunningState 复制；Quest 写回走 Route API / ReplicationComponent。
 
-1. 从 WorldContext 取 UExLatentActionManager（UGameInstanceSubsystem）。  
-2. 用 ObjectUUID + 节点 UUID 查 ProxyMap；已存在则复用，否则 NewObject 并注册。  
-3. 多路 Exec 进入时递减 **InputCount**，归零后触发 OnBranchesFinished()（子类里启动 Timer / Tick / 条件检测）。
+---
 
-### Latent Task 生命周期
+## 扩展（C++）
 
-CreateTask / Spawn → **Pending** → Activate → **Running**（ReceiveOnStart、StartDelegate）→ TryStop → **Completed**（ReceiveOnStop、CompleteDelegate）→ 回收。  
-Terminate → **Cancelled** 并 MarkAsGarbage。
-
-### 关键类型
-
-| 类型 | 作用 |
+| 目标 | 做法 |
 |------|------|
-| UExLatentActionManager | ProxyMap：按 Key 存取 Flow Proxy，节点结束可 RemoveProxyObject |
-| IExLatentTaskInterface | 状态与 TryStart / TryStop / Terminate 统一入口 |
-| FExLatentNodeInfo | UUID、GraphNodeGuid、StartLog/EndLog、TimeOut（秒，0=禁用） |
-| EExLatentTaskState | Pending / Running / Completed / Failed / Cancelled |
-
-### 内存与 GC
-
-- Proxy / Task 创建时常带 RF_StrongRefOnFrame，避免执行中被 GC。  
-- AsyncAction 可用 RegisterWithGameInstance 挂到 UGameInstance。  
-- 完成路径：SetReadyToDestroy、从 ProxyMap 移除、弱引用（TWeakObjectPtr）避免循环引用。
-
-### 超时
-
-SetK2NodeInfo 若 TimeOut > 0，启动 FTimer；到期且仍在 Running 则 TryStop()。
-
-### 网络
-
-UExBase_LatentTask::RunningState 带 ReplicatedUsing=OnRep_RunningState；需在合适 Authority 上创建/停止。Standalone 与 AutonomousProxy 下 IsLocal() 为 true。
-
----
-
-## 扩展入口（C++）
-
-| 目标 | 继承 | 必做 |
-|------|------|------|
-| 新流程节点 | UExBase_FlowProxy + UExK2Node_AsyncBase 子类 | 实现 OnBranchesFinished；K2 侧配置 Factory/Activate、ExpandNode |
-| 新 Latent Task | UExBase_LatentTask 或 UExLatentTask_Saveable | 重写 OnStart/OnStop 或蓝图 ReceiveOnStart/ReceiveOnStop；结束调 TryStop |
-| 新 AsyncAction | UExBase_AsyncAction | 工厂函数 + 委托；可选 UExK2Node_LatentTaskCall 注册专用节点 |
-| Quest 联动 | UExLatentTask_QuestBound | 完成时写回 Quest 状态（见 Quest 文档） |
-
----
-
-## 子系统与其它
-
-| 组件 | 说明 |
-|------|------|
-| UExQuestManagerSubsystem | 任务状态、解锁链、存档（JSON V2） |
-| UExBlueprintNodeGraphDebugSubsystem | 运行时调试辅助 |
-| UExWorldPartitionSubsystem | 大世界分区相关工具 |
-| UExBlueprintNodeLibrary / UExSaveGameLibrary | 蓝图与存档便捷 API |
+| Quest 玩法 Latent | 继承 **UExLatentTask_Quest**，重写 ReceiveOnStart/Stop 或 ApplyQuestOnComplete |
+| 通用 Latent | 继承 UExLatentTask_Custom / Saveable |
+| 新 Flow 节点 | UExBase_FlowProxy + UExK2Node_AsyncBase |
 
 ---
 
@@ -129,6 +81,6 @@ UExBase_LatentTask::RunningState 带 ReplicatedUsing=OnRep_RunningState；需在
 
 | 文档 | 内容 |
 |------|------|
-| [Usage.md](./Usage.md) | 节点参数、Latent Task 五步、FAQ |
-| [QuestSystemGuide.md](./QuestSystemGuide.md) | Task / Objective / SubTask、DataAsset |
-| [QuestDevPlan.md](./QuestDevPlan.md) | 阶段规划与 P3 |
+| [Usage.md](./Usage.md) | 节点速查、FAQ |
+| [QuestSystemGuide.md](./QuestSystemGuide.md) | Task / Objective、联机 |
+| [QuestDevPlan.md](./QuestDevPlan.md) | 阶段与验收 |

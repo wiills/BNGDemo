@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "ExQuestTypes.h"
+#include "Quest/ExQuestMessageTypes.h"
 #include "ExQuestBlueprintLibrary.generated.h"
 
 class UExQuestDataAsset;
@@ -66,8 +67,16 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Quest System|State")
 	static float GetQuestCompletionPercent(const FExQuestTask& Task);
 
+	/** Objectives + sub-tasks (for parent tasks with SubTaskIds). */
+	UFUNCTION(BlueprintPure, Category = "Quest System|State")
+	static float GetQuestAggregateCompletionPercentWithData(const FExQuestData& QuestData, const FExQuestTask& Task);
+
 	UFUNCTION(BlueprintPure, Category = "Quest System|State")
 	static bool IsQuestFullyCompleted(const FExQuestTask& Task);
+
+	/** Objectives done and all SubTaskIds completed (matches auto-complete / rollup). */
+	UFUNCTION(BlueprintPure, Category = "Quest System|State")
+	static bool IsQuestReadyToCompleteWithData(const FExQuestData& QuestData, const FExQuestTask& Task);
 
 	UFUNCTION(BlueprintPure, Category = "Quest System|State")
 	static bool CanQuestUnlockWithData(const FExQuestData& QuestData, const FGameplayTag& TaskId);
@@ -102,11 +111,25 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest System|Helper", meta = (WorldContext = "WorldContextObject"))
 	static bool IncrementQuestObjective(UObject* WorldContextObject, const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 Delta = 1);
 
+	UFUNCTION(BlueprintCallable, Category = "Quest System|Helper", meta = (WorldContext = "WorldContextObject"))
+	static bool NotifyObjectiveProgressByTag(UObject* WorldContextObject, const FGameplayTag& ObjectiveTag, int32 Delta = 1);
+
+	/** Broadcast GameplayMessageRouter event (handled by UExQuestMessageRouterBridge). */
+	UFUNCTION(BlueprintCallable, Category = "Quest System|Events", meta = (WorldContext = "WorldContextObject", AdvancedDisplay = "OptionalTaskId"))
+	static void BroadcastQuestObjectiveProgress(UObject* WorldContextObject, const FGameplayTag& ObjectiveTag, int32 Delta = 1, FGameplayTag OptionalTaskId = FGameplayTag());
+
 	UFUNCTION(BlueprintCallable, Category = "Quest System|DataAsset", meta = (WorldContext = "WorldContextObject"))
 	static void LoadQuestFromAsset(UObject* WorldContextObject, UExQuestDataAsset* QuestAsset, bool bPreserveRuntime = false);
 
 	UFUNCTION(BlueprintPure, Category = "Quest System|DataAsset")
 	static FExQuestData BuildQuestDataFromAsset(const UExQuestDataAsset* QuestAsset);
+
+	/** Build FExQuestData from a DataTable whose row struct is FExQuestTaskTableRow. */
+	UFUNCTION(BlueprintCallable, Category = "Quest System|Create")
+	static FExQuestData BuildQuestDataFromTaskTable(
+		const UDataTable* TaskTable,
+		const FText& InQuestSetName,
+		const FString& InQuestSetId = TEXT(""));
 
 	UFUNCTION(BlueprintCallable, Category = "Quest System|Save", meta = (WorldContext = "WorldContextObject"))
 	static FString SaveQuestProgressAsJson(UObject* WorldContextObject);

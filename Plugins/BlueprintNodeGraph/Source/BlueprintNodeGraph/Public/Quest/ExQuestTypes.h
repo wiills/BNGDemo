@@ -93,8 +93,15 @@ struct BLUEPRINTNODEGRAPH_API FExQuestTask
 	bool CanActivate() const;
 	bool CanUnlock() const;
 	bool ArePreTasksSatisfied(const FExQuestData& QuestData) const;
+	/** All required objectives on this task are done. */
 	bool IsFullyCompleted() const;
+	/** Every entry in SubTaskIds exists and is Completed. */
+	bool AreAllSubTasksCompleted(const FExQuestData& QuestData) const;
+	/** Objectives satisfied and all listed sub-tasks completed (auto-complete gate). */
+	bool IsReadyToComplete(const FExQuestData& QuestData) const;
 	float GetCompletionPercent() const;
+	/** Objectives + sub-task completion for UI progress. */
+	float GetAggregateCompletionPercent(const FExQuestData& QuestData) const;
 };
 
 /** Runtime objective progress (save-friendly) */

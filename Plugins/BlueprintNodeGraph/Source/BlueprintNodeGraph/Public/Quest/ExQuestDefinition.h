@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "Engine/DataTable.h"
 #include "GameplayTagContainer.h"
 #include "Quest/ExQuestTypes.h"
 #include "ExQuestDefinition.generated.h"
@@ -64,6 +65,46 @@ struct BLUEPRINTNODEGRAPH_API FExQuestTaskDefinition
 	FExQuestTask ToRuntimeTask() const;
 };
 
+/**
+ * DataTable row struct (one row = one task). Mirrors FExQuestTaskDefinition for CSV / sheet workflows.
+ * Create a DataTable with Row Type = FExQuestTaskTableRow, then BuildQuestDataFromTaskTable.
+ */
+USTRUCT(BlueprintType)
+struct BLUEPRINTNODEGRAPH_API FExQuestTaskTableRow : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest"))
+	FGameplayTag TaskId;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	FText TaskName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	FText Description;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	EExQuestState InitialState = EExQuestState::Locked;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	TArray<FExQuestObjectiveDefinition> Objectives;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	FGameplayTagContainer SubTaskIds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	FGameplayTagContainer PreTaskIds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest"))
+	FGameplayTag ParentTaskId;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	bool bIsRepeatable = false;
+
+	FExQuestTaskDefinition ToTaskDefinition() const;
+	FExQuestTask ToRuntimeTask() const;
+};
+
 /** Quest set authored as a DataAsset */
 UCLASS(BlueprintType)
 class BLUEPRINTNODEGRAPH_API UExQuestDataAsset : public UDataAsset
@@ -83,6 +124,13 @@ public:
 	/** Build FExQuestData with zero objective progress */
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	FExQuestData BuildInitialQuestData() const;
+
+	/** Build the same runtime quest data from a task DataTable (FExQuestTaskTableRow). */
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	static FExQuestData BuildQuestDataFromTaskTable(
+		const UDataTable* TaskTable,
+		const FText& InQuestSetName,
+		const FString& InQuestSetId = TEXT(""));
 
 #if WITH_EDITOR
 	virtual void PostLoad() override;

@@ -1,4 +1,7 @@
-# Quest 开发计划
+# -*- coding: utf-8 -*-
+from pathlib import Path
+
+PLAN = r'''# Quest 开发计划
 
 > 文档编码 UTF-8。阶段以 P0/P1/P2/P3 划分（2026-05）。
 
@@ -71,3 +74,9 @@
 2. `Locked` 经 `UnlockQuest` 可进入 `Inactive`
 3. `ResetAllQuests` 恢复初始状态
 4. 兼容 V1/V2 存档格式
+'''
+
+Path(__file__).resolve().parents[1].joinpath("Docs", "QuestDevPlan.md").write_text(
+    PLAN, encoding="utf-8", newline="\n"
+)
+print("QuestDevPlan.md written (UTF-8)")

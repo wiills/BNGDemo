@@ -31,7 +31,7 @@
 
 - 异步节点至少会有 **1 帧延迟**（DelayInLoop 等基于 Timer，非同步 Tick）。
 - 节点 Details 中的 **Node Info** 可配 StartLog / EndLog / TimeOut（秒，0=不超时）。
-- 与 **Quest** 绑定的任务请用 ExLatentTask_QuestBound 与 Quest 专用节点，勿与普通 ExLatentTask_Custom 混用。
+- 与 **Quest** 相关 Latent 请继承 UExLatentTask_Quest 并用 Quest Task 节点，勿与普通 ExLatentTask_Custom 混用。
 
 ---
 

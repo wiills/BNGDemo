@@ -78,6 +78,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	bool CompleteQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag);
 
+	/** Resolve TaskId from ObjectiveTag, then increment if the task is Active. */
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	bool NotifyObjectiveProgressByTag(const FGameplayTag& ObjectiveTag, int32 Delta = 1);
+
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	TArray<FExQuestTask> GetActiveQuests() const;
 
@@ -112,6 +116,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	FString SaveQuestProgressAsTextV1() const;
 
+	/** Push runtime state to UExQuestReplicationComponent on authority (server / standalone). */
+	void CommitAuthorityReplication();
+
+	/** Apply replicated team state on clients (from GameState replication). */
+	void ApplyReplicatedQuestView(UExQuestDataAsset* DefinitionAsset, const FExQuestRuntimeState& RuntimeState);
+
 private:
 	UPROPERTY()
 	FExQuestData CurrentQuestData;
@@ -133,9 +143,11 @@ private:
 	bool TryUnlockTask(FExQuestTask& Task);
 	void UnlockDependentQuests(const FGameplayTag& CompletedTaskId);
 	void HandleQuestCompleted(FExQuestTask& Task);
+	void TryRollUpParentTasks(const FGameplayTag& CompletedTaskId);
 	void ResetTaskObjectives(FExQuestTask& Task);
 
 	bool ApplyObjectiveProgress(FExQuestTask& Task, const FGameplayTag& ObjectiveTag, int32 NewProgress);
 
 	FExQuestRuntimeState CachedRuntimeState;
+	bool bApplyingReplicatedView = false;
 };

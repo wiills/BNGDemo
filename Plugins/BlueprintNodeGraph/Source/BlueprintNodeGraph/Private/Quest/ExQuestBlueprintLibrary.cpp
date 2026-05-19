@@ -3,6 +3,9 @@
 #include "Quest/ExQuestBlueprintLibrary.h"
 #include "Quest/ExQuestManagerSubsystem.h"
 #include "Quest/ExQuestDefinition.h"
+#include "Quest/ExQuestMessageTypes.h"
+#include "Quest/ExQuestReplicationComponent.h"
+#include "GameFramework/GameplayMessageSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 
 #define LOCTEXT_NAMESPACE "ExQuestExample"
@@ -167,9 +170,19 @@ float UExQuestBlueprintLibrary::GetQuestCompletionPercent(const FExQuestTask& Ta
 	return Task.GetCompletionPercent();
 }
 
+float UExQuestBlueprintLibrary::GetQuestAggregateCompletionPercentWithData(const FExQuestData& QuestData, const FExQuestTask& Task)
+{
+	return Task.GetAggregateCompletionPercent(QuestData);
+}
+
 bool UExQuestBlueprintLibrary::IsQuestFullyCompleted(const FExQuestTask& Task)
 {
 	return Task.IsFullyCompleted();
+}
+
+bool UExQuestBlueprintLibrary::IsQuestReadyToCompleteWithData(const FExQuestData& QuestData, const FExQuestTask& Task)
+{
+	return Task.IsReadyToComplete(QuestData);
 }
 
 bool UExQuestBlueprintLibrary::CanQuestUnlockWithData(const FExQuestData& QuestData, const FGameplayTag& TaskId)
@@ -254,28 +267,43 @@ UExQuestManagerSubsystem* UExQuestBlueprintLibrary::GetQuestManager(UObject* Wor
 
 bool UExQuestBlueprintLibrary::UnlockQuest(UObject* WorldContextObject, const FGameplayTag& TaskId)
 {
-	if (UExQuestManagerSubsystem* QuestManager = GetQuestManager(WorldContextObject))
-	{
-		return QuestManager->UnlockQuest(TaskId);
-	}
-	return false;
+	return UExQuestReplicationComponent::RouteUnlockQuest(WorldContextObject, TaskId);
 }
 
 bool UExQuestBlueprintLibrary::IncrementQuestObjective(UObject* WorldContextObject, const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 Delta)
 {
-	if (UExQuestManagerSubsystem* QuestManager = GetQuestManager(WorldContextObject))
+	return UExQuestReplicationComponent::RouteIncrementQuestObjective(WorldContextObject, TaskId, ObjectiveTag, Delta);
+}
+
+bool UExQuestBlueprintLibrary::NotifyObjectiveProgressByTag(UObject* WorldContextObject, const FGameplayTag& ObjectiveTag, int32 Delta)
+{
+	return UExQuestReplicationComponent::RouteNotifyObjectiveProgressByTag(WorldContextObject, ObjectiveTag, Delta);
+}
+
+void UExQuestBlueprintLibrary::BroadcastQuestObjectiveProgress(UObject* WorldContextObject, const FGameplayTag& ObjectiveTag, int32 Delta, FGameplayTag OptionalTaskId)
+{
+	if (!WorldContextObject || !ObjectiveTag.IsValid() || Delta <= 0)
 	{
-		return QuestManager->IncrementQuestObjective(TaskId, ObjectiveTag, Delta);
+		return;
 	}
-	return false;
+
+	FExQuestObjectiveProgressMessage Message;
+	Message.ObjectiveTag = ObjectiveTag;
+	Message.Delta = Delta;
+	Message.TaskId = OptionalTaskId;
+
+	const FGameplayTag Channel = ExQuestMessageTags::GetObjectiveProgressChannel();
+	if (!Channel.IsValid())
+	{
+		return;
+	}
+
+	UGameplayMessageSubsystem::Get(WorldContextObject).BroadcastMessage(Channel, Message);
 }
 
 void UExQuestBlueprintLibrary::LoadQuestFromAsset(UObject* WorldContextObject, UExQuestDataAsset* QuestAsset, bool bPreserveRuntime)
 {
-	if (UExQuestManagerSubsystem* QuestManager = GetQuestManager(WorldContextObject))
-	{
-		QuestManager->LoadQuestFromAsset(QuestAsset, bPreserveRuntime);
-	}
+	UExQuestReplicationComponent::RouteLoadQuestFromAsset(WorldContextObject, QuestAsset, bPreserveRuntime);
 }
 
 FExQuestData UExQuestBlueprintLibrary::BuildQuestDataFromAsset(const UExQuestDataAsset* QuestAsset)
@@ -285,6 +313,14 @@ FExQuestData UExQuestBlueprintLibrary::BuildQuestDataFromAsset(const UExQuestDat
 		return QuestAsset->BuildInitialQuestData();
 	}
 	return FExQuestData();
+}
+
+FExQuestData UExQuestBlueprintLibrary::BuildQuestDataFromTaskTable(
+	const UDataTable* TaskTable,
+	const FText& InQuestSetName,
+	const FString& InQuestSetId)
+{
+	return UExQuestDataAsset::BuildQuestDataFromTaskTable(TaskTable, InQuestSetName, InQuestSetId);
 }
 
 FString UExQuestBlueprintLibrary::SaveQuestProgressAsJson(UObject* WorldContextObject)
@@ -298,11 +334,7 @@ FString UExQuestBlueprintLibrary::SaveQuestProgressAsJson(UObject* WorldContextO
 
 bool UExQuestBlueprintLibrary::LoadQuestProgressFromJson(UObject* WorldContextObject, const FString& JsonSaveData)
 {
-	if (UExQuestManagerSubsystem* QuestManager = GetQuestManager(WorldContextObject))
-	{
-		return QuestManager->LoadQuestProgressFromJson(JsonSaveData);
-	}
-	return false;
+	return UExQuestReplicationComponent::RouteLoadQuestProgressFromJson(WorldContextObject, JsonSaveData);
 }
 
 FExQuestRuntimeState UExQuestBlueprintLibrary::ExtractRuntimeStateFromData(const FExQuestData& QuestData)
@@ -312,10 +344,7 @@ FExQuestRuntimeState UExQuestBlueprintLibrary::ExtractRuntimeStateFromData(const
 
 void UExQuestBlueprintLibrary::ApplyRuntimeStateToManager(UObject* WorldContextObject, const FExQuestRuntimeState& RuntimeState)
 {
-	if (UExQuestManagerSubsystem* QuestManager = GetQuestManager(WorldContextObject))
-	{
-		QuestManager->ApplyRuntimeState(RuntimeState);
-	}
+	UExQuestReplicationComponent::RouteApplyRuntimeState(WorldContextObject, RuntimeState);
 }
 
 FGameplayTag UExQuestBlueprintLibrary::MakeQuestTag(const FString& TagString)

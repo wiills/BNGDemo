@@ -50,8 +50,8 @@ QUEST_DEV_PLAN = """# Quest 系统开发计划
 ## P3 — 玩法集成（进行中）
 
 - [x] `ObjectiveTag` 重命名（配置 Tag，非实例 ID）
-- [x] `UExLatentTask_QuestBound` + `UExK2Node_QuestTask`
-- [x] `ExK2Node_LatentTaskObject` 禁止选择 QuestBound 子类
+- [x] `UExLatentTask_Quest` + `UExK2Node_QuestTask`
+- [x] `ExK2Node_LatentTaskObject` 禁止选择 Quest 子类
 - [x] 插件依赖 `GameplayMessageRouter`
 - [x] 蓝图 **Make Quest Task Data** 与 **Quest Task** 节点区分
 - [ ] `NotifyObjectiveProgressByTag(ObjectiveTag, Delta)`

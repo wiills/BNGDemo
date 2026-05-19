@@ -11,7 +11,8 @@ BlueprintNodeGraph 插件提供层级任务系统，支持：
 
 - **扁平存储 + 父子关系**：`AllTasks` + `ParentTaskId` / `SubTaskIds`
 - **GameplayTag**：`TaskId`（任务）与 `ObjectiveTag`（目标）
-- **DataAsset**：`UExQuestDataAsset`
+- **DataAsset**：`UExQuestDataAsset`（策划主入口，一张表含全局 + POI）
+- **DataTable（可选）**：行结构 `FExQuestTaskTableRow`，与 `FExQuestTaskDefinition` 字段一致，便于 CSV / 表驱动
 - **存档**：JSON `#ExQuestSaveV2`，兼容 V1
 - **UI**：`UExQuestTreeWidget`
 - **GameplayMessageRouter**：插件已声明依赖（P3 事件 → 任务进度）
@@ -94,6 +95,14 @@ FExQuestData QuestData = UExQuestBlueprintLibrary::CreateExampleQuestData();
 
 或蓝图 **Create Example Quest Data**；拼装单条任务用 **Make Quest Task Data**（不是 Quest Task 节点）。
 
+### DataTable（表驱动，与 DA 二选一或导入用）
+
+1. 新建 DataTable，**Row Type** = `FExQuestTaskTableRow`（每行一条 Task，字段同 DA 里的 Task 行）。
+2. 蓝图：**Build Quest Data From Task Table** → 得到 `FExQuestData`。
+3. **Load Quest Data** 或 **Load Quest From Asset**（若仍用 DA 作主入口，可只在编辑器把表烘进 DA）。
+
+行内 `Objectives` 为数组列；`SubTaskIds` / `PreTaskIds` 填 GameplayTag。运行时入口仍建议 **一次 Load** 一个 QuestSet。
+
 ### 加载
 
 ```cpp
@@ -115,6 +124,15 @@ QuestManager->IncrementQuestObjective(TaskId, ObjectiveTag, 1);
 
 - **FExQuestObjective**：`ObjectiveTag`、进度、`bIsOptional`
 - **FExQuestTask**：`TaskId`、`State`、`Objectives`、`SubTaskIds`、`PreTaskIds`、`ParentTaskId`
+
+### 子 Task → 父 Task 汇总
+
+- 子线完成后，若父 Task 为 **Active** 且 `IsReadyToComplete`（本 Task 必填 Objective 已完成 + `SubTaskIds` 中全部子 Task 为 `Completed`），父 Task 自动标为 **Completed**，并递归检查更上层父 Task。
+- 仅 **Objectives** 完成但子 Task 未齐时，父 Task **不会**自动完成。
+- UI 进度：**Get Quest Aggregate Completion Percent With Data**（含子 Task）；仅 Objective 时用 **Get Quest Completion Percent**。
+- 手动 `CompleteQuest(父)` 仍可强制完成（不校验子 Task），用于调试或剧情跳过。
+
+---
 - **FExQuestData**：`AllTasks` 扁平列表 + `RebuildIndices()`
 
 ---
@@ -127,8 +145,80 @@ QuestManager->IncrementQuestObjective(TaskId, ObjectiveTag, 1);
 
 ## Latent 集成
 
-- 通用：**Create Latent Task** + 手动调 Quest API
-- 推荐：**Quest Task** 节点 + `UExLatentTask_QuestBound`（`BoundQuestTag` = TaskId，`BoundObjectiveTag`）
+- **基类**：所有 Quest 相关 Latent 蓝图继承 **`UExLatentTask_Quest`**（勿用 `UExLatentTask_Custom`）。
+- **Quest Task** 节点 → `CreateQuestProxy`；`TryStop` 成功且 `bApplyQuestOnSuccessfulStop` 时写回 Objective（可 Blueprint 重写 `ApplyQuestOnComplete`）。
+- 字段：`BoundQuestTag`（TaskId）、`BoundObjectiveTag`；`CompleteAction` 选增量或一次完成。
+- 仅特殊流程：**Create Latent Task** + 手动 Quest API。
+
+---
+
+## P3：GameplayMessageRouter 与按 Tag 推进
+
+### 直接调用
+
+```cpp
+QuestManager->NotifyObjectiveProgressByTag(ObjectiveTag, 1);
+// 或蓝图：Notify Objective Progress By Tag
+```
+
+- 通过 `FindTaskIdByObjectiveTag` 解析 `TaskId`
+- 仅当任务为 **Active** 时累计进度
+- `Delta` 必须 > 0
+
+### 发消息（解耦玩法）
+
+```cpp
+FExQuestObjectiveProgressMessage Msg;
+Msg.ObjectiveTag = ...;
+Msg.Delta = 1;
+// 可选 Msg.TaskId 跳过反查
+UGameplayMessageSubsystem::Get(World).BroadcastMessage(
+    ExQuestMessageTags::GetObjectiveProgressChannel(), Msg);
+```
+
+蓝图：**Broadcast Quest Objective Progress**（`UExQuestBlueprintLibrary`）。
+
+`UExQuestMessageRouterBridge`（GameInstance 子系统）监听频道 `Quest.Event.Objective.Progress` 并写入 Manager。
+
+### Tag 配置
+
+- 插件 `Config/DefaultGameplayTags.ini` 含示例 Tag（与 `CreateExampleQuestData` 对齐）
+- 频道 Tag 亦通过 `NativeGameplayTags` 注册
+
+---
+
+## 联机：全队共享进度（Standalone / Server / Client）
+
+### 原则
+
+- **Server / Standalone** 为权威端；**Client** 只通过 `UExQuestReplicationComponent` 发 Server RPC，不直接改本地 Manager 进度。
+- 全队共享同一份运行时状态：`FExQuestRuntimeState` + `UExQuestDataAsset` 挂在 **GameState** 上复制。
+- 无 Replication 组件时，蓝图库 **Route** API 会回退到本地 `UExQuestManagerSubsystem`（兼容纯单机或未挂组件的项目）。
+
+### 接入步骤
+
+1. 将 GameState 设为 `AExQuestGameStateBase`，或在自有 GameState 上添加 **`UExQuestReplicationComponent`**。
+2. 开局在 **Server / Standalone** 调用 **Load Quest From Asset**（会复制到所有客户端）。
+3. 玩法侧统一使用蓝图库节点（内部已走 Route）：
+   - `Unlock Quest` / `Increment Quest Objective` / `Notify Objective Progress By Tag`
+   - `Load Quest Progress From Json` / `Apply Runtime State To Manager`
+4. `UExQuestMessageRouterBridge` 在收到 `Quest.Event.Objective.Progress` 时同样走 Route（Client 广播不会进 Server Manager）。
+
+### 数据流（简图）
+
+```
+Client 蓝图/消息 → Route* → Server RPC → Manager（权威）
+                              ↓
+                    PublishState → GameState Rep
+                              ↓
+Client OnRep → ApplyReplicatedQuestView → 本地 Manager + UI 刷新
+```
+
+### 注意
+
+- **Listen Server**：主机为权威端，与 Dedicated 相同。
+- **存档**：建议在 Server 上 `Save Quest Progress`，再按需 `Load Quest Progress From Json`（经 Route）。
+- **配置**仍以 `UExQuestDataAsset` 为主；复制的是运行时进度，不是整表替换。
 
 ---
 

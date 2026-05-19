@@ -2,6 +2,28 @@
 
 #include "Quest/ExQuestDefinition.h"
 
+#include "BlueprintTool/Common/ExLatentProxyDefine.h"
+
+FExQuestTaskDefinition FExQuestTaskTableRow::ToTaskDefinition() const
+{
+	FExQuestTaskDefinition Def;
+	Def.TaskId = TaskId;
+	Def.TaskName = TaskName;
+	Def.Description = Description;
+	Def.InitialState = InitialState;
+	Def.Objectives = Objectives;
+	Def.SubTaskIds = SubTaskIds;
+	Def.PreTaskIds = PreTaskIds;
+	Def.ParentTaskId = ParentTaskId;
+	Def.bIsRepeatable = bIsRepeatable;
+	return Def;
+}
+
+FExQuestTask FExQuestTaskTableRow::ToRuntimeTask() const
+{
+	return ToTaskDefinition().ToRuntimeTask();
+}
+
 FExQuestTask FExQuestTaskDefinition::ToRuntimeTask() const
 {
 	FExQuestTask Task;
@@ -43,6 +65,46 @@ FExQuestData UExQuestDataAsset::BuildInitialQuestData() const
 			Data.AllTasks.Add(TaskDef.ToRuntimeTask());
 		}
 	}
+
+	Data.RebuildIndices();
+	return Data;
+}
+
+FExQuestData UExQuestDataAsset::BuildQuestDataFromTaskTable(
+	const UDataTable* TaskTable,
+	const FText& InQuestSetName,
+	const FString& InQuestSetId)
+{
+	FExQuestData Data;
+	if (!TaskTable)
+	{
+		return Data;
+	}
+
+	if (TaskTable->GetRowStruct() != FExQuestTaskTableRow::StaticStruct())
+	{
+		UE_LOG(LogBlueprintNodeGraph, Warning,
+			TEXT("BuildQuestDataFromTaskTable: expected row struct FExQuestTaskTableRow, got '%s'"),
+			TaskTable->GetRowStruct() ? *TaskTable->GetRowStruct()->GetName() : TEXT("null"));
+		return Data;
+	}
+
+	Data.QuestSetName = InQuestSetName;
+	Data.QuestSetId = InQuestSetId.IsEmpty() ? TaskTable->GetName() : InQuestSetId;
+
+	TaskTable->ForeachRow<FExQuestTaskTableRow>(TEXT("BuildQuestDataFromTaskTable"),
+		[&Data](const FName& RowName, const FExQuestTaskTableRow& Row)
+		{
+			if (!Row.TaskId.IsValid())
+			{
+				UE_LOG(LogBlueprintNodeGraph, Warning,
+					TEXT("BuildQuestDataFromTaskTable: row '%s' has invalid TaskId, skipped"),
+					*RowName.ToString());
+				return;
+			}
+
+			Data.AllTasks.Add(Row.ToRuntimeTask());
+		});
 
 	Data.RebuildIndices();
 	return Data;

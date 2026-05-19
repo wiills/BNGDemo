@@ -14,17 +14,17 @@ latent_new = """## 与 BlueprintNodeGraph 延迟任务集成
 
 ### 任务绑定 Latent（推荐）
 
-使用 **Quest Task**（`UExK2Node_QuestTask`），**不要**用 Create Latent Task 创建 `UExLatentTask_QuestBound` 体系。
+使用 **Quest Task**（`UExK2Node_QuestTask`），**不要**用 Create Latent Task 创建 `UExLatentTask_Quest` 体系。
 
-1. 蓝图继承 `UExLatentTask_QuestBound`
+1. 蓝图继承 `UExLatentTask_Quest`
 2. 配置 `BoundQuestTag`、`BoundObjectiveTag`（配置 Tag，非实例 ID）
 3. Latent 成功完成时自动更新 Quest 进度
 
 ```cpp
-#include "BlueprintTool/LatentTasks/ExLatentTask_QuestBound.h"
+#include "BlueprintTool/LatentTasks/ExLatentTask_Quest.h"
 
-UExLatentTask_QuestBound* Task = UExLatentTask_QuestBound::CreateQuestBoundProxy(
-	WorldContextObject, MyQuestBoundClass);
+UExLatentTask_Quest* Task = UExLatentTask_Quest::CreateQuestProxy(
+	WorldContextObject, MyQuestLatentClass);
 ```
 
 ### 术语
@@ -32,7 +32,7 @@ UExLatentTask_QuestBound* Task = UExLatentTask_QuestBound::CreateQuestBoundProxy
 | 字段 | 含义 |
 |------|------|
 | `ObjectiveTag` | 目标配置 GameplayTag，**不是** Actor/实例 ID |
-| `BoundQuestTag` / `BoundObjectiveTag` | QuestBound Latent 上的绑定字段 |
+| `BoundQuestTag` / `BoundObjectiveTag` | UExLatentTask_Quest 上的绑定字段 |
 """
 
 pattern = r"## 与 BlueprintNodeGraph 延迟任务集成.*?(?=\n---\n|\n## 蓝图)"

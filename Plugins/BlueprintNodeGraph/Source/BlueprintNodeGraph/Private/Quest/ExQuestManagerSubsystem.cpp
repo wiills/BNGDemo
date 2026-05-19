@@ -3,6 +3,8 @@
 #include "Quest/ExQuestManagerSubsystem.h"
 #include "Quest/ExQuestDefinition.h"
 #include "Quest/ExQuestSave.h"
+#include "Quest/ExQuestReplicationComponent.h"
+#include "BlueprintTool/Common/ExLatentProxyDefine.h"
 
 namespace ExQuestSaveFormat
 {
@@ -43,13 +45,58 @@ void UExQuestManagerSubsystem::BroadcastTaskStateChange(const FExQuestTask& Task
 
 void UExQuestManagerSubsystem::BroadcastTaskProgress(const FExQuestTask& Task)
 {
-	OnQuestProgressChanged.Broadcast(Task.TaskId, Task.GetCompletionPercent());
+	OnQuestProgressChanged.Broadcast(Task.TaskId, Task.GetAggregateCompletionPercent(CurrentQuestData));
 }
 
 void UExQuestManagerSubsystem::NotifyQuestDataRefreshed()
 {
 	SyncRuntimeStateCache();
 	OnQuestDataLoaded.Broadcast();
+}
+
+void UExQuestManagerSubsystem::CommitAuthorityReplication()
+{
+	if (bApplyingReplicatedView)
+	{
+		return;
+	}
+
+	SyncRuntimeStateCache();
+
+	if (UExQuestReplicationComponent* Rep = UExQuestReplicationComponent::Get(this))
+	{
+		if (Rep->IsAuthorityEndpoint())
+		{
+			Rep->PublishStateFromAuthorityManager(this);
+		}
+	}
+}
+
+void UExQuestManagerSubsystem::ApplyReplicatedQuestView(UExQuestDataAsset* DefinitionAsset, const FExQuestRuntimeState& RuntimeState)
+{
+	bApplyingReplicatedView = true;
+
+	if (DefinitionAsset)
+	{
+		const bool bSameAsset = LoadedQuestAsset == DefinitionAsset;
+		const bool bSameSetId = !RuntimeState.QuestSetId.IsEmpty() && CurrentQuestData.QuestSetId == RuntimeState.QuestSetId;
+
+		if (!bSameAsset || !bSameSetId)
+		{
+			FExQuestData NewData = DefinitionAsset->BuildInitialQuestData();
+			LoadedQuestAsset = DefinitionAsset;
+			CurrentQuestData = MoveTemp(NewData);
+			CurrentQuestData.RebuildIndices();
+			CaptureInitialStates();
+		}
+	}
+
+	CurrentQuestData.ApplyRuntimeState(RuntimeState);
+	CurrentQuestData.RebuildIndices();
+	SyncRuntimeStateCache();
+	NotifyQuestDataRefreshed();
+
+	bApplyingReplicatedView = false;
 }
 
 void UExQuestManagerSubsystem::LoadQuestData(const FExQuestData& QuestData)
@@ -59,6 +106,7 @@ void UExQuestManagerSubsystem::LoadQuestData(const FExQuestData& QuestData)
 	LoadedQuestAsset = nullptr;
 	CaptureInitialStates();
 	NotifyQuestDataRefreshed();
+	CommitAuthorityReplication();
 }
 
 void UExQuestManagerSubsystem::LoadQuestFromAsset(UExQuestDataAsset* QuestAsset, bool bPreserveRuntime)
@@ -88,6 +136,7 @@ void UExQuestManagerSubsystem::LoadQuestFromAsset(UExQuestDataAsset* QuestAsset,
 	CurrentQuestData.RebuildIndices();
 	CaptureInitialStates();
 	NotifyQuestDataRefreshed();
+	CommitAuthorityReplication();
 }
 
 FExQuestRuntimeState UExQuestManagerSubsystem::GetRuntimeState() const
@@ -100,6 +149,7 @@ void UExQuestManagerSubsystem::ApplyRuntimeState(const FExQuestRuntimeState& Run
 	CurrentQuestData.ApplyRuntimeState(RuntimeState);
 	CurrentQuestData.RebuildIndices();
 	NotifyQuestDataRefreshed();
+	CommitAuthorityReplication();
 }
 
 bool UExQuestManagerSubsystem::TryUnlockTask(FExQuestTask& Task)
@@ -154,6 +204,47 @@ void UExQuestManagerSubsystem::ResetTaskObjectives(FExQuestTask& Task)
 	}
 }
 
+void UExQuestManagerSubsystem::TryRollUpParentTasks(const FGameplayTag& CompletedTaskId)
+{
+	FExQuestTask CompletedTask;
+	if (!CurrentQuestData.FindTaskById(CompletedTaskId, CompletedTask))
+	{
+		return;
+	}
+
+	if (!CompletedTask.ParentTaskId.IsValid())
+	{
+		return;
+	}
+
+	const FGameplayTag ParentId = CompletedTask.ParentTaskId;
+
+	FindAndUpdateTask(ParentId, [this](FExQuestTask& ParentTask) -> bool
+	{
+		if (ParentTask.State != EExQuestState::Active || ParentTask.bIsRepeatable)
+		{
+			return false;
+		}
+
+		if (!ParentTask.IsReadyToComplete(CurrentQuestData))
+		{
+			return false;
+		}
+
+		ParentTask.State = EExQuestState::Completed;
+		BroadcastTaskStateChange(ParentTask);
+		BroadcastTaskProgress(ParentTask);
+		HandleQuestCompleted(ParentTask);
+		return true;
+	});
+
+	FExQuestTask ParentSnapshot;
+	if (CurrentQuestData.FindTaskById(ParentId, ParentSnapshot) && ParentSnapshot.State == EExQuestState::Active)
+	{
+		BroadcastTaskProgress(ParentSnapshot);
+	}
+}
+
 void UExQuestManagerSubsystem::HandleQuestCompleted(FExQuestTask& Task)
 {
 	if (Task.bIsRepeatable)
@@ -167,6 +258,7 @@ void UExQuestManagerSubsystem::HandleQuestCompleted(FExQuestTask& Task)
 	}
 
 	UnlockDependentQuests(Task.TaskId);
+	TryRollUpParentTasks(Task.TaskId);
 	SyncRuntimeStateCache();
 }
 
@@ -180,7 +272,7 @@ bool UExQuestManagerSubsystem::UnlockQuest(const FGameplayTag& TaskId)
 	});
 	if (bUnlocked)
 	{
-		SyncRuntimeStateCache();
+		CommitAuthorityReplication();
 	}
 	return bUnlocked;
 }
@@ -202,7 +294,7 @@ bool UExQuestManagerSubsystem::ActivateQuest(const FGameplayTag& TaskId)
 
 	if (bResult)
 	{
-		SyncRuntimeStateCache();
+		CommitAuthorityReplication();
 	}
 	return bResult;
 }
@@ -224,6 +316,10 @@ bool UExQuestManagerSubsystem::CompleteQuest(const FGameplayTag& TaskId)
 		bCompleted = true;
 		return true;
 	});
+	if (bCompleted)
+	{
+		CommitAuthorityReplication();
+	}
 	return bCompleted;
 }
 
@@ -242,7 +338,7 @@ bool UExQuestManagerSubsystem::FailQuest(const FGameplayTag& TaskId)
 
 	if (bResult)
 	{
-		SyncRuntimeStateCache();
+		CommitAuthorityReplication();
 	}
 	return bResult;
 }
@@ -262,16 +358,18 @@ bool UExQuestManagerSubsystem::ApplyObjectiveProgress(FExQuestTask& Task, const 
 		OnQuestObjectiveUpdated.Broadcast(Objective);
 		BroadcastTaskProgress(Task);
 
-		if (Task.State == EExQuestState::Active && Task.IsFullyCompleted())
+		if (Task.State == EExQuestState::Active && Task.IsReadyToComplete(CurrentQuestData))
 		{
 			Task.State = EExQuestState::Completed;
 			BroadcastTaskStateChange(Task);
 			BroadcastTaskProgress(Task);
 			HandleQuestCompleted(Task);
+			CommitAuthorityReplication();
 		}
 		else
 		{
-			SyncRuntimeStateCache();
+			BroadcastTaskProgress(Task);
+			CommitAuthorityReplication();
 		}
 
 		return true;
@@ -282,10 +380,11 @@ bool UExQuestManagerSubsystem::ApplyObjectiveProgress(FExQuestTask& Task, const 
 
 bool UExQuestManagerSubsystem::UpdateQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 NewProgress)
 {
-	return FindAndUpdateTask(TaskId, [this, &ObjectiveTag, NewProgress](FExQuestTask& Task) -> bool
+	const bool bResult = FindAndUpdateTask(TaskId, [this, &ObjectiveTag, NewProgress](FExQuestTask& Task) -> bool
 	{
 		return ApplyObjectiveProgress(Task, ObjectiveTag, NewProgress);
 	});
+	return bResult;
 }
 
 bool UExQuestManagerSubsystem::IncrementQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 Delta)
@@ -324,6 +423,40 @@ bool UExQuestManagerSubsystem::CompleteQuestObjective(const FGameplayTag& TaskId
 	}
 
 	return false;
+}
+
+bool UExQuestManagerSubsystem::NotifyObjectiveProgressByTag(const FGameplayTag& ObjectiveTag, int32 Delta)
+{
+	if (!ObjectiveTag.IsValid() || Delta <= 0)
+	{
+		return false;
+	}
+
+	FGameplayTag TaskId;
+	if (!CurrentQuestData.FindTaskIdByObjectiveTag(ObjectiveTag, TaskId))
+	{
+		UE_LOG(LogBlueprintNodeGraph, Warning,
+			TEXT("NotifyObjectiveProgressByTag: unknown ObjectiveTag '%s'"),
+			*ObjectiveTag.ToString());
+		return false;
+	}
+
+	FExQuestTask Task;
+	if (!CurrentQuestData.FindTaskById(TaskId, Task))
+	{
+		return false;
+	}
+
+	if (Task.State != EExQuestState::Active)
+	{
+		UE_LOG(LogBlueprintNodeGraph, Verbose,
+			TEXT("NotifyObjectiveProgressByTag: task '%s' is not Active, ignoring tag '%s'"),
+			*TaskId.ToString(),
+			*ObjectiveTag.ToString());
+		return false;
+	}
+
+	return IncrementQuestObjective(TaskId, ObjectiveTag, Delta);
 }
 
 TArray<FExQuestTask> UExQuestManagerSubsystem::GetActiveQuests() const
@@ -370,6 +503,7 @@ void UExQuestManagerSubsystem::ResetAllQuests()
 	}
 
 	NotifyQuestDataRefreshed();
+	CommitAuthorityReplication();
 }
 
 FString UExQuestManagerSubsystem::SaveQuestProgress() const
@@ -391,6 +525,7 @@ bool UExQuestManagerSubsystem::LoadQuestProgressFromJson(const FString& JsonSave
 
 	CurrentQuestData.RebuildIndices();
 	NotifyQuestDataRefreshed();
+	CommitAuthorityReplication();
 	return true;
 }
 
@@ -520,6 +655,7 @@ bool UExQuestManagerSubsystem::LoadQuestProgressLegacyText(const FString& SaveDa
 	{
 		CurrentQuestData.RebuildIndices();
 		NotifyQuestDataRefreshed();
+		CommitAuthorityReplication();
 	}
 
 	return bParsedAny;

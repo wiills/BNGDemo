@@ -12,16 +12,16 @@
 #include "K2Node_TemporaryVariable.h"
 #include "KismetCompiler.h"
 #include "Kismet2/BlueprintEditorUtils.h"
-#include "BlueprintTool/LatentTasks/ExLatentTask_QuestBound.h"
+#include "BlueprintTool/LatentTasks/ExLatentTask_Quest.h"
 
 #define LOCTEXT_NAMESPACE "UExK2Node_QuestTask"
 
-using LatentTaskClassDefine = UExLatentTask_QuestBound;
+using LatentTaskClassDefine = UExLatentTask_Quest;
 
 UExK2Node_QuestTask::UExK2Node_QuestTask(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(LatentTaskClassDefine, CreateQuestBoundProxy);
+	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(LatentTaskClassDefine, CreateQuestProxy);
 	ProxySetK2NodeInfoFunctionName = GET_FUNCTION_NAME_CHECKED(LatentTaskClassDefine, SetK2NodeInfo);
 	ProxyActivateFunctionName = GET_FUNCTION_NAME_CHECKED(LatentTaskClassDefine, Activate);
 	ProxyFactoryClass = LatentTaskClassDefine::StaticClass();
@@ -40,7 +40,7 @@ FText UExK2Node_QuestTask::GetTooltipText() const
 
 FText UExK2Node_QuestTask::GetMenuCategory() const
 {
-	return LOCTEXT("QuestBoundNodeCategory", "Blueprint Node Graph|Quest");
+	return LOCTEXT("QuestNodeCategory", "Blueprint Node Graph|Quest");
 }
 
 void UExK2Node_QuestTask::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
@@ -137,9 +137,9 @@ UClass* UExK2Node_QuestTask::GetClassToSpawn(const TArray<UEdGraphPin*>* InPinsT
 		UseSpawnClass = SourcePin ? Cast<UClass>(SourcePin->PinType.PinSubCategoryObject.Get()) : nullptr;
 	}
 
-	if (UseSpawnClass && !UseSpawnClass->IsChildOf(UExLatentTask_QuestBound::StaticClass()))
+	if (UseSpawnClass && !UseSpawnClass->IsChildOf(UExLatentTask_Quest::StaticClass()))
 	{
-		UseSpawnClass = UExLatentTask_QuestBound::StaticClass();
+		UseSpawnClass = UExLatentTask_Quest::StaticClass();
 	}
 
 	return UseSpawnClass;

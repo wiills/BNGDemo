@@ -16,7 +16,7 @@ HEADER_COMMENTS = {
     "ExK2Node_WaitCount.h": '/** Multi-branch merge: continue after success count reaches Required Success Count (EExBranchMode::Count). */',
     "ExK2Node_QuestTask.h": (
         "/**\n * @class UExK2Node_QuestTask\n"
-        " * @brief Quest-bound latent task K2 node (CreateQuestBoundProxy, not CreateLatentTask).\n */"
+        " * @brief Quest latent task K2 node (CreateQuestProxy on UExLatentTask_Quest, not CreateLatentTask).\n */"
     ),
     "ExK2Node_LoadAsset.h": (
         "/**\n * @class UExK2Node_LoadAsset\n"

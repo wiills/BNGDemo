@@ -11,7 +11,7 @@
 #include "KismetCompiler.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "BlueprintTool/LatentTasks/ExLatentTask_Custom.h"
-#include "BlueprintTool/LatentTasks/ExLatentTask_QuestBound.h"
+#include "BlueprintTool/LatentTasks/ExLatentTask_Quest.h"
 
 #define LOCTEXT_NAMESPACE "UExK2Node_LatentTaskObject"
 
@@ -112,7 +112,7 @@ UClass* UExK2Node_LatentTaskObject::GetClassToSpawn(const TArray<UEdGraphPin*>* 
 		UseSpawnClass = SourcePin ? Cast<UClass>(SourcePin->PinType.PinSubCategoryObject.Get()) : nullptr;
 	}
 
-	if (UseSpawnClass && UseSpawnClass->IsChildOf(UExLatentTask_QuestBound::StaticClass()))
+	if (UseSpawnClass && UseSpawnClass->IsChildOf(UExLatentTask_Quest::StaticClass()))
 	{
 		UseSpawnClass = UExLatentTask_Custom::StaticClass();
 	}

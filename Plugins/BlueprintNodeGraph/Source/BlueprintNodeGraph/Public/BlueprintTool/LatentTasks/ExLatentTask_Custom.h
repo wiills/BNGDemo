@@ -11,7 +11,7 @@
  * @brief User-defined latent task (blueprint subclass base).
  *
  * Created via ExK2Node_LatentTaskObject / CreateProxy.
- * For quest binding use UExLatentTask_QuestBound and UExK2Node_QuestTask instead.
+ * For quest latent tasks inherit UExLatentTask_Quest and use UExK2Node_QuestTask (not CreateLatentTask).
  */
 UCLASS(Blueprintable, BlueprintType, HideDropdown, meta = (ExposedAsyncProxy = AsyncTask, SafeHideThen))
 class BLUEPRINTNODEGRAPH_API UExLatentTask_Custom : public UExBase_LatentTask
