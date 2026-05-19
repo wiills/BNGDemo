@@ -44,9 +44,9 @@ BlueprintNodeGraph is a powerful Unreal Engine plugin that provides a rich set o
 - High performance, low overhead
 
 **Core Files:**
-- [ExLatentTaskBase.h](Source/BlueprintNodeGraph/Public/BlueprintTool/ExLatentTaskBase.h) - Latent task base class
-- [ExLatentActionManager.h](Source/BlueprintNodeGraph/Public/BlueprintTool/ExLatentActionManager.h) - Delegate manager
-- [ExK2Node_LatentTaskCall.h](Source/BlueprintNodeGraphEditor/Public/BlueprintTool/ExK2Node_LatentTaskCall.h) - K2 node extension
+- [ExBase_LatentTask.h](Source/BlueprintNodeGraph/Public/BlueprintTool/LatentTasks/ExBase_LatentTask.h) - Latent task base class
+- [ExLatentActionManager.h](Source/BlueprintNodeGraph/Public/BlueprintTool/Subsystems/ExLatentActionManager.h) - Delegate manager
+- [ExK2Node_LatentTaskCall.h](Source/BlueprintNodeGraphEditor/Public/BlueprintTool/K2Nodes/ExK2Node_LatentTaskCall.h) - K2 node extension
 
 ## Why Choose BlueprintNodeGraph?
 
@@ -80,7 +80,7 @@ BlueprintNodeGraph is a powerful Unreal Engine plugin that provides a rich set o
 
 #### 2. Out-of-the-box Async Execution
 
-**File Location:** [ExLatentProxyDefine.h](Source/BlueprintNodeGraph/Public/BlueprintTool/ExLatentProxyDefine.h)
+**File Location:** [ExLatentProxyDefine.h](Source/BlueprintNodeGraph/Public/BlueprintTool/Common/ExLatentProxyDefine.h)
 
 ```cpp
 // Just drag and use:
@@ -93,7 +93,7 @@ No complex chart configuration needed, just use it!
 
 #### 3. Automatic GC Protection Mechanism
 
-**File Location:** [ExAsyncActionBase.h#L96-113](Source/BlueprintNodeGraph/Public/BlueprintTool/ExAsyncActionBase.h#L96-113)
+**File Location:** [ExBase_AsyncAction.h](Source/BlueprintNodeGraph/Public/BlueprintTool/AsyncActions/ExBase_AsyncAction.h)
 
 ```cpp
 // Automatic object lifecycle handling:
@@ -106,7 +106,7 @@ SetReadyToDestroy();                    // Mark for destruction when complete
 
 #### 4. Timeout Protection Mechanism
 
-**File Location:** [ExLatentNodeInfo](Source/BlueprintNodeGraph/Public/BlueprintTool/ExLatentProxyDefine.h)
+**File Location:** [ExLatentNodeInfo](Source/BlueprintNodeGraph/Public/BlueprintTool/Common/ExLatentProxyDefine.h)
 
 ```
 Node Properties → Configure Time Out: 10.0
@@ -118,7 +118,7 @@ Prevents infinite waiting!
 
 #### 5. Complete Task Lifecycle
 
-**File Location:** [ExLatentTaskBase.h#L61](Source/BlueprintNodeGraph/Public/BlueprintTool/ExLatentTaskBase.h#L61)
+**File Location:** [ExBase_LatentTask.h](Source/BlueprintNodeGraph/Public/BlueprintTool/LatentTasks/ExBase_LatentTask.h)
 
 ```
 CreateTask() → Activate() → Receive On Start → Receive On Stop → Destroy

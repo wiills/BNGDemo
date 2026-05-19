@@ -9,9 +9,9 @@ public class BlueprintNodeGraph : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		CppStandard = CppStandardVersion.Cpp20;
 		
-		// UE5.5+：`bEnableUndefinedIdentifierWarnings` 已弃用，改用 `UndefinedIdentifierWarningLevel`（原为 true → Warning）
+		// UE5.6+：`UndefinedIdentifierWarningLevel` 已移至 `CppCompileWarningSettings`
 		bUseUnity = true;
-		UndefinedIdentifierWarningLevel = WarningLevel.Warning;
+		CppCompileWarningSettings.UndefinedIdentifierWarningLevel = WarningLevel.Warning;
 		bLegacyParentIncludePaths = false;
 		
 		PublicDependencyModuleNames.AddRange(new[]

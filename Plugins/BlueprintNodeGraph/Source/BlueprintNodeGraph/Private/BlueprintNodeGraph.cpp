@@ -1,7 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintNodeGraph.h"
-#include "BlueprintTool/ExLatentProxyDefine.h"
+#include "BlueprintTool/Common/ExLatentProxyDefine.h"
 
 #define LOCTEXT_NAMESPACE "FBlueprintNodeGraphModule"
 

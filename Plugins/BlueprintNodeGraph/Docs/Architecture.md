@@ -25,20 +25,23 @@
 ```
 UObject
 │
-├── UExAsyncActionBase                    # 异步操作基类
-│   └── UExAsyncActionProxy
-│       ├── UExAsyncBlendPercentProxy     # 混合百分比
-│       ├── UExWaitConditionProxy          # 条件等待
-│       └── UExWaitBranchProxy             # 分支等待
+├── UExBase_AsyncAction                    # 异步操作基类
+│   ├── UExAsyncActionProxy
+│   ├── UExAsyncAction_BranchSync
+│   ├── UExAsyncAction_LoadAsset
+│   └── ...
 │
-├── UExLatentActionProxyBase              # 延迟代理基类
-│   ├── UExLatentActionProxy             # 延迟代理
-│   ├── UExLoopDelayProxy                 # 循环延迟
-│   ├── UExForLoopWithDelayProxy          # 循环延迟
-│   └── UExLatentTaskProxy               # 延迟任务代理
+├── UExBase_FlowProxy                      # 流程控制代理基类
+│   ├── UExProxy_WaitCondition
+│   ├── UExProxy_WaitBranch
+│   ├── UExProxy_BlendPercent
+│   ├── UExProxy_LoopDelay
+│   └── UExProxy_ForLoopWithDelay
 │
-└── UExLatentTaskBase                    # 延迟任务基类
-    └── UExLatentTaskForAttach            # 附加任务
+└── UExBase_LatentTask                     # 延迟任务基类
+    ├── UExLatentTask_ForAttach
+    ├── UExLatentTask_Saveable
+    └── UExProxy_LatentTask                # K2 工厂类
 ```
 
 ## 模块结构
@@ -47,32 +50,22 @@ UObject
 Source/
 │
 ├── BlueprintNodeGraph/              # 运行时
-│   ├── Public/
-│   │   ├── BlueprintTool/
-│   │   │   ├── ExLatentProxyDefine.h      # 核心定义
-│   │   │   ├── ExAsyncActionBase.h         # 异步基类
-│   │   │   ├── ExLatentActionManager.h     # 管理器
-│   │   │   ├── ExLatentTaskBase.h          # 任务基类
-│   │   │   └── ExLatentTaskInterface.h     # 任务接口
-│   │   └── BlueprintNodeGraph.h
-│   │
-│   └── Private/
-│       └── BlueprintTool/           # 实现
-│           ├── ExAsyncActionBase.cpp
-│           ├── ExLatentActionManager.cpp
-│           ├── ExLatentTaskBase.cpp
-│           └── ExLatentTaskInterface.cpp
+│   ├── Public/BlueprintTool/
+│   │   ├── AsyncActions/            # 异步操作
+│   │   ├── Proxies/                 # 流程代理
+│   │   ├── LatentTasks/             # 延迟任务
+│   │   ├── Subsystems/              # 子系统
+│   │   ├── Common/                  # 公共定义
+│   │   ├── Libraries/               # 函数库
+│   │   └── Assets/                  # 资产类
+│   └── Private/BlueprintTool/       # 同上目录结构
 │
 └── BlueprintNodeGraphEditor/        # 编辑器
-    ├── Public/
-    │   └── BlueprintTool/
-    │       ├── ExK2Node_*.h        # K2节点
-    │       └── SGraphNode_*.h      # Slate节点
-    │
-    └── Private/
-        └── BlueprintTool/
-            ├── ExK2Node_*.cpp
-            └── SGraphNode_*.cpp
+    ├── Public/BlueprintTool/
+    │   ├── K2Nodes/                 # K2 节点
+    │   ├── Slate/                   # Slate UI
+    │   └── AssetActions/            # 资产操作
+    └── Private/BlueprintTool/       # 同上目录结构
 ```
 
 ## 核心流程
@@ -266,7 +259,7 @@ UK2Node_ShowBase (基础节点类)
 
 ```cpp
 // 1. 创建时设置强引用
-UExLatentActionProxyBase(const FObjectInitializer& OI)
+UExBase_FlowProxy(const FObjectInitializer& OI)
 {
     SetFlags(RF_StrongRefOnFrame);
 }
@@ -323,7 +316,7 @@ Server                              Client
 
 ```cpp
 UCLASS()
-class UMyAsyncProxy : public UExLatentActionProxyBase
+class UMyAsyncProxy : public UExBase_FlowProxy
 {
     GENERATED_BODY()
     
@@ -340,7 +333,7 @@ public:
 
 ```cpp
 UCLASS(Blueprintable)
-class UMyLatentTask : public UExLatentTaskBase
+class UMyLatentTask : public UExBase_LatentTask
 {
     GENERATED_BODY()
     

@@ -211,7 +211,7 @@ enum class EExQuestState : uint8
 
 ```cpp
 // 创建任务相关的延迟任务
-UExLatentTaskProxy* QuestTask = CreateLatentTask(World, TaskClass);
+UExProxy_LatentTask* QuestTask = CreateLatentTask(World, TaskClass);
 
 // 在任务完成时调用蓝图节点
 QuestTask->OnComplete.AddDynamic(this, &UMyClass::OnQuestTaskCompleted);
