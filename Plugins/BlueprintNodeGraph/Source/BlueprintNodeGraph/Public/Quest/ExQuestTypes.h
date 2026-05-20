@@ -184,6 +184,9 @@ struct BLUEPRINTNODEGRAPH_API FExQuestData
 	FExQuestRuntimeState ExtractRuntimeState() const;
 	void ApplyRuntimeState(const FExQuestRuntimeState& RuntimeState);
 
+	/** Fill empty task/objective text and targets from an authored definition snapshot. */
+	void EnrichMetadataFrom(const FExQuestData& DefinitionData);
+
 private:
 	TMap<FGameplayTag, int32> TaskIdToIndex;
 	TMap<FGameplayTag, int32> ObjectiveTagToTaskIndex;

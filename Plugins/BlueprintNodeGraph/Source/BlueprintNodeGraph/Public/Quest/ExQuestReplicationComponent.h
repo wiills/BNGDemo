@@ -36,6 +36,7 @@ public:
 	// --- Routed API (Standalone / Server local, Client -> Server RPC) ---
 
 	static bool RouteUnlockQuest(UObject* WorldContextObject, const FGameplayTag& TaskId);
+	static bool RouteCompleteQuest(UObject* WorldContextObject, const FGameplayTag& TaskId);
 	static bool RouteIncrementQuestObjective(UObject* WorldContextObject, const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 Delta);
 	static bool RouteCompleteQuestObjective(UObject* WorldContextObject, const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag);
 	static bool RouteNotifyObjectiveProgressByTag(UObject* WorldContextObject, const FGameplayTag& ObjectiveTag, int32 Delta);
@@ -60,6 +61,9 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void Server_UnlockQuest(const FGameplayTag& TaskId);
+
+	UFUNCTION(Server, Reliable)
+	void Server_CompleteQuest(const FGameplayTag& TaskId);
 
 	UFUNCTION(Server, Reliable)
 	void Server_IncrementQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 Delta);

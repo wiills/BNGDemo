@@ -325,6 +325,51 @@ void FExQuestData::ApplyRuntimeState(const FExQuestRuntimeState& RuntimeState)
 	}
 }
 
+void FExQuestData::EnrichMetadataFrom(const FExQuestData& DefinitionData)
+{
+	for (FExQuestTask& Task : AllTasks)
+	{
+		FExQuestTask DefTask;
+		if (!DefinitionData.FindTaskById(Task.TaskId, DefTask))
+		{
+			continue;
+		}
+
+		if (Task.TaskName.IsEmpty() && !DefTask.TaskName.IsEmpty())
+		{
+			Task.TaskName = DefTask.TaskName;
+		}
+
+		if (Task.Description.IsEmpty() && !DefTask.Description.IsEmpty())
+		{
+			Task.Description = DefTask.Description;
+		}
+
+		for (FExQuestObjective& Objective : Task.Objectives)
+		{
+			for (const FExQuestObjective& DefObjective : DefTask.Objectives)
+			{
+				if (Objective.ObjectiveTag != DefObjective.ObjectiveTag)
+				{
+					continue;
+				}
+
+				if (Objective.Description.IsEmpty() && !DefObjective.Description.IsEmpty())
+				{
+					Objective.Description = DefObjective.Description;
+				}
+
+				if (Objective.TargetProgress <= 0 && DefObjective.TargetProgress > 0)
+				{
+					Objective.TargetProgress = DefObjective.TargetProgress;
+				}
+
+				break;
+			}
+		}
+	}
+}
+
 bool FExQuestData::CanActivateTask(const FGameplayTag& TaskId) const
 {
 	FExQuestTask Task;

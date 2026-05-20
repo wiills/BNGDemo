@@ -16,7 +16,9 @@
 #include "Quest/ExQuestDefinition.h"
 #include "Styling/AppStyle.h"
 #include "ToolMenus.h"
+#include "Engine/DataTable.h"
 #include "UObject/ObjectSaveContext.h"
+#include "UObject/Package.h"
 #include "UObject/UObjectGlobals.h"
 #include "Widgets/Notifications/SNotificationList.h"
 
@@ -94,17 +96,24 @@ namespace ExQuestDataImportEditorInternal
 		});
 	}
 
-	static void OnObjectSaved(UObject* Object, FObjectPostSaveContext SaveContext)
+	static void OnPackageSavedWithContext(
+		const FString& /*PackageFileName*/,
+		UPackage* Package,
+		FObjectPostSaveContext SaveContext)
 	{
-		if (!Object || SaveContext.IsProceduralSave() || SaveContext.IsAutosave())
+		if (!Package || SaveContext.IsFromAutoSave())
 		{
 			return;
 		}
 
-		if (UDataTable* TaskTable = Cast<UDataTable>(Object))
+		ForEachObjectWithPackage(Package, [](UObject* PackageObject)
 		{
-			QueueAutoImportAfterSave(TaskTable);
-		}
+			if (UDataTable* TaskTable = Cast<UDataTable>(PackageObject))
+			{
+				QueueAutoImportAfterSave(TaskTable);
+			}
+			return true;
+		}, false);
 	}
 
 	static UExQuestDataAsset* FindPairedInRegistry(const FString& DataAssetName, const FString& PreferredPackagePath)
@@ -403,14 +412,14 @@ void FExQuestDataImportEditor::RegisterAutoImportOnSave()
 	}
 
 	ExQuestDataImportEditorInternal::ObjectSavedDelegateHandle =
-		FCoreUObjectDelegates::OnObjectSaved.AddStatic(&ExQuestDataImportEditorInternal::OnObjectSaved);
+		UPackage::PackageSavedWithContextEvent.AddStatic(&ExQuestDataImportEditorInternal::OnPackageSavedWithContext);
 }
 
 void FExQuestDataImportEditor::UnregisterAutoImportOnSave()
 {
 	if (ExQuestDataImportEditorInternal::ObjectSavedDelegateHandle.IsValid())
 	{
-		FCoreUObjectDelegates::OnObjectSaved.Remove(ExQuestDataImportEditorInternal::ObjectSavedDelegateHandle);
+		UPackage::PackageSavedWithContextEvent.Remove(ExQuestDataImportEditorInternal::ObjectSavedDelegateHandle);
 		ExQuestDataImportEditorInternal::ObjectSavedDelegateHandle.Reset();
 	}
 

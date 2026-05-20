@@ -37,7 +37,7 @@ void UExLatentTask_Quest::OnStop()
 
 void UExLatentTask_Quest::ApplyQuestOnComplete_Implementation()
 {
-	if (!QuestTag.IsValid() || !ObjectiveTag.IsValid())
+	if (!QuestTag.IsValid())
 	{
 		return;
 	}
@@ -45,6 +45,12 @@ void UExLatentTask_Quest::ApplyQuestOnComplete_Implementation()
 	UObject* WorldContext = GetWorld();
 	if (!WorldContext)
 	{
+		return;
+	}
+
+	if (!ObjectiveTag.IsValid())
+	{
+		UExQuestReplicationComponent::RouteCompleteQuest(WorldContext, QuestTag);
 		return;
 	}
 

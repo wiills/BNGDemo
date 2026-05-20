@@ -92,6 +92,10 @@ void UExQuestManagerSubsystem::ApplyReplicatedQuestView(UExQuestDataAsset* Defin
 	}
 
 	CurrentQuestData.ApplyRuntimeState(RuntimeState);
+	if (DefinitionAsset)
+	{
+		CurrentQuestData.EnrichMetadataFrom(DefinitionAsset->BuildInitialQuestData());
+	}
 	CurrentQuestData.RebuildIndices();
 	SyncRuntimeStateCache();
 	NotifyQuestDataRefreshed();
@@ -521,6 +525,11 @@ bool UExQuestManagerSubsystem::LoadQuestProgressFromJson(const FString& JsonSave
 	if (!FExQuestSaveHelper::DeserializeProgressFromJson(JsonSaveData, CurrentQuestData))
 	{
 		return false;
+	}
+
+	if (LoadedQuestAsset)
+	{
+		CurrentQuestData.EnrichMetadataFrom(LoadedQuestAsset->BuildInitialQuestData());
 	}
 
 	CurrentQuestData.RebuildIndices();

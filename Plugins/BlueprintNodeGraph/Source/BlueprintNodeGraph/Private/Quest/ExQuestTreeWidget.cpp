@@ -12,6 +12,25 @@
 #include "Components/Button.h"
 #include "Components/ScrollBox.h"
 #include "Kismet/GameplayStatics.h"
+#include "Quest/ExQuestDefinition.h"
+
+namespace ExQuestTreeWidgetInternal
+{
+	static FText GetObjectiveDisplayText(const FExQuestObjective& Objective)
+	{
+		if (!Objective.Description.IsEmpty())
+		{
+			return Objective.Description;
+		}
+
+		if (Objective.ObjectiveTag.IsValid())
+		{
+			return FText::FromName(Objective.ObjectiveTag.GetTagName());
+		}
+
+		return FText::GetEmpty();
+	}
+}
 
 void UExQuestExpandClickHandler::Setup(UExQuestTreeWidget* InOwner, const FString& InTaskId)
 {
@@ -63,6 +82,11 @@ void UExQuestTreeWidget::NativeDestruct()
 
 void UExQuestTreeWidget::HandleQuestStateChanged(const FExQuestTask& QuestTask)
 {
+	if (QuestTask.State == EExQuestState::Completed && QuestTask.Objectives.Num() > 0)
+	{
+		ExpandedTaskIds.Add(QuestTask.TaskId.ToString());
+	}
+
 	RefreshQuestTree();
 }
 
@@ -96,6 +120,11 @@ void UExQuestTreeWidget::SyncDisplayedDataFromManager()
 			if (ManagerData.AllTasks.Num() > 0)
 			{
 				DisplayedQuestData = ManagerData;
+
+				if (const UExQuestDataAsset* QuestAsset = QuestManager->GetLoadedQuestAsset())
+				{
+					DisplayedQuestData.EnrichMetadataFrom(QuestAsset->BuildInitialQuestData());
+				}
 			}
 		}
 	}
@@ -221,7 +250,7 @@ void UExQuestTreeWidget::CreateQuestItem(const FExQuestTask& QuestTask, UVertica
 			{
 				const FText ObjectiveDisplayText = FText::Format(
 					NSLOCTEXT("QuestUI", "ObjectiveFormat", "  - {0} ({1}/{2})"),
-					Objective.Description,
+					ExQuestTreeWidgetInternal::GetObjectiveDisplayText(Objective),
 					FText::AsNumber(Objective.CurrentProgress),
 					FText::AsNumber(Objective.TargetProgress));
 				ObjectiveText->SetText(ObjectiveDisplayText);

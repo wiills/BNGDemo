@@ -30,7 +30,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest", ExposeOnSpawn = true))
 	FGameplayTag QuestTag;
 
-	/** Objective configuration tag, not a world instance id */
+	/** When set, updates this objective on QuestTag. When None, completes QuestTag on successful stop. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest", ExposeOnSpawn = true))
 	FGameplayTag ObjectiveTag;
 
@@ -53,7 +53,7 @@ public:
 protected:
 	virtual void OnStop() override;
 
-	/** Override to customize how quest state is updated (default: increment or complete objective) */
+	/** Override to customize quest write-back (default: objective progress, or CompleteQuest when ObjectiveTag is None) */
 	UFUNCTION(BlueprintNativeEvent, Category = "Quest")
 	void ApplyQuestOnComplete();
 	virtual void ApplyQuestOnComplete_Implementation();

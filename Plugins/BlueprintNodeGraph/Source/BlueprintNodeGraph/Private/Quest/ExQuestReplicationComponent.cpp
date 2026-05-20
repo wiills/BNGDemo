@@ -156,6 +156,31 @@ bool UExQuestReplicationComponent::RouteUnlockQuest(UObject* WorldContextObject,
 	return false;
 }
 
+bool UExQuestReplicationComponent::RouteCompleteQuest(UObject* WorldContextObject, const FGameplayTag& TaskId)
+{
+	if (UExQuestReplicationComponent* Rep = Get(WorldContextObject))
+	{
+		if (Rep->IsAuthorityEndpoint())
+		{
+			if (UExQuestManagerSubsystem* Manager = ExQuestReplication::GetManager(WorldContextObject))
+			{
+				return Manager->CompleteQuest(TaskId);
+			}
+			return false;
+		}
+
+		Rep->Server_CompleteQuest(TaskId);
+		return true;
+	}
+
+	if (UExQuestManagerSubsystem* Manager = ExQuestReplication::GetManager(WorldContextObject))
+	{
+		return Manager->CompleteQuest(TaskId);
+	}
+
+	return false;
+}
+
 bool UExQuestReplicationComponent::RouteIncrementQuestObjective(
 	UObject* WorldContextObject,
 	const FGameplayTag& TaskId,
@@ -359,6 +384,14 @@ void UExQuestReplicationComponent::Server_UnlockQuest_Implementation(const FGame
 	if (UExQuestManagerSubsystem* Manager = ExQuestReplication::GetManager(this))
 	{
 		Manager->UnlockQuest(TaskId);
+	}
+}
+
+void UExQuestReplicationComponent::Server_CompleteQuest_Implementation(const FGameplayTag& TaskId)
+{
+	if (UExQuestManagerSubsystem* Manager = ExQuestReplication::GetManager(this))
+	{
+		Manager->CompleteQuest(TaskId);
 	}
 }
 
