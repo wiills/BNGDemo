@@ -2,6 +2,7 @@
 
 #include "Quest/ExQuestDataImportEditor.h"
 
+#include "Async/Async.h"
 #include "AssetRegistry/AssetData.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetToolsModule.h"
@@ -15,17 +16,95 @@
 #include "Quest/ExQuestDefinition.h"
 #include "Styling/AppStyle.h"
 #include "ToolMenus.h"
+#include "UObject/ObjectSaveContext.h"
+#include "UObject/UObjectGlobals.h"
 #include "Widgets/Notifications/SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "ExQuestDataImportEditor"
 
 namespace ExQuestDataImportEditorInternal
 {
+	static const TCHAR* QuestImportConfigIni = TEXT("BlueprintNodeGraph");
+	static const TCHAR* QuestImportConfigSection = TEXT("ExQuestDataImport");
+	static const TCHAR* AutoImportOnSaveKey = TEXT("bAutoImportQuestTableOnSave");
+
+	static FDelegateHandle ObjectSavedDelegateHandle;
+	static TSet<TWeakObjectPtr<UDataTable>> PendingAutoImportTables;
+
 	static const FName ContentBrowserQuestImportMenuOwner = TEXT("BlueprintNodeGraphQuestImport");
 
 	static bool CanImportQuestTable(const UDataTable* Table)
 	{
 		return FExQuestDataImportUtil::IsCompatibleQuestTaskTable(Table);
+	}
+
+	static void ExecuteImportForTables(const TArray<UDataTable*>& Tables);
+
+	static bool IsAutoImportOnSaveEnabled()
+	{
+		bool bEnabled = true;
+		if (GConfig)
+		{
+			GConfig->GetBool(
+				QuestImportConfigSection,
+				AutoImportOnSaveKey,
+				bEnabled,
+				QuestImportConfigIni);
+		}
+		return bEnabled;
+	}
+
+	static void FlushPendingAutoImports()
+	{
+		if (PendingAutoImportTables.Num() == 0)
+		{
+			return;
+		}
+
+		TArray<UDataTable*> TablesToImport;
+		for (const TWeakObjectPtr<UDataTable>& WeakTable : PendingAutoImportTables)
+		{
+			if (UDataTable* Table = WeakTable.Get())
+			{
+				TablesToImport.AddUnique(Table);
+			}
+		}
+		PendingAutoImportTables.Empty();
+
+		if (TablesToImport.Num() == 0)
+		{
+			return;
+		}
+
+		ExecuteImportForTables(TablesToImport);
+	}
+
+	static void QueueAutoImportAfterSave(UDataTable* TaskTable)
+	{
+		if (!TaskTable || !IsAutoImportOnSaveEnabled() || !CanImportQuestTable(TaskTable))
+		{
+			return;
+		}
+
+		PendingAutoImportTables.Add(TaskTable);
+
+		AsyncTask(ENamedThreads::GameThread, []()
+		{
+			FlushPendingAutoImports();
+		});
+	}
+
+	static void OnObjectSaved(UObject* Object, FObjectPostSaveContext SaveContext)
+	{
+		if (!Object || SaveContext.IsProceduralSave() || SaveContext.IsAutosave())
+		{
+			return;
+		}
+
+		if (UDataTable* TaskTable = Cast<UDataTable>(Object))
+		{
+			QueueAutoImportAfterSave(TaskTable);
+		}
 	}
 
 	static UExQuestDataAsset* FindPairedInRegistry(const FString& DataAssetName, const FString& PreferredPackagePath)
@@ -314,6 +393,28 @@ void FExQuestDataImportEditor::UnregisterContentBrowserMenus()
 	{
 		ToolMenus->UnregisterOwnerByName(ExQuestDataImportEditorInternal::ContentBrowserQuestImportMenuOwner);
 	}
+}
+
+void FExQuestDataImportEditor::RegisterAutoImportOnSave()
+{
+	if (ExQuestDataImportEditorInternal::ObjectSavedDelegateHandle.IsValid())
+	{
+		return;
+	}
+
+	ExQuestDataImportEditorInternal::ObjectSavedDelegateHandle =
+		FCoreUObjectDelegates::OnObjectSaved.AddStatic(&ExQuestDataImportEditorInternal::OnObjectSaved);
+}
+
+void FExQuestDataImportEditor::UnregisterAutoImportOnSave()
+{
+	if (ExQuestDataImportEditorInternal::ObjectSavedDelegateHandle.IsValid())
+	{
+		FCoreUObjectDelegates::OnObjectSaved.Remove(ExQuestDataImportEditorInternal::ObjectSavedDelegateHandle);
+		ExQuestDataImportEditorInternal::ObjectSavedDelegateHandle.Reset();
+	}
+
+	ExQuestDataImportEditorInternal::PendingAutoImportTables.Empty();
 }
 
 #undef LOCTEXT_NAMESPACE

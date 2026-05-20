@@ -105,7 +105,7 @@ void UExQuestTreeWidget::RefreshQuestTree()
 {
 	SyncDisplayedDataFromManager();
 
-	if (TitleText)
+	if (TitleText && !DisplayedQuestData.QuestSetName.IsEmpty())
 	{
 		TitleText->SetText(DisplayedQuestData.QuestSetName);
 	}

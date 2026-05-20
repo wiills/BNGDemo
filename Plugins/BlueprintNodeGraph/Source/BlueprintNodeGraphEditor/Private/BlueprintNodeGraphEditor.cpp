@@ -35,6 +35,7 @@ void FBlueprintNodeGraphEditorModule::StartupModule()
 	}
 
 	FExQuestDataImportEditor::RegisterContentBrowserMenus();
+	FExQuestDataImportEditor::RegisterAutoImportOnSave();
 }
 
 void FBlueprintNodeGraphEditorModule::ShutdownModule()
@@ -53,6 +54,7 @@ void FBlueprintNodeGraphEditorModule::ShutdownModule()
 	RegisteredAssetTypeActions.Empty();
 
 	FExQuestDataImportEditor::UnregisterContentBrowserMenus();
+	FExQuestDataImportEditor::UnregisterAutoImportOnSave();
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -20,4 +20,8 @@ public:
 
 	static void RegisterContentBrowserMenus();
 	static void UnregisterContentBrowserMenus();
+
+	/** When enabled in DefaultBlueprintNodeGraph.ini, sync paired DA after quest task tables are saved. */
+	static void RegisterAutoImportOnSave();
+	static void UnregisterAutoImportOnSave();
 };

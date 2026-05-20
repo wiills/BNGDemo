@@ -38,8 +38,8 @@ flowchart TB
 ### 1. DA（可由 DataTable 自动生成）
 
 1. 建表 **`DT_Quest_TestMap`**，Row Type = **`FExQuestTaskTableRow`**，填任务行。
-2. 内容浏览器右键表 → **Import To Paired Quest Data Asset** → 生成/更新同目录 **`DA_Quest_TestMap`**（`DT_` → `DA_` 命名规则）。
-3. 打开 DA，**Source Task Table** 会指向源表；改表后可再点 **Import From Source Task Table** 或右键表重新导入。
+2. **保存表（Ctrl+S）** → 默认自动同步到同目录 **`DA_Quest_TestMap`**（`DT_` → `DA_`）；首次若无 DA 会自动创建。
+3. 也可右键表 → **Import To Paired Quest Data Asset** 手动导入；DA 上 **Import From Source Task Table** 在已绑定源表时可用。
 4. `QuestSetId` 默认与 DA 资产名一致；Tag 在 `DefaultGameplayTags.ini` 注册。
 
 ### 2. Agent 蓝图
@@ -151,7 +151,7 @@ Volume → OnPOIOutpostEntered
 
 | 问题 | 答案 |
 |------|------|
-| 只保存 DT 会更新 DA 吗？ | **不会**，须右键 **Import To Paired Quest Data Asset** |
+| 只保存 DT 会更新 DA 吗？ | **会**（默认开启）：保存 `FExQuestTaskTableRow` 表后自动同步到配对 `DA_Quest_*`；可在 `DefaultBlueprintNodeGraph.ini` 设 `bAutoImportQuestTableOnSave=False` 关闭 |
 | 命名 | `DT_Quest_Test` → `DA_Quest_Test`（`DT_` 换 `DA_`） |
 | DA 与 DT 运行时关系 | 仅 **拷贝**；游戏只 Load **DA** |
 | 成功提示 | 右下角绿色通知（非错误） |
