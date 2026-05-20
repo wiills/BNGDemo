@@ -286,13 +286,6 @@ UEdGraphPin* UExK2Node_LatentTaskCall::GetResultPin() const
 	return Pin;
 }
 
-UEdGraphPin* UExK2Node_LatentTaskCall::GetThenPin() const
-{
-	UEdGraphPin* Pin = FindPinChecked(UEdGraphSchema_K2::PN_Then);
-	check(Pin->Direction == EGPD_Output);
-	return Pin;
-}
-
 bool UExK2Node_LatentTaskCall::ValidateClassPin(FKismetCompilerContext& CompilerContext, bool bGenerateErrors)
 {
 	const bool HasClassParameter = GetClassPin() != nullptr;

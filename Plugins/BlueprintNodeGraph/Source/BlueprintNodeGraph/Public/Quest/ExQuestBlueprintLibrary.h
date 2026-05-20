@@ -109,6 +109,13 @@ public:
 	static bool UnlockQuest(UObject* WorldContextObject, const FGameplayTag& TaskId);
 
 	UFUNCTION(BlueprintCallable, Category = "Quest System|Helper", meta = (WorldContext = "WorldContextObject"))
+	static bool ActivateQuest(UObject* WorldContextObject, const FGameplayTag& TaskId);
+
+	/** Locked -> Inactive -> Active when possible (Quest Task OnStart uses this). */
+	UFUNCTION(BlueprintCallable, Category = "Quest System|Helper", meta = (WorldContext = "WorldContextObject"))
+	static bool EnsureQuestActive(UObject* WorldContextObject, const FGameplayTag& TaskId);
+
+	UFUNCTION(BlueprintCallable, Category = "Quest System|Helper", meta = (WorldContext = "WorldContextObject"))
 	static bool IncrementQuestObjective(UObject* WorldContextObject, const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 Delta = 1);
 
 	UFUNCTION(BlueprintCallable, Category = "Quest System|Helper", meta = (WorldContext = "WorldContextObject"))

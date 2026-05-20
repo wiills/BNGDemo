@@ -34,10 +34,13 @@ public:
 	/** Debug timing bubble in PIE/SIE */
 	virtual TSharedPtr<class SGraphNode> CreateVisualWidget() override;
 
-protected:
 	virtual bool ShouldShowNodeProperties() const override { return true; }
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-
+	
+	virtual void ExpandNode(FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
+	
+protected:
+	
 	FORCEINLINE int32 GetInputBranchCount() const
 	{
 		return GetExecPin()->LinkedTo.Num();
@@ -51,8 +54,6 @@ protected:
 	void SetNodeInfoPinValue(const UEdGraphSchema_K2* Schema, UEdGraphPin* NodeInfoVarPin);
 	virtual void SetUUIDAndNodeInfo(const UEdGraphSchema_K2* Schema);
 	void GenerateContextUniqueId();
-
-	virtual void ExpandNode(FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 
 	void CompilerSetK2NodeInfoCall(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph, class UK2Node_IfThenElse*& OutProxyValidateNode,
 		UEdGraphPin* const ProxyObjectPin, UEdGraphPin*& OutLastThenPin, bool& bIsErrorFree);

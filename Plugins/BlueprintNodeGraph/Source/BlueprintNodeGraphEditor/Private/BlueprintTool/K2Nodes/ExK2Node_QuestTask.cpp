@@ -153,6 +153,7 @@ void UExK2Node_QuestTask::CreatePinsForClass(UClass* InClass)
 	const UObject* const ClassDefaultObject = InClass->GetDefaultObject(false);
 
 	SpawnParamPins.Reset();
+	bool bHasAdvancedPins = false;
 
 	// Tasks can hide spawn parameters by doing meta = (HideSpawnParms="PropertyA,PropertyB")
 	// (For example, hide Instigator in situations where instigator is not relevant to your task)
@@ -190,6 +191,10 @@ void UExK2Node_QuestTask::CreatePinsForClass(UClass* InClass)
 			const bool bPinGood = K2Schema->ConvertPropertyToPinType(Property, /*out*/ Pin->PinType);
 			SpawnParamPins.Add(Pin->PinName);
 
+			const bool bAdvancedPin = Property->HasMetaData(TEXT("AdvancedDisplay"));
+			Pin->bAdvancedView = bAdvancedPin;
+			bHasAdvancedPins |= bAdvancedPin;
+
 			if (ClassDefaultObject && K2Schema->PinDefaultValueIsEditable(*Pin))
 			{
 				FString DefaultValueAsString;
@@ -201,6 +206,11 @@ void UExK2Node_QuestTask::CreatePinsForClass(UClass* InClass)
 			// Copy tooltip from the property.
 			K2Schema->ConstructBasicPinTooltip(*Pin, Property->GetToolTipText(), Pin->PinToolTip);
 		}
+	}
+
+	if (bHasAdvancedPins && AdvancedPinDisplay == ENodeAdvancedPins::NoPins)
+	{
+		AdvancedPinDisplay = ENodeAdvancedPins::Hidden;
 	}
 }
 
@@ -248,13 +258,6 @@ void UExK2Node_QuestTask::PinDefaultValueChanged(UEdGraphPin* ChangedPin)
 UEdGraphPin* UExK2Node_QuestTask::GetResultPin() const
 {
 	UEdGraphPin* Pin = FindPinChecked(UEdGraphSchema_K2::PN_ReturnValue);
-	check(Pin->Direction == EGPD_Output);
-	return Pin;
-}
-
-UEdGraphPin* UExK2Node_QuestTask::GetThenPin() const
-{
-	UEdGraphPin* Pin = FindPinChecked(UEdGraphSchema_K2::PN_Then);
 	check(Pin->Direction == EGPD_Output);
 	return Pin;
 }

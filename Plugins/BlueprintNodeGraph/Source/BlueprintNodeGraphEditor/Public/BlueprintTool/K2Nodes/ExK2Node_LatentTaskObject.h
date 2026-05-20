@@ -35,8 +35,6 @@ class BLUEPRINTNODEGRAPHEDITOR_API UExK2Node_LatentTaskObject : public UExK2Node
 	UClass* GetClassToSpawn(const TArray<UEdGraphPin*>* InPinsToSearch = nullptr) const;
 	/** Get the output-param pin */
 	UEdGraphPin* GetResultPin() const;
-	/** Get the then output pin */
-	UEdGraphPin* GetThenPin() const;
 	////////////////////// pins //////////////////////
 
 private:

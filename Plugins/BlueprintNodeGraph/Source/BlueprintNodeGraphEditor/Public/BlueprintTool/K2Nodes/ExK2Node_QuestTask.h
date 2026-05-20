@@ -29,17 +29,18 @@ public:
 	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const override;
 	virtual void AllocateDefaultPins() override;
 	virtual FSlateIcon GetIconAndTint(FLinearColor& OutColor) const override;
-	virtual bool ShouldShowNodeProperties() const override { return true; }
 
 	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
-	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 
 	void CreatePinsForClass(UClass* InClass);
 	UEdGraphPin* GetClassPin(const TArray<UEdGraphPin*>* InPinsToSearch = nullptr) const;
 	UClass* GetClassToSpawn(const TArray<UEdGraphPin*>* InPinsToSearch = nullptr) const;
+	
 	UEdGraphPin* GetResultPin() const;
-	UEdGraphPin* GetThenPin() const;
+	
+	virtual bool ShouldShowNodeProperties() const override { return true; }
+	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 
 private:
 	UPROPERTY()

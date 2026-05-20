@@ -224,13 +224,6 @@ UEdGraphPin* UExK2Node_LatentTaskObject::GetResultPin() const
 	return Pin;
 }
 
-UEdGraphPin* UExK2Node_LatentTaskObject::GetThenPin() const
-{
-	UEdGraphPin* Pin = FindPinChecked(UEdGraphSchema_K2::PN_Then);
-	check(Pin->Direction == EGPD_Output);
-	return Pin;
-}
-
 /**
  *	This is essentially a mix of K2Node_BaseAsyncTask::ExpandNode and K2Node_SpawnActorFromClass::ExpandNode and K2Node_GenericCreateObject::ExpandNode.
  *	Several things are going on here:

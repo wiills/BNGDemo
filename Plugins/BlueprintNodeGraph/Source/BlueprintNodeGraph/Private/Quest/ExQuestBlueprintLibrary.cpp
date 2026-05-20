@@ -270,6 +270,22 @@ bool UExQuestBlueprintLibrary::UnlockQuest(UObject* WorldContextObject, const FG
 	return UExQuestReplicationComponent::RouteUnlockQuest(WorldContextObject, TaskId);
 }
 
+bool UExQuestBlueprintLibrary::ActivateQuest(UObject* WorldContextObject, const FGameplayTag& TaskId)
+{
+	return UExQuestReplicationComponent::RouteActivateQuest(WorldContextObject, TaskId);
+}
+
+bool UExQuestBlueprintLibrary::EnsureQuestActive(UObject* WorldContextObject, const FGameplayTag& TaskId)
+{
+	if (!TaskId.IsValid())
+	{
+		return false;
+	}
+
+	UExQuestReplicationComponent::RouteUnlockQuest(WorldContextObject, TaskId);
+	return UExQuestReplicationComponent::RouteActivateQuest(WorldContextObject, TaskId);
+}
+
 bool UExQuestBlueprintLibrary::IncrementQuestObjective(UObject* WorldContextObject, const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 Delta)
 {
 	return UExQuestReplicationComponent::RouteIncrementQuestObjective(WorldContextObject, TaskId, ObjectiveTag, Delta);

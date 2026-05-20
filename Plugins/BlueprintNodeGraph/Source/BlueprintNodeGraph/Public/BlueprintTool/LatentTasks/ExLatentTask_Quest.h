@@ -34,15 +34,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest", ExposeOnSpawn = true))
 	FGameplayTag ObjectiveTag;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (ExposeOnSpawn = true))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (ExposeOnSpawn = true, AdvancedDisplay))
 	EExQuestCompleteAction CompleteAction = EExQuestCompleteAction::IncrementProgress;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (ExposeOnSpawn = true, ClampMin = "1"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (ExposeOnSpawn = true, ClampMin = "1", AdvancedDisplay))
 	int32 ProgressDeltaOnStop = 1;
 
 	/** When true and state is Completed, ApplyQuestOnComplete runs in OnStop */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (ExposeOnSpawn = true))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (ExposeOnSpawn = true, AdvancedDisplay))
 	bool bApplyQuestOnSuccessfulStop = true;
+
+	/** OnStart: Unlock (if Locked) then Activate (if Inactive) for QuestTag */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (ExposeOnSpawn = true, AdvancedDisplay))
+	bool bAutoEnsureQuestActiveOnStart = true;
 
 	UFUNCTION(BlueprintCallable, Category = "LatentTasks|Quest", meta = (WorldContext = "WorldContextObject", BlueprintInternalUseOnly = "true", DisplayName = "Create Quest Latent Task"))
 	static UExLatentTask_Quest* CreateQuestProxy(UObject* WorldContextObject, TSubclassOf<UExLatentTask_Quest> Class);
@@ -51,7 +55,10 @@ public:
 	static bool IsQuestLatentClass(TSubclassOf<UExLatentTask_Quest> Class);
 
 protected:
+	virtual void OnStart() override;
 	virtual void OnStop() override;
+
+	void EnsureQuestTaskActive();
 
 	/** Override to customize quest write-back (default: objective progress, or CompleteQuest when ObjectiveTag is None) */
 	UFUNCTION(BlueprintNativeEvent, Category = "Quest")

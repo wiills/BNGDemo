@@ -41,9 +41,6 @@ public:
 	UEdGraphPin* GetClassPin(const TArray<UEdGraphPin*>* InPinsToSearch = nullptr) const;
 	UClass* GetClassToSpawn(const TArray<UEdGraphPin*>* InPinsToSearch = nullptr) const;
 	UEdGraphPin* GetResultPin() const;
-	
-	/** Get the then output pin */
-	UEdGraphPin* GetThenPin() const;
 
 	static void RegisterSpecializedTaskNodeClass(TSubclassOf<UExK2Node_LatentTaskCall> NodeClass);
 	

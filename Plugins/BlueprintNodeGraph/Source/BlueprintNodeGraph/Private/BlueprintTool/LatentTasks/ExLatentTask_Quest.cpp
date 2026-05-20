@@ -25,6 +25,16 @@ bool UExLatentTask_Quest::IsQuestLatentClass(TSubclassOf<UExLatentTask_Quest> Cl
 	return Class && Class->IsChildOf(UExLatentTask_Quest::StaticClass());
 }
 
+void UExLatentTask_Quest::OnStart()
+{
+	if (bAutoEnsureQuestActiveOnStart)
+	{
+		EnsureQuestTaskActive();
+	}
+
+	Super::OnStart();
+}
+
 void UExLatentTask_Quest::OnStop()
 {
 	if (bApplyQuestOnSuccessfulStop && GetState() == EExLatentTaskState::Completed)
@@ -33,6 +43,23 @@ void UExLatentTask_Quest::OnStop()
 	}
 
 	Super::OnStop();
+}
+
+void UExLatentTask_Quest::EnsureQuestTaskActive()
+{
+	if (!QuestTag.IsValid())
+	{
+		return;
+	}
+
+	UObject* WorldContext = GetWorld();
+	if (!WorldContext)
+	{
+		return;
+	}
+
+	UExQuestReplicationComponent::RouteUnlockQuest(WorldContext, QuestTag);
+	UExQuestReplicationComponent::RouteActivateQuest(WorldContext, QuestTag);
 }
 
 void UExLatentTask_Quest::ApplyQuestOnComplete_Implementation()
