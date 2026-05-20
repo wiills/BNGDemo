@@ -1,133 +1,464 @@
-# BlueprintNodeGraph 使用指南
-
-> 编码：UTF-8。侧重**蓝图流程节点**与 **Latent Task**；任务系统（Quest）见 [QuestSystemGuide.md](./QuestSystemGuide.md)，类层次见 [Architecture.md](./Architecture.md)。
-
----
+# BlueprintNodeGraph 使用文档
 
 ## 快速开始
 
-1. 将 BlueprintNodeGraph 放入 项目/Plugins/，重启引擎并启用插件。
-2. 在蓝图图表中搜索 **Blueprint Node Graph** 分类下的节点（见下表）。
-3. 需要可复用、可序列化的多步逻辑时，继承 **ExLatentTask_Custom**（或需存档时用 **ExLatentTask_Saveable**）创建任务蓝图。
+### 安装
 
-**最小示例**：BeginPlay → **DelayInLoop**（Duration=1）→ Loop 引脚打印 → Completed 引脚结束。
+```
+项目/Plugins/ → 复制 BlueprintNodeGraph 文件夹 → 重启引擎 → 启用插件
+```
 
----
+### 最简单的例子
 
-## 蓝图节点速查
-
-| 编辑器名称 | 用途 | 主要参数 | 输出引脚 |
-|------------|------|----------|----------|
-| **DelayInLoop** | 按间隔循环 N 次 | Duration、Count、Need First Delay | Loop、Completed |
-| **For Loop With Delay** | 带索引的间隔循环 | Loop Count、Loop Interval、Need First Delay | Loop Body (Index)、Completed |
-| **Wait Condition** | 多路输入汇合后，等待 Bool 为 true | Condition（引用） | Completed |
-| **AsyncBlendPercent** | 多路输入后按混合百分比推进 | Percent Speed 1/2（引用） | Completed |
-| **Wait All** | 所有输入分支完成 | （多 Exec 输入） | Completed |
-| **Wait Any** | 任一分支完成 | （多 Exec 输入） | Completed |
-| **Wait Count** | 收到 N 次触发 | Count | Completed |
-| **Create Latent Task** | 创建并运行自定义任务类 | Class、任务参数 | OnStart、OnComplete、Then |
-
-**注意**
-
-- 异步节点至少会有 **1 帧延迟**（DelayInLoop 等基于 Timer，非同步 Tick）。
-- 节点 Details 中的 **Node Info** 可配 StartLog / EndLog / TimeOut（秒，0=不超时）。
-- 与 **Quest** 相关 Latent 请继承 UExLatentTask_Quest 并用 Quest Task 节点，勿与普通 ExLatentTask_Custom 混用。
-
----
-
-## 自定义 Latent Task（5 步）
-
-| 步骤 | 操作 |
-|------|------|
-| 1 | 新建蓝图类，父类选 **ExLatentTask_Custom**（需存档选 **ExLatentTask_Saveable**） |
-| 2 | 在任务蓝图实现 **Receive On Start** / **Receive On Stop**（清理定时器、解绑事件） |
-| 3 | 逻辑结束时调用 **Try Stop**（进入 Completed，触发 OnComplete） |
-| 4 | 需要参数时在任务蓝图添加变量，由 **Create Latent Task** 节点写入 |
-| 5 | 调用方：Create Latent Task → 绑定 **OnStart** / **OnComplete** → **Activate** |
-
-**调用方示意**
-
-`
+```
 Event BeginPlay
-  → Create Latent Task (你的任务类)
-      ├ On Start   → …
-      └ On Complete → …
-  → Activate
-`
+    ↓
+Loop Delay (Duration: 1.0)
+    ↓ (Loop)
+Print String ("Hello!")
+    ↓
+(Completed)
+Print String ("Done!")
+```
 
-**生命周期**：Pending → Running → Completed；Terminate 为 Cancelled 并标记回收。
+## 节点速查
 
-父类列表中仅应出现 ExLatentTask_Custom / ExLatentTask_Saveable；内部基类已 NotBlueprintType，不会出现在 Reparent 中。
+### 1. Loop Delay - 循环延迟
+
+```
+参数：
+  Duration: Float      - 延迟时间（秒）
+  Count: Integer      - 循环次数
+  Need First Delay: Bool - 首次是否延迟
+
+引脚：
+  → Exec       - 执行输入
+  → Loop       - 每次循环输出
+  → Completed  - 全部完成输出
+```
+
+**示例：闪烁效果**
+
+```
+Event BeginPlay
+    ↓
+Loop Delay (Duration: 0.5, Count: 5)
+    ├─ Loop → Toggle Visibility (Light)
+    └─ Completed → Print String ("Done!")
+```
 
 ---
 
-## C++ 要点
+### 2. For Loop with Delay - 带延迟的 For 循环
 
-`cpp
-UExBase_LatentTask* Task = UExBase_LatentTask::CreateTask(WorldContext, TaskClass);
+```
+参数：
+  Loop Count: Integer     - 总次数
+  Loop Interval: Float   - 间隔时间
+  Need First Delay: Bool - 首次延迟
+
+引脚：
+  → Loop Body (Index) - 带索引的循环体
+  → Completed         - 完成
+```
+
+**示例：逐个生成物体**
+
+```
+For Loop with Delay (Count: 10, Interval: 1.0)
+    Loop Body (Index) → Spawn Actor (Location: Index * 100)
+    Completed → Print String ("All Spawned!")
+```
+
+---
+
+### 3. Wait Condition - 等待条件
+
+```
+参数：
+  Condition: Bool& - 布尔引用
+
+引脚：
+  多个 → Exec     - 多输入分支
+  → Completed     - 条件满足
+```
+
+**示例：等待玩家进入区域**
+
+```
+Overlap Event
+    ↓
+Set bPlayerReady = true
+    ↓
+Wait Condition (bPlayerReady)
+    ↓
+Open Door
+```
+
+---
+
+### 4. Async Blend Percent - 异步混合
+
+```
+参数：
+  Percent Speed 1: Float& - 速度引用1
+  Percent Speed 2: Float& - 速度引用2
+
+引脚：
+  多个 → Exec       - 输入分支
+  → Completed       - 完成
+```
+
+---
+
+## 延迟任务系统
+
+### 概述
+
+延迟任务是一种可复用、可序列化的异步执行单元，适合复杂的多步骤逻辑。
+
+```
+任务优势：
+✓ 可在蓝图/C++ 中使用
+✓ 支持网络复制
+✓ 自动 GC 防护
+✓ 可中断/恢复
+✓ 完整的生命周期管理
+```
+
+---
+
+### 蓝图自定义任务节点（完整指南）
+
+#### 步骤 1：创建任务蓝图类
+
+```
+1. 打开内容浏览器
+2. 右键 → Blueprint Class
+3. 搜索 `ExLatentTask_Custom`
+4. 选择并命名（如 BP_LevelTask）
+```
+
+> ⚠️ 父类列表中应只看到 `ExLatentTask_Custom`（自定义任务）或 `ExLatentTask_Saveable`（可存档任务）。内部基类已标记 `NotBlueprintType`，不会出现在 Reparent 中。
+
+#### 步骤 2：配置任务属性
+
+```
+BP_LevelTask → Class Settings → Details:
+
+├─ Description: "我的自定义任务"
+├─ Parent Class: ExLatentTask_Custom
+└─ 保持默认即可
+```
+
+#### 步骤 3：实现事件回调
+
+在事件图表中添加：
+
+```
+┌──────────────────────────────────────────────────────┐
+│  BP_LevelTask 事件图表                                │
+├──────────────────────────────────────────────────────┤
+│                                                       │
+│  Receive On Start (事件)                              │
+│      ↓                                               │
+│  [在此实现任务开始逻辑]                                 │
+│      ↓                                               │
+│  Call On Task Finished (调用函数)                      │
+│                                                       │
+├──────────────────────────────────────────────────────┤
+│                                                       │
+│  Receive On Stop (事件)                               │
+│      ↓                                               │
+│  [在此实现清理逻辑，如取消定时器]                         │
+│                                                       │
+└──────────────────────────────────────────────────────┘
+```
+
+#### 步骤 4：添加任务参数（可选）
+
+```
+如需传递参数，在事件中接收：
+
+1. 添加变量（如 TargetActor: Actor）
+2. 在事件中读取：
+   
+   Receive On Start
+       ↓
+   Get TargetActor
+       ↓
+   调用任务逻辑...
+```
+
+#### 步骤 5：在其他蓝图调用任务
+
+```
+主蓝图：
+
+1. 拖入 "Create Latent Task" 节点
+2. 选择 BP_LevelTask
+3. 设置参数（TargetActor 等）
+4. 绑定委托
+5. 调用 Activate
+
+完整流程：
+Event BeginPlay
+    ↓
+Create Latent Task (BP_LevelTask, TargetActor: Self)
+    ├─ On Start → Print String ("任务开始")
+    └─ On Complete → Print String ("任务完成")
+    ↓
+Activate
+```
+
+---
+
+### 常用任务模式
+
+#### 模式 1：定时任务
+
+```
+BP_TimerTask:
+
+Receive On Start
+    ↓
+Set Timer by Event (Duration: 2.0, Loop: No)
+    ↓
+Timer Event
+    ↓
+Call On Task Finished
+```
+
+#### 模式 2：监听任务
+
+```
+BP_ListenerTask:
+
+Receive On Start
+    ↓
+Bind Event to OnOverlap (BoxCollision)
+    ↓
+OnOverlap Event
+    ↓
+Call On Task Finished
+```
+
+#### 模式 3：序列任务
+
+```
+BP_SequenceTask:
+
+Receive On Start
+    ├─ Action 1 → Delay (0.5s)
+    ├─ Action 2 → Delay (0.5s)
+    ├─ Action 3 → Delay (0.5s)
+    └─ Call On Task Finished
+```
+
+#### 模式 4：循环任务
+
+```
+BP_LoopTask:
+
+变量: LoopCount = 0
+
+Receive On Start
+    ├─ Set LoopCount = 0
+    └─ Start Loop
+
+Loop Body (自定义事件)
+    ├─ LoopCount + 1
+    ├─ 执行任务逻辑
+    └─ LoopCount >= 10?
+            ├─ Yes → Call On Task Finished
+            └─ No → Set Timer (1.0s) → Loop Body
+```
+
+---
+
+### 完整示例：武器攻击任务
+
+```
+BP_WeaponAttackTask (武器攻击延迟任务):
+
+变量:
+├─ WeaponActor: Actor
+├─ Damage: Float = 50.0
+└─ TargetActor: Actor
+
+事件图表:
+
+Receive On Start
+    ├─ Get TargetActor
+    ├─ Apply Damage (TargetActor, Damage)
+    ├─ Play Animation (WeaponActor, AttackAnim)
+    ├─ Delay (1.0s)
+    ├─ Play Sound (ImpactSound)
+    └─ Call On Task Finished
+
+Receive On Stop
+    ├─ Stop Animation (WeaponActor)
+    └─ 清理资源...
+```
+
+**使用方式：**
+
+```
+Character 蓝图:
+
+Event Attack
+    ↓
+Create Latent Task (BP_WeaponAttackTask)
+    ├─ Set WeaponActor = ThisWeapon
+    ├─ Set TargetActor = EnemyTarget
+    ├─ Set Damage = 50.0
+    ├─ On Start → Play Attack Montage
+    └─ On Complete → Reset Attack State
+    ↓
+Activate
+```
+
+---
+
+### 任务生命周期
+
+```
+CreateTask() → Activate() → OnStart() → [执行中] → OnStop() → 销毁
+
+状态流转：
+  Pending → Running → Completed
+              ↓
+          Cancelled
+```
+
+## C++ API
+
+### 创建任务
+
+```cpp
+// 创建
+UExBase_LatentTask* Task = UExBase_LatentTask::CreateTask(World, TaskClass);
+
+// 配置
 Task->SetK2NodeInfo(NodeInfo);
+
+// 绑定
 Task->CompleteDelegate.AddDynamic(this, &UMyClass::OnComplete);
+
+// 启动
 Task->Activate();
+```
+
+### 状态管理
+
+```cpp
+// 查询
+EExLatentTaskState State = Task->GetState();
 
 // 控制
-Task->GetState();   // EExLatentTaskState
-Task->TryStop();    // 正常结束
-Task->Terminate();  // 取消
-`
+Task->TryStart();   // 开始
+Task->TryStop();    // 停止
+Task->Terminate();  // 终止
+```
 
-状态枚举：Pending / Running / Completed / Failed / Cancelled。
+### 枚举定义
 
----
+```cpp
+enum class EExLatentTaskState : uint8
+{
+    Pending,    // 等待
+    Running,    // 执行中
+    Completed,  // 完成
+    Failed,     // 失败
+    Cancelled   // 取消
+};
+```
 
-## 调试与常见问题
+## 高级配置
 
-| 现象 | 排查 |
-|------|------|
-| 节点不执行 | World Context 是否有效；是否在服务端/客户端预期环境 |
-| 崩溃 | 对 Actor/对象使用 IsValid |
-| 多人不同步 | Latent Task 默认复制 RunningState，确认 Actor Replicates |
-| 被 GC | 长生命周期任务确认已 Activate；异步 Action 侧可用 RegisterWithGameInstance |
+### 超时设置
 
-日志：Output Log 中按 Node Info 的 **StartLog** / **EndLog** 过滤；类别 LogLatentTask、LogAsyncAction。
+```
+节点属性面板 → Node Info:
+    ├─ Time Out: 10.0        ← 超时时间（秒）
+    ├─ Start Log: "开始"     ← 开始日志
+    └─ End Log: "结束"       ← 结束日志
+```
 
----
+### GC 防护
 
-## 示例资产
+```cpp
+// 注册（防止被回收）
+Task->RegisterWithGameInstance(WorldContext);
 
-`
+// 释放
+Task->SetReadyToDestroy();
+```
+
+## 流程图库
+
+### 并行加载
+
+```
+          ┌─ Load Asset A ─┐
+Load All ─┼─ Load Asset B ─┼─ All Loaded ─→ 继续
+          └─ Load Asset C ─┘
+```
+
+### 条件触发
+
+```
+         ┌─ 条件A满足 ─┐
+Any Of ─┼─ 条件B满足 ─┼─ 任一完成
+         └─ 条件C满足 ─┘
+```
+
+### 状态机模式
+
+```
+Pending ──→ [激活] ──→ Running ──→ [完成] ──→ Completed
+                    ↓
+              [取消] ──→ Cancelled
+```
+
+## 调试
+
+### 日志输出
+
+```
+Output Log 中查看:
+[StartLog] - MyNode, 开始执行
+[EndLog]   - MyNode, 执行完成
+```
+
+### 调试技巧
+
+```
+✓ 设置 Start/End Log 追踪流程
+✓ 检查 World Context 是否正确
+✓ 使用 IsValid() 检查对象
+✓ 监控 ProxyMap 中的对象数量
+```
+
+## 常见问题
+
+| 问题 | 解决方案 |
+|------|----------|
+| 节点不执行 | 检查 World Context 连接 |
+| 崩溃 | 使用 IsValid() 检查指针 |
+| 不同步 | 确保 bReplicates = true |
+| GC回收 | 调用 RegisterWithGameInstance() |
+
+## 示例文件
+
+```
 Content/
-├── BP_TestBlueprintNodes.uasset   # 节点示例
-└── Tasks/
-    ├── BP_TestTask.uasset
-    └── BP_TestTask2.uasset
-`
+├─ BP_TestBlueprintNodes.uasset  ← 节点示例
+└─ Tasks/
+   ├─ BP_TestTask.uasset        ← 任务示例1
+   └─ BP_TestTask2.uasset       ← 任务示例2
+```
 
 ---
 
-
----
-
-## 任务 DataTable → DA（编辑器导入）
-
-> 完整流程见 [QuestMapFlowExample.md](./QuestMapFlowExample.md)。**保存 DataTable 不会自动更新 DA**，须执行导入。
-
-| 步骤 | 操作 |
-|------|------|
-| 1 | 新建 **DataTable**，Row Type = **FExQuestTaskTableRow** |
-| 2 | 填写行（TaskId 须为有效 GameplayTag） |
-| 3 | 保存表（Ctrl+S） |
-| 4 | 右键表 → **Import To Paired Quest Data Asset** |
-| 5 | 同目录 **DA_Quest_***（DT_Quest_Test → DA_Quest_Test） |
-| 6 | 改表后重复步骤 4，或 DA 上 **Import From Source Task Table** |
-
-- 命名：DT_ → DA_；导入为拷贝到 TaskDefinitions，SourceTaskTable 记来源。
-- 运行时只 **Load DA**（Agent），不读表。
-- 成功：右下角 **绿色通知**。
-
-## 延伸阅读
-
-| 文档 | 内容 |
-|------|------|
-| [Architecture.md](./Architecture.md) | 模块划分、Proxy / LatentTask 类图、编译流程 |
-| [QuestSystemGuide.md](./QuestSystemGuide.md) | Task / Objective / SubTask、DataAsset、存档 |
-| [QuestDevPlan.md](./QuestDevPlan.md) | 开发阶段与 P3 待办 |
+任务系统（Quest Task、BP_QuestHost、联机）见 [QuestSystemGuide.md](./QuestSystemGuide.md)。
