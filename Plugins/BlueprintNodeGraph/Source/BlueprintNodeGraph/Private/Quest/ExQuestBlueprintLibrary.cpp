@@ -265,6 +265,11 @@ UExQuestManagerSubsystem* UExQuestBlueprintLibrary::GetQuestManager(UObject* Wor
 	return nullptr;
 }
 
+UExQuestReplicationComponent* UExQuestBlueprintLibrary::EnsureQuestReplicationOnGameState(UObject* WorldContextObject)
+{
+	return UExQuestReplicationComponent::EnsureOnGameState(WorldContextObject);
+}
+
 bool UExQuestBlueprintLibrary::UnlockQuest(UObject* WorldContextObject, const FGameplayTag& TaskId)
 {
 	return UExQuestReplicationComponent::RouteUnlockQuest(WorldContextObject, TaskId);

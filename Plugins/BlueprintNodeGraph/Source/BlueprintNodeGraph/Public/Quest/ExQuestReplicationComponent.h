@@ -14,7 +14,7 @@ class UExQuestManagerSubsystem;
 
 /**
  * Replicates shared team quest progress (GameState component).
- * Add to your GameState (or use AExQuestGameStateBase). Server is authoritative.
+ * Prefer AExQuestGameStateBase on GameMode; otherwise EnsureOnGameState adds this on authority at first quest load.
  */
 UCLASS(ClassGroup = (Quest), meta = (BlueprintSpawnableComponent))
 class BLUEPRINTNODEGRAPH_API UExQuestReplicationComponent : public UActorComponent
@@ -25,6 +25,10 @@ public:
 	UExQuestReplicationComponent();
 
 	static UExQuestReplicationComponent* Get(const UObject* WorldContextObject);
+
+	/** Authority / Standalone: create on GameState when missing. Clients receive the replicated component from server. */
+	UFUNCTION(BlueprintCallable, Category = "Quest|Network", meta = (WorldContext = "WorldContextObject"))
+	static UExQuestReplicationComponent* EnsureOnGameState(UObject* WorldContextObject);
 
 	/** Standalone, listen-server host, or dedicated server. */
 	UFUNCTION(BlueprintPure, Category = "Quest|Network")
@@ -47,6 +51,9 @@ public:
 	static void RouteApplyObjectiveProgressMessage(UObject* WorldContextObject, const FExQuestObjectiveProgressMessage& Message);
 
 	void PublishStateFromAuthorityManager(UExQuestManagerSubsystem* QuestManager);
+
+private:
+	static UExQuestReplicationComponent* GetForRouting(UObject* WorldContextObject);
 
 protected:
 	virtual void BeginPlay() override;

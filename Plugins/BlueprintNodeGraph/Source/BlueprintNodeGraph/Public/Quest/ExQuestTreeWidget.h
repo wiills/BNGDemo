@@ -72,16 +72,29 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest UI")
 	bool bAutoSyncFromManager = true;
 
+	/** Active tasks auto-expand; Completed tasks collapse when bAutoCollapseOnComplete is true. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest UI")
+	bool bAutoExpandActiveQuests = true;
+
+	/** Remove completed tasks from manual expansion so Standalone and Listen Server match Client. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest UI")
+	bool bAutoCollapseOnComplete = true;
+
 	UPROPERTY()
 	FExQuestData DisplayedQuestData;
 
 	UPROPERTY()
 	TSet<FString> ExpandedTaskIds;
 
+	/** Last-known task states; used to detect Active?Completed on Client replication path. */
+	UPROPERTY()
+	TMap<FString, EExQuestState> PreviousTaskStates;
+
 	UPROPERTY()
 	TArray<TObjectPtr<UExQuestExpandClickHandler>> ExpandClickHandlers;
 
 	void SyncDisplayedDataFromManager();
+	void SyncExpansionStateFromQuestData();
 	void BuildQuestTree();
 	void CreateQuestItem(const FExQuestTask& QuestTask, UVerticalBox* ParentContainer, int32 Depth = 0);
 

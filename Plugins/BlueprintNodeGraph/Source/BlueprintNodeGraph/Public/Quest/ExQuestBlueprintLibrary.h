@@ -9,6 +9,7 @@
 #include "ExQuestBlueprintLibrary.generated.h"
 
 class UExQuestDataAsset;
+class UExQuestReplicationComponent;
 
 /** Blueprint helpers for the quest system */
 UCLASS()
@@ -104,6 +105,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Quest System|Helper", meta = (WorldContext = "WorldContextObject"))
 	static class UExQuestManagerSubsystem* GetQuestManager(UObject* WorldContextObject);
+
+	/** Authority / Standalone: add UExQuestReplicationComponent to GameState when missing. */
+	UFUNCTION(BlueprintCallable, Category = "Quest System|Network", meta = (WorldContext = "WorldContextObject"))
+	static class UExQuestReplicationComponent* EnsureQuestReplicationOnGameState(UObject* WorldContextObject);
 
 	UFUNCTION(BlueprintCallable, Category = "Quest System|Helper", meta = (WorldContext = "WorldContextObject"))
 	static bool UnlockQuest(UObject* WorldContextObject, const FGameplayTag& TaskId);

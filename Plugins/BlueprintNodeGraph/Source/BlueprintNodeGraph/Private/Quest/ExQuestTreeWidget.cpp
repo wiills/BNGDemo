@@ -82,11 +82,6 @@ void UExQuestTreeWidget::NativeDestruct()
 
 void UExQuestTreeWidget::HandleQuestStateChanged(const FExQuestTask& QuestTask)
 {
-	if (QuestTask.State == EExQuestState::Completed && QuestTask.Objectives.Num() > 0)
-	{
-		ExpandedTaskIds.Add(QuestTask.TaskId.ToString());
-	}
-
 	RefreshQuestTree();
 }
 
@@ -130,9 +125,40 @@ void UExQuestTreeWidget::SyncDisplayedDataFromManager()
 	}
 }
 
+void UExQuestTreeWidget::SyncExpansionStateFromQuestData()
+{
+	for (const FExQuestTask& Task : DisplayedQuestData.AllTasks)
+	{
+		if (!Task.TaskId.IsValid())
+		{
+			continue;
+		}
+
+		const FString TaskIdStr = Task.TaskId.ToString();
+		const EExQuestState* const PreviousStatePtr = PreviousTaskStates.Find(TaskIdStr);
+		const bool bHadPreviousState = PreviousStatePtr != nullptr;
+		const EExQuestState PreviousState = bHadPreviousState ? *PreviousStatePtr : EExQuestState::Locked;
+
+		if (Task.State == EExQuestState::Completed)
+		{
+			if (bAutoCollapseOnComplete)
+			{
+				ExpandedTaskIds.Remove(TaskIdStr);
+			}
+			else if (bHadPreviousState && PreviousState == EExQuestState::Active && Task.Objectives.Num() > 0)
+			{
+				ExpandedTaskIds.Add(TaskIdStr);
+			}
+		}
+
+		PreviousTaskStates.Add(TaskIdStr, Task.State);
+	}
+}
+
 void UExQuestTreeWidget::RefreshQuestTree()
 {
 	SyncDisplayedDataFromManager();
+	SyncExpansionStateFromQuestData();
 
 	if (TitleText && !DisplayedQuestData.QuestSetName.IsEmpty())
 	{
@@ -186,7 +212,8 @@ void UExQuestTreeWidget::CreateQuestItem(const FExQuestTask& QuestTask, UVertica
 
 	const FString TaskIdStr = QuestTask.TaskId.ToString();
 	const bool bHasChildren = DisplayedQuestData.GetSubTasks(QuestTask.TaskId).Num() > 0 || QuestTask.Objectives.Num() > 0;
-	const bool bExpanded = QuestTask.State == EExQuestState::Active || IsQuestExpanded(TaskIdStr);
+	const bool bExpanded = (bAutoExpandActiveQuests && QuestTask.State == EExQuestState::Active)
+		|| IsQuestExpanded(TaskIdStr);
 
 	UHorizontalBox* RowBox = NewObject<UHorizontalBox>(ParentContainer);
 	if (!RowBox)

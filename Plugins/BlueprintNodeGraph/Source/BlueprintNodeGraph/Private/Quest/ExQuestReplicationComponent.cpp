@@ -2,6 +2,7 @@
 
 #include "Quest/ExQuestReplicationComponent.h"
 
+#include "BlueprintTool/Common/ExLatentProxyDefine.h"
 #include "Engine/World.h"
 #include "GameFramework/GameStateBase.h"
 #include "Kismet/GameplayStatics.h"
@@ -44,6 +45,61 @@ UExQuestReplicationComponent* UExQuestReplicationComponent::Get(const UObject* W
 	}
 
 	return nullptr;
+}
+
+UExQuestReplicationComponent* UExQuestReplicationComponent::EnsureOnGameState(UObject* WorldContextObject)
+{
+	if (UExQuestReplicationComponent* Existing = Get(WorldContextObject))
+	{
+		return Existing;
+	}
+
+	const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull);
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	AGameStateBase* GameState = World->GetGameState();
+	if (!GameState)
+	{
+		UE_LOG(LogBlueprintNodeGraph, Warning,
+			TEXT("EnsureOnGameState: GameState not ready yet (call again after GameState exists)"));
+		return nullptr;
+	}
+
+	if (!GameState->HasAuthority())
+	{
+		return nullptr;
+	}
+
+	UExQuestReplicationComponent* NewComponent = NewObject<UExQuestReplicationComponent>(
+		GameState,
+		UExQuestReplicationComponent::StaticClass(),
+		TEXT("QuestReplication"));
+	if (!NewComponent)
+	{
+		return nullptr;
+	}
+
+	NewComponent->SetIsReplicated(true);
+	NewComponent->RegisterComponent();
+
+	UE_LOG(LogBlueprintNodeGraph, Log,
+		TEXT("EnsureOnGameState: added quest replication to '%s' at runtime"),
+		*GetNameSafe(GameState));
+
+	return NewComponent;
+}
+
+UExQuestReplicationComponent* UExQuestReplicationComponent::GetForRouting(UObject* WorldContextObject)
+{
+	if (UExQuestReplicationComponent* Existing = Get(WorldContextObject))
+	{
+		return Existing;
+	}
+
+	return EnsureOnGameState(WorldContextObject);
 }
 
 bool UExQuestReplicationComponent::IsAuthorityEndpoint() const
@@ -133,7 +189,7 @@ void UExQuestReplicationComponent::OnRep_ReplicatedQuestAsset()
 
 bool UExQuestReplicationComponent::RouteUnlockQuest(UObject* WorldContextObject, const FGameplayTag& TaskId)
 {
-	if (UExQuestReplicationComponent* Rep = Get(WorldContextObject))
+	if (UExQuestReplicationComponent* Rep = GetForRouting(WorldContextObject))
 	{
 		if (Rep->IsAuthorityEndpoint())
 		{
@@ -158,7 +214,7 @@ bool UExQuestReplicationComponent::RouteUnlockQuest(UObject* WorldContextObject,
 
 bool UExQuestReplicationComponent::RouteActivateQuest(UObject* WorldContextObject, const FGameplayTag& TaskId)
 {
-	if (UExQuestReplicationComponent* Rep = Get(WorldContextObject))
+	if (UExQuestReplicationComponent* Rep = GetForRouting(WorldContextObject))
 	{
 		if (Rep->IsAuthorityEndpoint())
 		{
@@ -183,7 +239,7 @@ bool UExQuestReplicationComponent::RouteActivateQuest(UObject* WorldContextObjec
 
 bool UExQuestReplicationComponent::RouteCompleteQuest(UObject* WorldContextObject, const FGameplayTag& TaskId)
 {
-	if (UExQuestReplicationComponent* Rep = Get(WorldContextObject))
+	if (UExQuestReplicationComponent* Rep = GetForRouting(WorldContextObject))
 	{
 		if (Rep->IsAuthorityEndpoint())
 		{
@@ -212,7 +268,7 @@ bool UExQuestReplicationComponent::RouteIncrementQuestObjective(
 	const FGameplayTag& ObjectiveTag,
 	int32 Delta)
 {
-	if (UExQuestReplicationComponent* Rep = Get(WorldContextObject))
+	if (UExQuestReplicationComponent* Rep = GetForRouting(WorldContextObject))
 	{
 		if (Rep->IsAuthorityEndpoint())
 		{
@@ -240,7 +296,7 @@ bool UExQuestReplicationComponent::RouteCompleteQuestObjective(
 	const FGameplayTag& TaskId,
 	const FGameplayTag& ObjectiveTag)
 {
-	if (UExQuestReplicationComponent* Rep = Get(WorldContextObject))
+	if (UExQuestReplicationComponent* Rep = GetForRouting(WorldContextObject))
 	{
 		if (Rep->IsAuthorityEndpoint())
 		{
@@ -268,7 +324,7 @@ bool UExQuestReplicationComponent::RouteNotifyObjectiveProgressByTag(
 	const FGameplayTag& ObjectiveTag,
 	int32 Delta)
 {
-	if (UExQuestReplicationComponent* Rep = Get(WorldContextObject))
+	if (UExQuestReplicationComponent* Rep = GetForRouting(WorldContextObject))
 	{
 		if (Rep->IsAuthorityEndpoint())
 		{
@@ -293,7 +349,7 @@ bool UExQuestReplicationComponent::RouteNotifyObjectiveProgressByTag(
 
 void UExQuestReplicationComponent::RouteApplyRuntimeState(UObject* WorldContextObject, const FExQuestRuntimeState& RuntimeState)
 {
-	if (UExQuestReplicationComponent* Rep = Get(WorldContextObject))
+	if (UExQuestReplicationComponent* Rep = GetForRouting(WorldContextObject))
 	{
 		if (Rep->IsAuthorityEndpoint())
 		{
@@ -319,7 +375,7 @@ void UExQuestReplicationComponent::RouteLoadQuestFromAsset(
 	UExQuestDataAsset* QuestAsset,
 	bool bPreserveRuntime)
 {
-	if (UExQuestReplicationComponent* Rep = Get(WorldContextObject))
+	if (UExQuestReplicationComponent* Rep = GetForRouting(WorldContextObject))
 	{
 		if (Rep->IsAuthorityEndpoint())
 		{
@@ -342,7 +398,7 @@ void UExQuestReplicationComponent::RouteLoadQuestFromAsset(
 
 bool UExQuestReplicationComponent::RouteLoadQuestProgressFromJson(UObject* WorldContextObject, const FString& JsonSaveData)
 {
-	if (UExQuestReplicationComponent* Rep = Get(WorldContextObject))
+	if (UExQuestReplicationComponent* Rep = GetForRouting(WorldContextObject))
 	{
 		if (Rep->IsAuthorityEndpoint())
 		{
@@ -369,7 +425,7 @@ void UExQuestReplicationComponent::RouteApplyObjectiveProgressMessage(
 	UObject* WorldContextObject,
 	const FExQuestObjectiveProgressMessage& Message)
 {
-	if (UExQuestReplicationComponent* Rep = Get(WorldContextObject))
+	if (UExQuestReplicationComponent* Rep = GetForRouting(WorldContextObject))
 	{
 		if (Rep->IsAuthorityEndpoint())
 		{
