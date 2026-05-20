@@ -5,7 +5,9 @@
 #include "Quest/ExQuestDefinition.h"
 #include "Quest/ExQuestMessageTypes.h"
 #include "Quest/ExQuestReplicationComponent.h"
+#if WITH_QUEST_MESSAGE_ROUTER
 #include "GameFramework/GameplayMessageSubsystem.h"
+#endif
 #include "Kismet/GameplayStatics.h"
 
 #define LOCTEXT_NAMESPACE "ExQuestExample"
@@ -308,6 +310,7 @@ void UExQuestBlueprintLibrary::BroadcastQuestObjectiveProgress(UObject* WorldCon
 		return;
 	}
 
+#if WITH_QUEST_MESSAGE_ROUTER
 	FExQuestObjectiveProgressMessage Message;
 	Message.ObjectiveTag = ObjectiveTag;
 	Message.Delta = Delta;
@@ -320,6 +323,10 @@ void UExQuestBlueprintLibrary::BroadcastQuestObjectiveProgress(UObject* WorldCon
 	}
 
 	UGameplayMessageSubsystem::Get(WorldContextObject).BroadcastMessage(Channel, Message);
+#else
+	(void)OptionalTaskId;
+	UExQuestReplicationComponent::RouteNotifyObjectiveProgressByTag(WorldContextObject, ObjectiveTag, Delta);
+#endif
 }
 
 void UExQuestBlueprintLibrary::LoadQuestFromAsset(UObject* WorldContextObject, UExQuestDataAsset* QuestAsset, bool bPreserveRuntime)

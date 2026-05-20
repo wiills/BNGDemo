@@ -13,7 +13,7 @@
 | 数据 | `DT_Quest_*` → `DA_Quest_*`（`FExQuestTaskTableRow`） |
 | 玩法链 | `AExQuestAgentActor` + **Quest Task** Latent |
 | 联机 | `UExQuestReplicationComponent` on GameState，蓝图库 **Route** API |
-| 解耦推进 | GameplayMessageRouter → `NotifyObjectiveProgressByTag` |
+| 解耦推进 | **可选** GameplayMessageRouter（`Broadcast` 发消息；无则 fallback Route） |
 | 存档 | JSON `#ExQuestSaveV2` |
 
 ---
@@ -147,20 +147,22 @@ Event On Server Ready
 | Increment Quest Objective | Objective +Delta |
 | Notify Objective Progress By Tag | 按 Tag 反查 Task |
 | Ensure Quest Replication On GameState | 手动确保 Rep 组件 |
-| Broadcast Quest Objective Progress | 发 MessageRouter 消息 |
+| Broadcast Quest Objective Progress | 有 GMR：发消息；无 GMR：等同 Route Notify |
 | Make Quest Task Data | 拼结构体（**不是** Quest Task 节点） |
 | Build Quest Data From Task Table | 调试直读表 |
 
 ---
 
-## GameplayMessageRouter
+## GameplayMessageRouter（可选）
 
-```cpp
-QuestManager->NotifyObjectiveProgressByTag(ObjectiveTag, 1);
-// 或 Broadcast Quest Objective Progress → 频道 Quest.Event.Objective.Progress
-```
+插件在 `.uplugin` 中将 **GameplayMessageRouter** 标为 **Optional**；`Build.cs` 按项目是否启用该插件设置 `WITH_QUEST_MESSAGE_ROUTER`。
 
-`UExQuestMessageRouterBridge` 监听并 Route 到 Server Manager。仅 **Active** Task 累计进度。
+| 项目启用 GMR | 未启用 GMR |
+|--------------|------------|
+| `UExQuestMessageRouterBridge` 监听 `Quest.Event.Objective.Progress` | Bridge 不编译 |
+| `Broadcast Quest Objective Progress` 走消息总线 | 同上节点 **fallback** 为 `RouteNotifyObjectiveProgressByTag` |
+
+任务核心（Quest Task、联机、`Notify Objective Progress By Tag`）**不依赖** GMR。需要外部系统订阅任务进度频道时，在 `.uproject` 启用 `GameplayMessageRouter` 即可。
 
 ---
 
