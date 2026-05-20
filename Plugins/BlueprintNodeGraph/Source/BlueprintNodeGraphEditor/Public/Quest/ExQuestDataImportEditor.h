@@ -12,7 +12,11 @@ class FExQuestDataImportEditor
 {
 public:
 	/** Import table rows into paired DA (same folder). Creates DA if missing. */
-	static bool ImportTableToPairedDataAsset(UDataTable* TaskTable, bool bSavePackages, FString& OutMessage);
+	static bool ImportTableToPairedDataAsset(
+		UDataTable* TaskTable,
+		bool bSavePackages,
+		FString& OutMessage,
+		bool bPromptOnSave = true);
 
 	static UExQuestDataAsset* FindPairedDataAsset(const UDataTable* TaskTable);
 

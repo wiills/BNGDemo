@@ -40,7 +40,7 @@ namespace ExQuestDataImportEditorInternal
 		return FExQuestDataImportUtil::IsCompatibleQuestTaskTable(Table);
 	}
 
-	static void ExecuteImportForTables(const TArray<UDataTable*>& Tables);
+	static void ExecuteImportForTables(const TArray<UDataTable*>& Tables, bool bPromptOnSave);
 
 	static bool IsAutoImportOnSaveEnabled()
 	{
@@ -78,7 +78,7 @@ namespace ExQuestDataImportEditorInternal
 			return;
 		}
 
-		ExecuteImportForTables(TablesToImport);
+		ExecuteImportForTables(TablesToImport, false);
 	}
 
 	static void QueueAutoImportAfterSave(UDataTable* TaskTable)
@@ -142,24 +142,26 @@ namespace ExQuestDataImportEditorInternal
 		return nullptr;
 	}
 
-	static void SavePackagesForObjects(const TArray<UObject*>& Objects)
+	/** Persist imported DA only (DT content is unchanged by import). */
+	static void SaveImportedDataAssetPackage(UExQuestDataAsset* QuestAsset, bool bPromptOnSave)
 	{
-		TArray<UPackage*> PackagesToSave;
-		for (UObject* Object : Objects)
+		if (!QuestAsset)
 		{
-			if (Object && Object->GetOutermost())
-			{
-				PackagesToSave.AddUnique(Object->GetOutermost());
-			}
+			return;
 		}
 
-		if (PackagesToSave.Num() > 0)
+		UPackage* Package = QuestAsset->GetOutermost();
+		if (!Package || !Package->IsDirty())
 		{
-			FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, false, false);
+			return;
 		}
+
+		TArray<UPackage*> PackagesToSave;
+		PackagesToSave.Add(Package);
+		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, true, bPromptOnSave);
 	}
 
-	static void ExecuteImportForTables(const TArray<UDataTable*>& Tables)
+	static void ExecuteImportForTables(const TArray<UDataTable*>& Tables, bool bPromptOnSave)
 	{
 		int32 SuccessCount = 0;
 		FString CombinedMessage;
@@ -172,7 +174,7 @@ namespace ExQuestDataImportEditorInternal
 			}
 
 			FString Message;
-			if (FExQuestDataImportEditor::ImportTableToPairedDataAsset(Table, true, Message))
+			if (FExQuestDataImportEditor::ImportTableToPairedDataAsset(Table, true, Message, bPromptOnSave))
 			{
 				++SuccessCount;
 			}
@@ -230,7 +232,7 @@ namespace ExQuestDataImportEditorInternal
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateLambda([CompatibleTables]()
 			{
-				ExecuteImportForTables(CompatibleTables);
+				ExecuteImportForTables(CompatibleTables, true);
 			})));
 	}
 
@@ -317,7 +319,11 @@ UExQuestDataAsset* FExQuestDataImportEditor::FindOrCreatePairedDataAsset(const U
 	return NewAsset;
 }
 
-bool FExQuestDataImportEditor::ImportTableToPairedDataAsset(UDataTable* TaskTable, bool bSavePackages, FString& OutMessage)
+bool FExQuestDataImportEditor::ImportTableToPairedDataAsset(
+	UDataTable* TaskTable,
+	bool bSavePackages,
+	FString& OutMessage,
+	bool bPromptOnSave)
 {
 	OutMessage.Reset();
 
@@ -354,8 +360,6 @@ bool FExQuestDataImportEditor::ImportTableToPairedDataAsset(UDataTable* TaskTabl
 	const FExQuestDataImportResult ImportResult =
 		FExQuestDataImportUtil::ApplyDefinitionsToDataAsset(QuestAsset, Definitions, TaskTable);
 
-	TaskTable->Modify();
-
 	OutMessage = FString::Printf(
 		TEXT("%s (%s)%s Skipped rows: %d"),
 		*ImportResult.Message,
@@ -365,7 +369,7 @@ bool FExQuestDataImportEditor::ImportTableToPairedDataAsset(UDataTable* TaskTabl
 
 	if (bSavePackages)
 	{
-		ExQuestDataImportEditorInternal::SavePackagesForObjects({ QuestAsset, TaskTable });
+		ExQuestDataImportEditorInternal::SaveImportedDataAssetPackage(QuestAsset, bPromptOnSave);
 	}
 
 	return ImportResult.bSuccess;
