@@ -10,7 +10,7 @@
  * Quest latent task with a countdown timer.
  * When ObjectiveTag is set, elapsed seconds sync to CurrentProgress (set DT TargetProgress = Duration).
  * Fires ReceiveOnTimerTick every TickInterval (default 1s); completes when Duration elapses.
- * Enter/leave volume: bStartTimerOnStart=false, enter->StartCountdown, leave->PauseCountdown, re-enter->ResumeCountdown.
+ * Enter/leave volume (reset on leave): bStartTimerOnStart=false, enter->RestartCountdown, leave->ResetCountdown.
  */
 UCLASS(Blueprintable, BlueprintType, meta = (ExposedAsyncProxy = AsyncTask, SafeHideThen, DontUseGenericSpawnObject))
 class BLUEPRINTNODEGRAPH_API UExLatentTask_QuestTimer : public UExLatentTask_Quest
@@ -37,6 +37,10 @@ public:
 	/** Reset Objective progress to 0 when CancelTimer is called */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (ExposeOnSpawn = true, EditCondition = "bSyncObjectiveProgress"))
 	bool bResetProgressOnCancel = true;
+
+	/** Reset Objective progress to 0 when ResetCountdown is called */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (ExposeOnSpawn = true, EditCondition = "bSyncObjectiveProgress"))
+	bool bResetProgressOnReset = true;
 
 	/** When true the countdown starts in OnStart; when false call StartCountdown manually */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (ExposeOnSpawn = true))
@@ -69,9 +73,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
 	void RestartCountdown();
 
+	/** Stop ticking, reset elapsed/progress, stay Running (leave zone; call RestartCountdown on re-enter) */
+	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
+	void ResetCountdown();
+
 	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
 	void InterruptTimer();
 
+	/** End the entire latent task (Cancelled); cannot RestartCountdown after this */
 	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
 	void CancelTimer();
 
@@ -106,6 +115,7 @@ protected:
 	void ClearCountdownTimer();
 	void BeginCountdownTimer();
 	void StartCountdownInternal(bool bResetElapsed);
+	void ResetCountdownElapsed(bool bResetObjectiveProgress);
 	void CompleteCountdown();
 	void SyncObjectiveProgressFromElapsed();
 	void ResetObjectiveProgress();

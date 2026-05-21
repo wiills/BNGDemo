@@ -62,6 +62,16 @@ void UExLatentTask_QuestTimer::RestartCountdown()
 	StartCountdownInternal(true);
 }
 
+void UExLatentTask_QuestTimer::ResetCountdown()
+{
+	if (!IsRunning())
+	{
+		return;
+	}
+
+	ResetCountdownElapsed(bResetProgressOnReset);
+}
+
 bool UExLatentTask_QuestTimer::IsCountdownPaused() const
 {
 	return IsRunning() && !bCountdownActive && ElapsedTime > 0.0f && ElapsedTime < Duration;
@@ -76,14 +86,7 @@ void UExLatentTask_QuestTimer::StartCountdownInternal(bool bResetElapsed)
 
 	if (bResetElapsed)
 	{
-		ElapsedTime = 0.0f;
-		RemainingTime = Duration;
-		SyncedObjectiveProgress = 0;
-
-		if (bSyncObjectiveProgress && bResetProgressOnStart && ObjectiveTag.IsValid())
-		{
-			ResetObjectiveProgress();
-		}
+		ResetCountdownElapsed(bResetProgressOnStart);
 	}
 
 	if (Duration <= 0.0f)
@@ -99,6 +102,19 @@ void UExLatentTask_QuestTimer::StartCountdownInternal(bool bResetElapsed)
 	}
 
 	BeginCountdownTimer();
+}
+
+void UExLatentTask_QuestTimer::ResetCountdownElapsed(bool bResetObjectiveProgress)
+{
+	ClearCountdownTimer();
+	ElapsedTime = 0.0f;
+	RemainingTime = Duration;
+	SyncedObjectiveProgress = 0;
+
+	if (bSyncObjectiveProgress && bResetObjectiveProgress && ObjectiveTag.IsValid())
+	{
+		ResetObjectiveProgress();
+	}
 }
 
 void UExLatentTask_QuestTimer::BeginCountdownTimer()
