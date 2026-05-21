@@ -291,6 +291,35 @@ bool UExQuestReplicationComponent::RouteIncrementQuestObjective(
 	return false;
 }
 
+bool UExQuestReplicationComponent::RouteUpdateQuestObjective(
+	UObject* WorldContextObject,
+	const FGameplayTag& TaskId,
+	const FGameplayTag& ObjectiveTag,
+	int32 NewProgress)
+{
+	if (UExQuestReplicationComponent* Rep = GetForRouting(WorldContextObject))
+	{
+		if (Rep->IsAuthorityEndpoint())
+		{
+			if (UExQuestManagerSubsystem* Manager = ExQuestReplication::GetManager(WorldContextObject))
+			{
+				return Manager->UpdateQuestObjective(TaskId, ObjectiveTag, NewProgress);
+			}
+			return false;
+		}
+
+		Rep->Server_UpdateQuestObjective(TaskId, ObjectiveTag, NewProgress);
+		return true;
+	}
+
+	if (UExQuestManagerSubsystem* Manager = ExQuestReplication::GetManager(WorldContextObject))
+	{
+		return Manager->UpdateQuestObjective(TaskId, ObjectiveTag, NewProgress);
+	}
+
+	return false;
+}
+
 bool UExQuestReplicationComponent::RouteCompleteQuestObjective(
 	UObject* WorldContextObject,
 	const FGameplayTag& TaskId,
@@ -497,6 +526,17 @@ void UExQuestReplicationComponent::Server_IncrementQuestObjective_Implementation
 	if (UExQuestManagerSubsystem* Manager = ExQuestReplication::GetManager(this))
 	{
 		Manager->IncrementQuestObjective(TaskId, ObjectiveTag, Delta);
+	}
+}
+
+void UExQuestReplicationComponent::Server_UpdateQuestObjective_Implementation(
+	const FGameplayTag& TaskId,
+	const FGameplayTag& ObjectiveTag,
+	int32 NewProgress)
+{
+	if (UExQuestManagerSubsystem* Manager = ExQuestReplication::GetManager(this))
+	{
+		Manager->UpdateQuestObjective(TaskId, ObjectiveTag, NewProgress);
 	}
 }
 

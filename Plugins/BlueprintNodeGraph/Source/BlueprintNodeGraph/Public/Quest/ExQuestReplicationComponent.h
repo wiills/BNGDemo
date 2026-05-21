@@ -43,6 +43,7 @@ public:
 	static bool RouteActivateQuest(UObject* WorldContextObject, const FGameplayTag& TaskId);
 	static bool RouteCompleteQuest(UObject* WorldContextObject, const FGameplayTag& TaskId);
 	static bool RouteIncrementQuestObjective(UObject* WorldContextObject, const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 Delta);
+	static bool RouteUpdateQuestObjective(UObject* WorldContextObject, const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 NewProgress);
 	static bool RouteCompleteQuestObjective(UObject* WorldContextObject, const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag);
 	static bool RouteNotifyObjectiveProgressByTag(UObject* WorldContextObject, const FGameplayTag& ObjectiveTag, int32 Delta);
 	static void RouteApplyRuntimeState(UObject* WorldContextObject, const FExQuestRuntimeState& RuntimeState);
@@ -78,6 +79,9 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void Server_IncrementQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 Delta);
+
+	UFUNCTION(Server, Reliable)
+	void Server_UpdateQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 NewProgress);
 
 	UFUNCTION(Server, Reliable)
 	void Server_CompleteQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag);
