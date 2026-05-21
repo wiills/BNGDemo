@@ -155,12 +155,78 @@ void FExQuestData::RebuildIndices()
 	for (int32 TaskIndex = 0; TaskIndex < AllTasks.Num(); ++TaskIndex)
 	{
 		const FExQuestTask& Task = AllTasks[TaskIndex];
+		if (Task.TaskId.IsValid())
+		{
+			TaskIdToIndex.Add(Task.TaskId, TaskIndex);
+		}
+	}
+
+	// Top-down hierarchy: parent row SubTaskIds is authoritative; derive child ParentTaskId.
+	TMap<FGameplayTag, FGameplayTag> ChildToParentFromSubTaskIds;
+	for (const FExQuestTask& Task : AllTasks)
+	{
 		if (!Task.TaskId.IsValid())
 		{
 			continue;
 		}
 
-		TaskIdToIndex.Add(Task.TaskId, TaskIndex);
+		for (const FGameplayTag& SubTaskId : Task.SubTaskIds)
+		{
+			if (!SubTaskId.IsValid())
+			{
+				continue;
+			}
+
+			if (const FGameplayTag* ExistingParentId = ChildToParentFromSubTaskIds.Find(SubTaskId))
+			{
+				if (*ExistingParentId != Task.TaskId)
+				{
+					UE_LOG(LogBlueprintNodeGraph, Warning,
+						TEXT("RebuildIndices: SubTask '%s' listed under multiple parents '%s' and '%s'; using '%s'"),
+						*SubTaskId.ToString(),
+						*ExistingParentId->ToString(),
+						*Task.TaskId.ToString(),
+						*Task.TaskId.ToString());
+				}
+				continue;
+			}
+
+			ChildToParentFromSubTaskIds.Add(SubTaskId, Task.TaskId);
+		}
+	}
+
+	for (const TPair<FGameplayTag, FGameplayTag>& ChildParentPair : ChildToParentFromSubTaskIds)
+	{
+		const int32* ChildIndex = TaskIdToIndex.Find(ChildParentPair.Key);
+		if (!ChildIndex)
+		{
+			UE_LOG(LogBlueprintNodeGraph, Warning,
+				TEXT("RebuildIndices: SubTaskId '%s' not found in AllTasks (referenced by parent '%s')"),
+				*ChildParentPair.Key.ToString(),
+				*ChildParentPair.Value.ToString());
+			continue;
+		}
+
+		FExQuestTask& ChildTask = AllTasks[*ChildIndex];
+		if (ChildTask.ParentTaskId.IsValid() && ChildTask.ParentTaskId != ChildParentPair.Value)
+		{
+			UE_LOG(LogBlueprintNodeGraph, Warning,
+				TEXT("RebuildIndices: ParentTaskId on '%s' ('%s') overridden by parent SubTaskIds link to '%s'"),
+				*ChildParentPair.Key.ToString(),
+				*ChildTask.ParentTaskId.ToString(),
+				*ChildParentPair.Value.ToString());
+		}
+
+		ChildTask.ParentTaskId = ChildParentPair.Value;
+	}
+
+	for (int32 TaskIndex = 0; TaskIndex < AllTasks.Num(); ++TaskIndex)
+	{
+		const FExQuestTask& Task = AllTasks[TaskIndex];
+		if (!Task.TaskId.IsValid())
+		{
+			continue;
+		}
 
 		if (Task.ParentTaskId.IsValid())
 		{

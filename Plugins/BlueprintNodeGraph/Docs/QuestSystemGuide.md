@@ -34,13 +34,13 @@ Task (Quest.Main)
 
 **建模**：同标题多勾选 → **Objective**；可单独解锁的一条线 / POI → **SubTask**。同一 QuestSet 内 **ObjectiveTag 建议全局唯一**。
 
-**层级字段**（DT/DA 每行一条 Task）：
+**层级字段**（DT/DA 每行一条 Task，**自上而下填表**）：
 
-| 字段 | 用途 |
-|------|------|
-| `Parent Task Id`（子行必填） | 任务树 UI 挂父节点；**仅填父行 SubTaskIds 不会显示子任务** |
-| `Sub Task Ids`（父行） | 父 Task 自动 Completed 的汇总（全部子 Task Completed） |
-| `Objectives[]` | 该 Task 内进度清单 |
+| 字段 | 填在哪 | 用途 |
+|------|--------|------|
+| `Sub Task Ids` | **父行** | 列出子 TaskId；Load / `RebuildIndices` 时**自动写回**子行 `ParentTaskId`；父 Task 自动 Completed 也看此项 |
+| `Parent Task Id` | 子行（**可不填**） | 运行时由父行 `SubTaskIds` 推导；仅遗留数据或特殊脚本才手填 |
+| `Objectives[]` | 任意 Task | 该 Task 内进度清单 |
 
 父 Task 自动 Completed（`IsReadyToComplete`）：**全部必填 Objective 完成** 且 **`SubTaskIds` 子 Task 均为 Completed**。
 
@@ -78,12 +78,12 @@ Task (Quest.Main)
 2. 保存 `DT_Quest_*` → 默认同步 `DA_Quest_*`（`DefaultBlueprintNodeGraph.ini` → `bAutoImportQuestTableOnSave`）；或右键 **Import To Paired Quest Data Asset**。
 3. Tag 注册于 `DefaultGameplayTags.ini`；运行时 **只 Load DA**。
 
-示例行：
+示例行（子行 **不必** 填 `ParentTaskId`）：
 
-| TaskId | ParentTaskId | SubTaskIds |
-|--------|--------------|------------|
-| `Quest.Test.Main` | — | `Quest.Test.Sub_A` |
-| `Quest.Test.Sub_A` | `Quest.Test.Main` | — |
+| TaskId | SubTaskIds | 说明 |
+|--------|------------|------|
+| `Quest.Test.Main` | `Quest.Test.Sub_A` | 父任务列出子 Task |
+| `Quest.Test.Sub_A` | — | 父链由上一行 `SubTaskIds` 自动推导 |
 
 ### Agent 接线
 
@@ -132,7 +132,7 @@ Event On Server Ready
 ### 进测检查
 
 - [ ] 关卡一个 `BP_QuestHost` + `DA_Quest_Test`
-- [ ] 子 Task 独立行且 `Parent Task Id` 正确
+- [ ] 子 Task 独立行；父行 `Sub Task Ids` 已列出（无需手填子行 `Parent Task Id`）
 - [ ] Server 链 / UI 分别在 Server Ready、Client Ready
 - [ ] Client 不 Load DA；Dedicated Server 不 Create Widget
 

@@ -51,13 +51,14 @@ struct BLUEPRINTNODEGRAPH_API FExQuestTaskDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
 	TArray<FExQuestObjectiveDefinition> Objectives;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest", meta = (Categories = "Quest"))
 	FGameplayTagContainer SubTaskIds;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest", meta = (Categories = "Quest"))
 	FGameplayTagContainer PreTaskIds;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest", meta = (Categories = "Quest"))
+	/** Optional legacy field; RebuildIndices derives this from parent row SubTaskIds at load time. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest", meta = (Categories = "Quest", AdvancedDisplay, Tooltip = "Normally leave empty. Parent link is derived from the parent task's SubTaskIds when indices are rebuilt."))
 	FGameplayTag ParentTaskId;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
@@ -90,13 +91,14 @@ struct BLUEPRINTNODEGRAPH_API FExQuestTaskTableRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	TArray<FExQuestObjectiveDefinition> Objectives;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest"))
 	FGameplayTagContainer SubTaskIds;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest"))
 	FGameplayTagContainer PreTaskIds;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest"))
+	/** Optional legacy field; RebuildIndices derives this from parent row SubTaskIds at load time. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest", AdvancedDisplay, Tooltip = "Normally leave empty. Parent link is derived from the parent task's SubTaskIds when indices are rebuilt."))
 	FGameplayTag ParentTaskId;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")

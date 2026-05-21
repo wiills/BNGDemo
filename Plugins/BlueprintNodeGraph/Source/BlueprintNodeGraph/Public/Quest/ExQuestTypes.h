@@ -72,13 +72,14 @@ struct BLUEPRINTNODEGRAPH_API FExQuestTask
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	TArray<FExQuestObjective> Objectives;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest"))
 	FGameplayTagContainer SubTaskIds;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest"))
 	FGameplayTagContainer PreTaskIds;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest"))
+	/** Set at runtime by RebuildIndices from parent SubTaskIds; optional when authoring rows. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest", AdvancedDisplay))
 	FGameplayTag ParentTaskId;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
