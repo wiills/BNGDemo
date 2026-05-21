@@ -2,23 +2,84 @@
 
 #include "Quest/ExLatentTask_QuestTimer.h"
 
+#include "Quest/ExQuestBlueprintLibrary.h"
+#include "Quest/ExQuestManagerSubsystem.h"
 #include "Quest/ExQuestReplicationComponent.h"
 #include "TimerManager.h"
 
 void UExLatentTask_QuestTimer::OnStart()
 {
-	RemainingTime = Duration;
 	ElapsedTime = 0.0f;
 	SyncedObjectiveProgress = 0;
 	bCompletedNaturally = false;
 	bCountdownActive = false;
+	ResolvedDuration = 0.0f;
 
 	Super::OnStart();
+
+	if (!ResolveDuration())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UExLatentTask_QuestTimer: failed to resolve duration for task '%s' objective '%s'."),
+			*QuestTag.ToString(), *ObjectiveTag.ToString());
+	}
+
+	RemainingTime = ResolvedDuration;
 
 	if (bStartTimerOnStart)
 	{
 		StartCountdownInternal(true);
 	}
+}
+
+bool UExLatentTask_QuestTimer::TryGetObjectiveTargetProgress(int32& OutTargetProgress) const
+{
+	OutTargetProgress = 0;
+
+	if (!ObjectiveTag.IsValid() || !QuestTag.IsValid())
+	{
+		return false;
+	}
+
+	const UExQuestManagerSubsystem* Manager = UExQuestBlueprintLibrary::GetQuestManager(GetWorld());
+	if (!Manager)
+	{
+		return false;
+	}
+
+	FExQuestTask Task;
+	if (!Manager->GetQuestById(QuestTag, Task))
+	{
+		return false;
+	}
+
+	for (const FExQuestObjective& Objective : Task.Objectives)
+	{
+		if (Objective.ObjectiveTag == ObjectiveTag)
+		{
+			OutTargetProgress = FMath::Max(0, Objective.TargetProgress);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool UExLatentTask_QuestTimer::ResolveDuration()
+{
+	if (Duration > 0.0f)
+	{
+		ResolvedDuration = Duration;
+		return true;
+	}
+
+	int32 TargetProgress = 0;
+	if (TryGetObjectiveTargetProgress(TargetProgress))
+	{
+		ResolvedDuration = static_cast<float>(TargetProgress);
+		return ResolvedDuration > 0.0f;
+	}
+
+	return false;
 }
 
 void UExLatentTask_QuestTimer::StartCountdown()
@@ -43,7 +104,7 @@ void UExLatentTask_QuestTimer::PauseCountdown()
 
 void UExLatentTask_QuestTimer::ResumeCountdown()
 {
-	if (!IsRunning() || bCountdownActive || ElapsedTime >= Duration)
+	if (!IsRunning() || bCountdownActive || ElapsedTime >= ResolvedDuration)
 	{
 		return;
 	}
@@ -74,7 +135,7 @@ void UExLatentTask_QuestTimer::ResetCountdown()
 
 bool UExLatentTask_QuestTimer::IsCountdownPaused() const
 {
-	return IsRunning() && !bCountdownActive && ElapsedTime > 0.0f && ElapsedTime < Duration;
+	return IsRunning() && !bCountdownActive && ElapsedTime > 0.0f && ElapsedTime < ResolvedDuration;
 }
 
 void UExLatentTask_QuestTimer::StartCountdownInternal(bool bResetElapsed)
@@ -89,13 +150,13 @@ void UExLatentTask_QuestTimer::StartCountdownInternal(bool bResetElapsed)
 		ResetCountdownElapsed(bResetProgressOnStart);
 	}
 
-	if (Duration <= 0.0f)
+	if (ResolvedDuration <= 0.0f)
 	{
 		CompleteCountdown();
 		return;
 	}
 
-	if (ElapsedTime >= Duration)
+	if (ElapsedTime >= ResolvedDuration)
 	{
 		CompleteCountdown();
 		return;
@@ -108,7 +169,7 @@ void UExLatentTask_QuestTimer::ResetCountdownElapsed(bool bResetObjectiveProgres
 {
 	ClearCountdownTimer();
 	ElapsedTime = 0.0f;
-	RemainingTime = Duration;
+	RemainingTime = ResolvedDuration;
 	SyncedObjectiveProgress = 0;
 
 	if (bSyncObjectiveProgress && bResetObjectiveProgress && ObjectiveTag.IsValid())
@@ -119,7 +180,7 @@ void UExLatentTask_QuestTimer::ResetCountdownElapsed(bool bResetObjectiveProgres
 
 void UExLatentTask_QuestTimer::BeginCountdownTimer()
 {
-	if (bCountdownActive || !IsRunning() || ElapsedTime >= Duration)
+	if (bCountdownActive || !IsRunning() || ElapsedTime >= ResolvedDuration)
 	{
 		return;
 	}
@@ -130,7 +191,7 @@ void UExLatentTask_QuestTimer::BeginCountdownTimer()
 		return;
 	}
 
-	RemainingTime = FMath::Max(0.0f, Duration - ElapsedTime);
+	RemainingTime = FMath::Max(0.0f, ResolvedDuration - ElapsedTime);
 	bCountdownActive = true;
 
 	const float FirstDelay = FMath::Min(TickInterval, RemainingTime);
@@ -191,13 +252,13 @@ void UExLatentTask_QuestTimer::HandleTimerTick()
 		return;
 	}
 
-	ElapsedTime = FMath::Min(ElapsedTime + TickInterval, Duration);
-	RemainingTime = FMath::Max(0.0f, Duration - ElapsedTime);
+	ElapsedTime = FMath::Min(ElapsedTime + TickInterval, ResolvedDuration);
+	RemainingTime = FMath::Max(0.0f, ResolvedDuration - ElapsedTime);
 
 	SyncObjectiveProgressFromElapsed();
 	ReceiveOnTimerTick(RemainingTime, ElapsedTime);
 
-	if (ElapsedTime >= Duration)
+	if (ElapsedTime >= ResolvedDuration)
 	{
 		CompleteCountdown();
 	}
@@ -226,7 +287,7 @@ void UExLatentTask_QuestTimer::CompleteCountdown()
 
 	ClearCountdownTimer();
 	RemainingTime = 0.0f;
-	ElapsedTime = Duration;
+	ElapsedTime = ResolvedDuration;
 	bCompletedNaturally = true;
 	SyncObjectiveProgressFromElapsed();
 	TryStop();
@@ -234,7 +295,7 @@ void UExLatentTask_QuestTimer::CompleteCountdown()
 
 int32 UExLatentTask_QuestTimer::ComputeObjectiveProgressFromElapsed() const
 {
-	const int32 TargetProgress = FMath::Max(1, FMath::RoundToInt(Duration));
+	const int32 TargetProgress = FMath::Max(1, FMath::RoundToInt(ResolvedDuration));
 	return FMath::Clamp(FMath::FloorToInt(ElapsedTime), 0, TargetProgress);
 }
 

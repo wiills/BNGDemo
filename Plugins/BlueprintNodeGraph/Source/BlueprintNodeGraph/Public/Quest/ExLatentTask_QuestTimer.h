@@ -8,8 +8,7 @@
 
 /**
  * Quest latent task with a countdown timer.
- * When ObjectiveTag is set, elapsed seconds sync to CurrentProgress (set DT TargetProgress = Duration).
- * Fires ReceiveOnTimerTick every TickInterval (default 1s); completes when Duration elapses.
+ * Duration on Quest Task node: >0 manual seconds, 0 = read Objective TargetProgress from quest data.
  * Enter/leave volume (reset on leave): bStartTimerOnStart=false, enter->RestartCountdown, leave->ResetCountdown.
  */
 UCLASS(Blueprintable, BlueprintType, meta = (ExposedAsyncProxy = AsyncTask, SafeHideThen, DontUseGenericSpawnObject))
@@ -18,71 +17,73 @@ class BLUEPRINTNODEGRAPH_API UExLatentTask_QuestTimer : public UExLatentTask_Que
 	GENERATED_BODY()
 
 public:
-	/** Total countdown duration in seconds; DT Objective TargetProgress should match (e.g. Duration=10 -> TargetProgress=10) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (ExposeOnSpawn = true, ClampMin = "0.0"))
-	float Duration = 10.0f;
+	/**
+	 * Countdown length override (seconds). Exposed on Quest Task node only.
+	 * <= 0: use Objective TargetProgress from loaded quest data (requires QuestTag + ObjectiveTag).
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (ExposeOnSpawn = true, ClampMin = "0.0", AdvancedDisplay))
+	float Duration = 0.0f;
 
 	/** Interval between ReceiveOnTimerTick events in seconds */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (ExposeOnSpawn = true, ClampMin = "0.01"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (ClampMin = "0.01"))
 	float TickInterval = 1.0f;
 
 	/** Sync elapsed seconds to Objective CurrentProgress while running */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (ExposeOnSpawn = true))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer")
 	bool bSyncObjectiveProgress = true;
 
 	/** Reset Objective progress to 0 when the countdown starts */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (ExposeOnSpawn = true, EditCondition = "bSyncObjectiveProgress"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (EditCondition = "bSyncObjectiveProgress"))
 	bool bResetProgressOnStart = true;
 
 	/** Reset Objective progress to 0 when CancelTimer is called */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (ExposeOnSpawn = true, EditCondition = "bSyncObjectiveProgress"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (EditCondition = "bSyncObjectiveProgress"))
 	bool bResetProgressOnCancel = true;
 
 	/** Reset Objective progress to 0 when ResetCountdown is called */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (ExposeOnSpawn = true, EditCondition = "bSyncObjectiveProgress"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (EditCondition = "bSyncObjectiveProgress"))
 	bool bResetProgressOnReset = true;
 
 	/** When true the countdown starts in OnStart; when false call StartCountdown manually */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (ExposeOnSpawn = true))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer")
 	bool bStartTimerOnStart = true;
 
-	/** Seconds remaining in the countdown */
+	/** Resolved countdown length after OnStart (manual Duration or Objective TargetProgress) */
+	UPROPERTY(BlueprintReadOnly, Category = "Timer")
+	float ResolvedDuration = 0.0f;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Timer")
 	float RemainingTime = 0.0f;
 
-	/** Seconds elapsed since the countdown started */
 	UPROPERTY(BlueprintReadOnly, Category = "Timer")
 	float ElapsedTime = 0.0f;
 
-	/** Last synced Objective CurrentProgress value */
 	UPROPERTY(BlueprintReadOnly, Category = "Timer")
 	int32 SyncedObjectiveProgress = 0;
 
 	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
 	void StartCountdown();
 
-	/** Stop ticking but keep Running and preserve ElapsedTime (use when leaving a zone) */
 	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
 	void PauseCountdown();
 
-	/** Continue from paused ElapsedTime (use when re-entering a zone) */
 	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
 	void ResumeCountdown();
 
-	/** Reset ElapsedTime to 0 and start counting again while staying Running */
 	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
 	void RestartCountdown();
 
-	/** Stop ticking, reset elapsed/progress, stay Running (leave zone; call RestartCountdown on re-enter) */
 	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
 	void ResetCountdown();
 
 	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
 	void InterruptTimer();
 
-	/** End the entire latent task (Cancelled); cannot RestartCountdown after this */
 	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
 	void CancelTimer();
+
+	UFUNCTION(BlueprintPure, Category = "Quest|Timer")
+	float GetResolvedDuration() const { return ResolvedDuration; }
 
 	UFUNCTION(BlueprintPure, Category = "Quest|Timer")
 	float GetRemainingTime() const { return RemainingTime; }
@@ -96,7 +97,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Quest|Timer")
 	bool IsCountdownActive() const { return bCountdownActive; }
 
-	/** Running, not ticking, and countdown not finished (paused mid-way) */
 	UFUNCTION(BlueprintPure, Category = "Quest|Timer")
 	bool IsCountdownPaused() const;
 
@@ -111,6 +111,9 @@ protected:
 
 	UFUNCTION()
 	void HandleTimerTick();
+
+	bool ResolveDuration();
+	bool TryGetObjectiveTargetProgress(int32& OutTargetProgress) const;
 
 	void ClearCountdownTimer();
 	void BeginCountdownTimer();
