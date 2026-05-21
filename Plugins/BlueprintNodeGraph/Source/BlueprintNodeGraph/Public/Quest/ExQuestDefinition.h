@@ -68,7 +68,7 @@ struct BLUEPRINTNODEGRAPH_API FExQuestTaskDefinition
 };
 
 /**
- * DataTable row struct (one row = one task). Mirrors FExQuestTaskDefinition for CSV / sheet workflows.
+ * DataTable row struct (one row = one task). Parent links are authored via SubTaskIds on the parent row only.
  * Create a DataTable with Row Type = FExQuestTaskTableRow, then BuildQuestDataFromTaskTable.
  */
 USTRUCT(BlueprintType)
@@ -96,10 +96,6 @@ struct BLUEPRINTNODEGRAPH_API FExQuestTaskTableRow : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest"))
 	FGameplayTagContainer PreTaskIds;
-
-	/** Optional legacy field; RebuildIndices derives this from parent row SubTaskIds at load time. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest", AdvancedDisplay, Tooltip = "Normally leave empty. Parent link is derived from the parent task's SubTaskIds when indices are rebuilt."))
-	FGameplayTag ParentTaskId;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	bool bIsRepeatable = false;

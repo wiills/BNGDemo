@@ -38,9 +38,10 @@ Task (Quest.Main)
 
 | 字段 | 填在哪 | 用途 |
 |------|--------|------|
-| `Sub Task Ids` | **父行** | 列出子 TaskId；Load / `RebuildIndices` 时**自动写回**子行 `ParentTaskId`；父 Task 自动 Completed 也看此项 |
-| `Parent Task Id` | 子行（**可不填**） | 运行时由父行 `SubTaskIds` 推导；仅遗留数据或特殊脚本才手填 |
+| `Sub Task Ids` | **父行** | 列出子 TaskId；Load / `RebuildIndices` 时自动建立父子关系；父 Task 自动 Completed 也看此项 |
 | `Objectives[]` | 任意 Task | 该 Task 内进度清单 |
+
+`FExQuestTaskTableRow` **无** `ParentTaskId` 列（DataTable 表格视图不支持隐藏字段）；父链只从父行 `SubTaskIds` 推导。
 
 父 Task 自动 Completed（`IsReadyToComplete`）：**全部必填 Objective 完成** 且 **`SubTaskIds` 子 Task 均为 Completed**。
 
@@ -78,7 +79,7 @@ Task (Quest.Main)
 2. 保存 `DT_Quest_*` → 默认同步 `DA_Quest_*`（`DefaultBlueprintNodeGraph.ini` → `bAutoImportQuestTableOnSave`）；或右键 **Import To Paired Quest Data Asset**。
 3. Tag 注册于 `DefaultGameplayTags.ini`；运行时 **只 Load DA**。
 
-示例行（子行 **不必** 填 `ParentTaskId`）：
+示例行：
 
 | TaskId | SubTaskIds | 说明 |
 |--------|------------|------|
@@ -132,7 +133,7 @@ Event On Server Ready
 ### 进测检查
 
 - [ ] 关卡一个 `BP_QuestHost` + `DA_Quest_Test`
-- [ ] 子 Task 独立行；父行 `Sub Task Ids` 已列出（无需手填子行 `Parent Task Id`）
+- [ ] 子 Task 独立行；父行 `Sub Task Ids` 已列出
 - [ ] Server 链 / UI 分别在 Server Ready、Client Ready
 - [ ] Client 不 Load DA；Dedicated Server 不 Create Widget
 

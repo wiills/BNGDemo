@@ -15,7 +15,6 @@ FExQuestTaskDefinition FExQuestTaskTableRow::ToTaskDefinition() const
 	Def.Objectives = Objectives;
 	Def.SubTaskIds = SubTaskIds;
 	Def.PreTaskIds = PreTaskIds;
-	Def.ParentTaskId = ParentTaskId;
 	Def.bIsRepeatable = bIsRepeatable;
 	return Def;
 }
