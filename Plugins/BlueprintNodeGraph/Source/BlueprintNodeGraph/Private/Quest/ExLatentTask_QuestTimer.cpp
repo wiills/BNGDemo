@@ -17,7 +17,7 @@ void UExLatentTask_QuestTimer::OnStart()
 
 	if (bStartTimerOnStart)
 	{
-		StartCountdownInternal();
+		StartCountdownInternal(true);
 	}
 }
 
@@ -28,24 +28,83 @@ void UExLatentTask_QuestTimer::StartCountdown()
 		return;
 	}
 
-	StartCountdownInternal();
+	StartCountdownInternal(ElapsedTime <= 0.0f);
 }
 
-void UExLatentTask_QuestTimer::StartCountdownInternal()
+void UExLatentTask_QuestTimer::PauseCountdown()
+{
+	if (!IsRunning() || !bCountdownActive)
+	{
+		return;
+	}
+
+	ClearCountdownTimer();
+}
+
+void UExLatentTask_QuestTimer::ResumeCountdown()
+{
+	if (!IsRunning() || bCountdownActive || ElapsedTime >= Duration)
+	{
+		return;
+	}
+
+	BeginCountdownTimer();
+}
+
+void UExLatentTask_QuestTimer::RestartCountdown()
+{
+	if (!IsRunning())
+	{
+		return;
+	}
+
+	ClearCountdownTimer();
+	StartCountdownInternal(true);
+}
+
+bool UExLatentTask_QuestTimer::IsCountdownPaused() const
+{
+	return IsRunning() && !bCountdownActive && ElapsedTime > 0.0f && ElapsedTime < Duration;
+}
+
+void UExLatentTask_QuestTimer::StartCountdownInternal(bool bResetElapsed)
 {
 	if (bCountdownActive)
 	{
 		return;
 	}
 
-	if (bSyncObjectiveProgress && bResetProgressOnStart && ObjectiveTag.IsValid())
+	if (bResetElapsed)
 	{
-		ResetObjectiveProgress();
+		ElapsedTime = 0.0f;
+		RemainingTime = Duration;
+		SyncedObjectiveProgress = 0;
+
+		if (bSyncObjectiveProgress && bResetProgressOnStart && ObjectiveTag.IsValid())
+		{
+			ResetObjectiveProgress();
+		}
 	}
 
 	if (Duration <= 0.0f)
 	{
 		CompleteCountdown();
+		return;
+	}
+
+	if (ElapsedTime >= Duration)
+	{
+		CompleteCountdown();
+		return;
+	}
+
+	BeginCountdownTimer();
+}
+
+void UExLatentTask_QuestTimer::BeginCountdownTimer()
+{
+	if (bCountdownActive || !IsRunning() || ElapsedTime >= Duration)
+	{
 		return;
 	}
 
@@ -55,8 +114,10 @@ void UExLatentTask_QuestTimer::StartCountdownInternal()
 		return;
 	}
 
+	RemainingTime = FMath::Max(0.0f, Duration - ElapsedTime);
 	bCountdownActive = true;
-	const float FirstDelay = FMath::Min(TickInterval, Duration);
+
+	const float FirstDelay = FMath::Min(TickInterval, RemainingTime);
 	World->GetTimerManager().SetTimer(
 		CountdownTickHandle,
 		this,

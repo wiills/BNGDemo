@@ -10,6 +10,7 @@
  * Quest latent task with a countdown timer.
  * When ObjectiveTag is set, elapsed seconds sync to CurrentProgress (set DT TargetProgress = Duration).
  * Fires ReceiveOnTimerTick every TickInterval (default 1s); completes when Duration elapses.
+ * Enter/leave volume: bStartTimerOnStart=false, enter->StartCountdown, leave->PauseCountdown, re-enter->ResumeCountdown.
  */
 UCLASS(Blueprintable, BlueprintType, meta = (ExposedAsyncProxy = AsyncTask, SafeHideThen, DontUseGenericSpawnObject))
 class BLUEPRINTNODEGRAPH_API UExLatentTask_QuestTimer : public UExLatentTask_Quest
@@ -56,6 +57,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
 	void StartCountdown();
 
+	/** Stop ticking but keep Running and preserve ElapsedTime (use when leaving a zone) */
+	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
+	void PauseCountdown();
+
+	/** Continue from paused ElapsedTime (use when re-entering a zone) */
+	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
+	void ResumeCountdown();
+
+	/** Reset ElapsedTime to 0 and start counting again while staying Running */
+	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
+	void RestartCountdown();
+
 	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
 	void InterruptTimer();
 
@@ -74,6 +87,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Quest|Timer")
 	bool IsCountdownActive() const { return bCountdownActive; }
 
+	/** Running, not ticking, and countdown not finished (paused mid-way) */
+	UFUNCTION(BlueprintPure, Category = "Quest|Timer")
+	bool IsCountdownPaused() const;
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "Quest|Timer", meta = (DisplayName = "On Timer Tick"))
 	void ReceiveOnTimerTick(float RemainingSeconds, float ElapsedSeconds);
 
@@ -87,7 +104,8 @@ protected:
 	void HandleTimerTick();
 
 	void ClearCountdownTimer();
-	void StartCountdownInternal();
+	void BeginCountdownTimer();
+	void StartCountdownInternal(bool bResetElapsed);
 	void CompleteCountdown();
 	void SyncObjectiveProgressFromElapsed();
 	void ResetObjectiveProgress();
