@@ -11,13 +11,37 @@ void UExLatentTask_QuestTimer::OnStart()
 	ElapsedTime = 0.0f;
 	SyncedObjectiveProgress = 0;
 	bCompletedNaturally = false;
+	bCountdownActive = false;
+
+	Super::OnStart();
+
+	if (bStartTimerOnStart)
+	{
+		StartCountdownInternal();
+	}
+}
+
+void UExLatentTask_QuestTimer::StartCountdown()
+{
+	if (!IsRunning() || bCountdownActive)
+	{
+		return;
+	}
+
+	StartCountdownInternal();
+}
+
+void UExLatentTask_QuestTimer::StartCountdownInternal()
+{
+	if (bCountdownActive)
+	{
+		return;
+	}
 
 	if (bSyncObjectiveProgress && bResetProgressOnStart && ObjectiveTag.IsValid())
 	{
 		ResetObjectiveProgress();
 	}
-
-	Super::OnStart();
 
 	if (Duration <= 0.0f)
 	{
@@ -31,6 +55,7 @@ void UExLatentTask_QuestTimer::OnStart()
 		return;
 	}
 
+	bCountdownActive = true;
 	const float FirstDelay = FMath::Min(TickInterval, Duration);
 	World->GetTimerManager().SetTimer(
 		CountdownTickHandle,
@@ -103,6 +128,8 @@ void UExLatentTask_QuestTimer::HandleTimerTick()
 
 void UExLatentTask_QuestTimer::ClearCountdownTimer()
 {
+	bCountdownActive = false;
+
 	if (CountdownTickHandle.IsValid())
 	{
 		if (UWorld* World = GetWorld())

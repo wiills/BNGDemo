@@ -37,6 +37,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (ExposeOnSpawn = true, EditCondition = "bSyncObjectiveProgress"))
 	bool bResetProgressOnCancel = true;
 
+	/** When true the countdown starts in OnStart; when false call StartCountdown manually */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (ExposeOnSpawn = true))
+	bool bStartTimerOnStart = true;
+
 	/** Seconds remaining in the countdown */
 	UPROPERTY(BlueprintReadOnly, Category = "Timer")
 	float RemainingTime = 0.0f;
@@ -48,6 +52,9 @@ public:
 	/** Last synced Objective CurrentProgress value */
 	UPROPERTY(BlueprintReadOnly, Category = "Timer")
 	int32 SyncedObjectiveProgress = 0;
+
+	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
+	void StartCountdown();
 
 	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
 	void InterruptTimer();
@@ -64,6 +71,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Quest|Timer")
 	int32 GetSyncedObjectiveProgress() const { return SyncedObjectiveProgress; }
 
+	UFUNCTION(BlueprintPure, Category = "Quest|Timer")
+	bool IsCountdownActive() const { return bCountdownActive; }
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "Quest|Timer", meta = (DisplayName = "On Timer Tick"))
 	void ReceiveOnTimerTick(float RemainingSeconds, float ElapsedSeconds);
 
@@ -77,6 +87,7 @@ protected:
 	void HandleTimerTick();
 
 	void ClearCountdownTimer();
+	void StartCountdownInternal();
 	void CompleteCountdown();
 	void SyncObjectiveProgressFromElapsed();
 	void ResetObjectiveProgress();
@@ -86,4 +97,5 @@ protected:
 	FTimerHandle CountdownTickHandle;
 
 	bool bCompletedNaturally = false;
+	bool bCountdownActive = false;
 };
