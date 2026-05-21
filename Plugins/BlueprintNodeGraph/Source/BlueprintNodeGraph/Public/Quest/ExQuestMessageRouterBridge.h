@@ -21,5 +21,5 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
-	void HandleObjectiveProgress(FGameplayTag Channel, const FExQuestObjectiveProgressMessage& Message);
+	void HandleQuestMessage(FGameplayTag Channel, const FExQuestMessagePayload& Message);
 };

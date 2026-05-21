@@ -303,30 +303,44 @@ bool UExQuestBlueprintLibrary::NotifyObjectiveProgressByTag(UObject* WorldContex
 	return UExQuestReplicationComponent::RouteNotifyObjectiveProgressByTag(WorldContextObject, ObjectiveTag, Delta);
 }
 
-void UExQuestBlueprintLibrary::BroadcastQuestObjectiveProgress(UObject* WorldContextObject, const FGameplayTag& ObjectiveTag, int32 Delta, FGameplayTag OptionalTaskId)
+FExQuestMessagePayload UExQuestBlueprintLibrary::MakeQuestMessagePayload(
+	const FGameplayTag& ObjectiveTag,
+	int32 Delta,
+	FGameplayTag OptionalTaskId)
 {
-	if (!WorldContextObject || !ObjectiveTag.IsValid() || Delta <= 0)
+	FExQuestMessagePayload Payload;
+	Payload.MessageType = EExQuestMessageType::ObjectiveProgress;
+	Payload.ObjectiveTag = ObjectiveTag;
+	Payload.Delta = FMath::Max(Delta, 1);
+	Payload.TaskId = OptionalTaskId;
+	return Payload;
+}
+
+void UExQuestBlueprintLibrary::BroadcastQuestMessage(UObject* WorldContextObject, const FExQuestMessagePayload& Payload)
+{
+	if (!WorldContextObject || !Payload.IsValid())
 	{
 		return;
 	}
 
 #if WITH_QUEST_MESSAGE_ROUTER
-	FExQuestObjectiveProgressMessage Message;
-	Message.ObjectiveTag = ObjectiveTag;
-	Message.Delta = Delta;
-	Message.TaskId = OptionalTaskId;
-
-	const FGameplayTag Channel = ExQuestMessageTags::GetObjectiveProgressChannel();
-	if (!Channel.IsValid())
+	const FGameplayTag Channel = ExQuestMessageTags::GetChannelForMessageType(Payload.MessageType);
+	if (Channel.IsValid())
 	{
+		UGameplayMessageSubsystem::Get(WorldContextObject).BroadcastMessage(Channel, Payload);
 		return;
 	}
-
-	UGameplayMessageSubsystem::Get(WorldContextObject).BroadcastMessage(Channel, Message);
-#else
-	(void)OptionalTaskId;
-	UExQuestReplicationComponent::RouteNotifyObjectiveProgressByTag(WorldContextObject, ObjectiveTag, Delta);
 #endif
+
+	if (Payload.MessageType == EExQuestMessageType::ObjectiveProgress)
+	{
+		UExQuestReplicationComponent::RouteApplyQuestMessage(WorldContextObject, Payload);
+	}
+}
+
+void UExQuestBlueprintLibrary::BroadcastQuestObjectiveProgress(UObject* WorldContextObject, const FGameplayTag& ObjectiveTag, int32 Delta, FGameplayTag OptionalTaskId)
+{
+	BroadcastQuestMessage(WorldContextObject, MakeQuestMessagePayload(ObjectiveTag, Delta, OptionalTaskId));
 }
 
 void UExQuestBlueprintLibrary::LoadQuestFromAsset(UObject* WorldContextObject, UExQuestDataAsset* QuestAsset, bool bPreserveRuntime)

@@ -35,10 +35,10 @@ namespace ExQuestMessageRouterBridgePrivate
 		}
 
 		UGameplayMessageSubsystem& MessageSubsystem = UGameplayMessageSubsystem::Get(GameInstance);
-		FGameplayMessageListenerHandle Handle = MessageSubsystem.RegisterListener<FExQuestObjectiveProgressMessage>(
+		FGameplayMessageListenerHandle Handle = MessageSubsystem.RegisterListener<FExQuestMessagePayload>(
 			Channel,
 			Bridge,
-			&UExQuestMessageRouterBridge::HandleObjectiveProgress);
+			&UExQuestMessageRouterBridge::HandleQuestMessage);
 		ListenerHandles.Add(Bridge, Handle);
 	}
 
@@ -77,10 +77,13 @@ void UExQuestMessageRouterBridge::Deinitialize()
 	Super::Deinitialize();
 }
 
-void UExQuestMessageRouterBridge::HandleObjectiveProgress(FGameplayTag Channel, const FExQuestObjectiveProgressMessage& Message)
+void UExQuestMessageRouterBridge::HandleQuestMessage(FGameplayTag Channel, const FExQuestMessagePayload& Message)
 {
 #if WITH_QUEST_MESSAGE_ROUTER
-	UExQuestReplicationComponent::RouteApplyObjectiveProgressMessage(this, Message);
+	if (Message.MessageType == EExQuestMessageType::ObjectiveProgress)
+	{
+		UExQuestReplicationComponent::RouteApplyQuestMessage(this, Message);
+	}
 #else
 	(void)Channel;
 	(void)Message;

@@ -10,3 +10,14 @@ FGameplayTag ExQuestMessageTags::GetObjectiveProgressChannel()
 {
 	return TAG_Quest_Event_Objective_Progress;
 }
+
+FGameplayTag ExQuestMessageTags::GetChannelForMessageType(EExQuestMessageType MessageType)
+{
+	switch (MessageType)
+	{
+	case EExQuestMessageType::ObjectiveProgress:
+		return GetObjectiveProgressChannel();
+	default:
+		return FGameplayTag();
+	}
+}

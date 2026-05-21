@@ -126,6 +126,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest System|Helper", meta = (WorldContext = "WorldContextObject"))
 	static bool NotifyObjectiveProgressByTag(UObject* WorldContextObject, const FGameplayTag& ObjectiveTag, int32 Delta = 1);
 
+	/** Build FExQuestMessagePayload for GameplayMessageRouter (ObjectiveProgress). */
+	UFUNCTION(BlueprintPure, Category = "Quest System|Events", meta = (DisplayName = "Make Quest Message Payload", AdvancedDisplay = "OptionalTaskId"))
+	static FExQuestMessagePayload MakeQuestMessagePayload(
+		const FGameplayTag& ObjectiveTag,
+		int32 Delta = 1,
+		FGameplayTag OptionalTaskId = FGameplayTag());
+
+	/** Broadcast quest message. With GameplayMessageRouter: message bus; otherwise falls back to Route API. */
+	UFUNCTION(BlueprintCallable, Category = "Quest System|Events", meta = (WorldContext = "WorldContextObject"))
+	static void BroadcastQuestMessage(UObject* WorldContextObject, const FExQuestMessagePayload& Payload);
+
 	/** Broadcast objective progress. With GameplayMessageRouter: message bus; otherwise falls back to Route API. */
 	UFUNCTION(BlueprintCallable, Category = "Quest System|Events", meta = (WorldContext = "WorldContextObject", AdvancedDisplay = "OptionalTaskId"))
 	static void BroadcastQuestObjectiveProgress(UObject* WorldContextObject, const FGameplayTag& ObjectiveTag, int32 Delta = 1, FGameplayTag OptionalTaskId = FGameplayTag());

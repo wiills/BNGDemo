@@ -421,10 +421,15 @@ bool UExQuestReplicationComponent::RouteLoadQuestProgressFromJson(UObject* World
 	return false;
 }
 
-void UExQuestReplicationComponent::RouteApplyObjectiveProgressMessage(
+void UExQuestReplicationComponent::RouteApplyQuestMessage(
 	UObject* WorldContextObject,
-	const FExQuestObjectiveProgressMessage& Message)
+	const FExQuestMessagePayload& Message)
 {
+	if (Message.MessageType != EExQuestMessageType::ObjectiveProgress || !Message.IsValid())
+	{
+		return;
+	}
+
 	if (UExQuestReplicationComponent* Rep = GetForRouting(WorldContextObject))
 	{
 		if (Rep->IsAuthorityEndpoint())
@@ -443,7 +448,7 @@ void UExQuestReplicationComponent::RouteApplyObjectiveProgressMessage(
 			return;
 		}
 
-		Rep->Server_ApplyObjectiveProgressMessage(Message);
+		Rep->Server_ApplyQuestMessage(Message);
 		return;
 	}
 
@@ -537,8 +542,13 @@ void UExQuestReplicationComponent::Server_LoadQuestProgressFromJson_Implementati
 	}
 }
 
-void UExQuestReplicationComponent::Server_ApplyObjectiveProgressMessage_Implementation(const FExQuestObjectiveProgressMessage& Message)
+void UExQuestReplicationComponent::Server_ApplyQuestMessage_Implementation(const FExQuestMessagePayload& Message)
 {
+	if (Message.MessageType != EExQuestMessageType::ObjectiveProgress || !Message.IsValid())
+	{
+		return;
+	}
+
 	if (UExQuestManagerSubsystem* Manager = ExQuestReplication::GetManager(this))
 	{
 		if (Message.TaskId.IsValid())

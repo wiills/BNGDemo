@@ -48,7 +48,7 @@ public:
 	static void RouteApplyRuntimeState(UObject* WorldContextObject, const FExQuestRuntimeState& RuntimeState);
 	static void RouteLoadQuestFromAsset(UObject* WorldContextObject, UExQuestDataAsset* QuestAsset, bool bPreserveRuntime);
 	static bool RouteLoadQuestProgressFromJson(UObject* WorldContextObject, const FString& JsonSaveData);
-	static void RouteApplyObjectiveProgressMessage(UObject* WorldContextObject, const FExQuestObjectiveProgressMessage& Message);
+	static void RouteApplyQuestMessage(UObject* WorldContextObject, const FExQuestMessagePayload& Message);
 
 	void PublishStateFromAuthorityManager(UExQuestManagerSubsystem* QuestManager);
 
@@ -95,7 +95,7 @@ protected:
 	void Server_LoadQuestProgressFromJson(const FString& JsonSaveData);
 
 	UFUNCTION(Server, Reliable)
-	void Server_ApplyObjectiveProgressMessage(const FExQuestObjectiveProgressMessage& Message);
+	void Server_ApplyQuestMessage(const FExQuestMessagePayload& Message);
 
 	UPROPERTY(ReplicatedUsing = OnRep_ReplicatedRuntimeState)
 	FExQuestRuntimeState ReplicatedRuntimeState;
