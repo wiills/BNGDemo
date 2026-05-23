@@ -10,7 +10,7 @@
 │  │ Runtime Module   │    │ Editor Module      │ │
 │  │ (运行时模块)      │    │ (编辑器模块)        │ │
 │  └────────┬────────┘    └─────────┬──────────┘ │
-│           │                      │            │
+│           │                           │            │
 │  ┌────────▼────────┐    ┌─────────▼─────────┐  │
 │  │ 核心类库          │    │ K2节点扩展        │  │
 │  │ • 异步代理基类    │    │ • 自定义节点      │  │
@@ -87,12 +87,12 @@ CreateWaitProxyCall<T>()
     │               │
     │               └─→ Check ProxyMap
     │                       │
-    │           ┌───────────┴───────────┐
-    │       存在│                       │不存在
-    │           ↓                       ↓
+    │           ┌─────────┴─────────┐
+    │       存在│                     │不存在
+    │           ↓                     ↓
     │       Return existing         Create NewObject
-    │           │                       │
-    │           │                       └─→ SetUUIDAndCount()
+    │           │                     │
+    │           │                     └─→ SetUUIDAndCount()
     │           │                               │
     │           │                               └─→ Register()
     │           │                                       │
@@ -110,7 +110,7 @@ Activate()
     │
     ├─→ Decrement InputCount
     │       │
-    │       └─→ Count <= 0 ?
+    │       └─→ Count &lt;= 0?
     │               │
     │       ┌───────┴───────┐
     │      Yes             No
@@ -119,7 +119,7 @@ Activate()
     │       │
     │       └─→ OnBranchesFinished()
     │
-    └───────────────  （完成时是否调用 TryFinish 由具体子类逻辑与外部调用决定）
+    └───────────────────────  （完成时是否调用 TryFinish 由具体子类逻辑与外部调用决定）
 ```
 
 ### 3. 任务生命周期
@@ -154,14 +154,14 @@ class UExLatentActionManager : public UGameInstanceSubsystem
 {
     // 代理对象存储
     UPROPERTY()
-    TMap<FString, UObject*> ProxyMap;
+    TMap&lt;FString, UObject*&gt; ProxyMap;
     
     // 管理方法
-    void SetProxyObject(const FString& Key, UObject* Proxy);
-    void RemoveProxyObject(const FString& Key);
+    void SetProxyObject(const FString&amp; Key, UObject* Proxy);
+    void RemoveProxyObject(const FString&amp; Key);
     
-    template<class T>
-    T* GetProxyObject(const FString& Key);
+    template&lt;class T&gt;
+    T* GetProxyObject(const FString&amp; Key);
 };
 ```
 
@@ -251,7 +251,7 @@ UK2Node_ShowBase (基础节点类)
 └─────────────────────────────────┘
                 ↓
 ┌─────────────────────────────────┐
-│      TWeakObjectPtr<>            │
+│      TWeakObjectPtr&lt;&gt;            │
 │  (弱引用存储，避免循环引用)        │
 └─────────────────────────────────┘
                 ↓
@@ -265,7 +265,7 @@ UK2Node_ShowBase (基础节点类)
 
 ```cpp
 // 1. 创建时设置强引用
-UExBase_FlowProxy(const FObjectInitializer& OI)
+UExBase_FlowProxy(const FObjectInitializer&amp; OI)
 {
     SetFlags(RF_StrongRefOnFrame);
 }
@@ -285,9 +285,9 @@ RemoveProxyObject(UUID);
 ```
 SetK2NodeInfo()
     │
-    ├─→ Check TimeOut > 0
+    ├─→ Check Time Out &gt; 0
     │       │
-    │       └─→ SetTimer()
+    │       └─→ Set Timer()
     │               │
     │               └─→ Lambda Callback
     │                       │
@@ -367,7 +367,7 @@ public:
     virtual void AllocateDefaultPins() override;
     
     // 节点展开
-    virtual void ExpandNode(FKismetCompilerContext& CompilerContext, UEdGraph* OutputGraph) override;
+    virtual void ExpandNode(FKismetCompilerContext&amp; CompilerContext, UEdGraph* OutputGraph) override;
     
     // 菜单分类
     virtual FText GetMenuCategory() const override;
@@ -382,7 +382,7 @@ public:
 ```
 输入流程：
 Input A ──┐
-Input B ──┼──→ Wait All ──→ Output
+Input B ──┼─→ Wait All ─→ Output
 Input C ──┘
 
 条件流程：
