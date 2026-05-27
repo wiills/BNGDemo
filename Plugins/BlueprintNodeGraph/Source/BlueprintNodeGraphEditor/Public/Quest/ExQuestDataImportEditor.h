@@ -7,11 +7,10 @@
 class UDataTable;
 class UExQuestDataAsset;
 
-/** Editor-only: DT_Quest_* → DA_Quest_* import and asset creation. */
+/** Quest-specific forwarding wrappers around FExDataTableImportEditor. */
 class FExQuestDataImportEditor
 {
 public:
-	/** Import table rows into paired DA (same folder). Creates DA if missing. */
 	static bool ImportTableToPairedDataAsset(
 		UDataTable* TaskTable,
 		bool bSavePackages,
@@ -25,7 +24,6 @@ public:
 	static void RegisterContentBrowserMenus();
 	static void UnregisterContentBrowserMenus();
 
-	/** When enabled in DefaultBlueprintNodeGraph.ini, sync paired DA after quest task tables are saved. */
 	static void RegisterAutoImportOnSave();
 	static void UnregisterAutoImportOnSave();
 };

@@ -13,6 +13,7 @@ void UExLatentTask_QuestTimer::OnStart()
 	SyncedObjectiveProgress = 0;
 	bCompletedNaturally = false;
 	bCountdownActive = false;
+	bProgressRollingBack = false;
 	ResolvedDuration = 0.0f;
 
 	Super::OnStart();
@@ -84,11 +85,18 @@ bool UExLatentTask_QuestTimer::ResolveDuration()
 
 void UExLatentTask_QuestTimer::StartCountdown()
 {
-	if (!IsRunning() || bCountdownActive)
+	if (!IsRunning())
 	{
 		return;
 	}
 
+	if (bCountdownActive && !bProgressRollingBack)
+	{
+		return;
+	}
+
+	ClearCountdownTimer();
+	bProgressRollingBack = false;
 	StartCountdownInternal(ElapsedTime <= 0.0f);
 }
 
@@ -104,7 +112,24 @@ void UExLatentTask_QuestTimer::PauseCountdown()
 
 void UExLatentTask_QuestTimer::ResumeCountdown()
 {
-	if (!IsRunning() || bCountdownActive || ElapsedTime >= ResolvedDuration)
+	if (!IsRunning() || bCountdownActive)
+	{
+		return;
+	}
+
+	if (bProgressRollingBack)
+	{
+		if (ElapsedTime <= 0.0f)
+		{
+			StopProgressRollback(bResetProgressOnReset);
+			return;
+		}
+
+		BeginCountdownTimer();
+		return;
+	}
+
+	if (ElapsedTime >= ResolvedDuration)
 	{
 		return;
 	}
@@ -119,6 +144,7 @@ void UExLatentTask_QuestTimer::RestartCountdown()
 		return;
 	}
 
+	bProgressRollingBack = false;
 	ClearCountdownTimer();
 	StartCountdownInternal(true);
 }
@@ -130,12 +156,37 @@ void UExLatentTask_QuestTimer::ResetCountdown()
 		return;
 	}
 
+	if (bRollbackOnReset && ElapsedTime > 0.0f)
+	{
+		StartProgressRollbackInternal();
+		return;
+	}
+
 	ResetCountdownElapsed(bResetProgressOnReset);
+}
+
+void UExLatentTask_QuestTimer::StartProgressRollback()
+{
+	if (!IsRunning())
+	{
+		return;
+	}
+
+	StartProgressRollbackInternal();
 }
 
 bool UExLatentTask_QuestTimer::IsCountdownPaused() const
 {
-	return IsRunning() && !bCountdownActive && ElapsedTime > 0.0f && ElapsedTime < ResolvedDuration;
+	return IsRunning()
+		&& !bCountdownActive
+		&& !bProgressRollingBack
+		&& ElapsedTime > 0.0f
+		&& ElapsedTime < ResolvedDuration;
+}
+
+bool UExLatentTask_QuestTimer::IsProgressRollbackPaused() const
+{
+	return IsRunning() && bProgressRollingBack && !bCountdownActive && ElapsedTime > 0.0f;
 }
 
 void UExLatentTask_QuestTimer::StartCountdownInternal(bool bResetElapsed)
@@ -144,6 +195,8 @@ void UExLatentTask_QuestTimer::StartCountdownInternal(bool bResetElapsed)
 	{
 		return;
 	}
+
+	bProgressRollingBack = false;
 
 	if (bResetElapsed)
 	{
@@ -168,6 +221,33 @@ void UExLatentTask_QuestTimer::StartCountdownInternal(bool bResetElapsed)
 void UExLatentTask_QuestTimer::ResetCountdownElapsed(bool bResetObjectiveProgress)
 {
 	ClearCountdownTimer();
+	bProgressRollingBack = false;
+	ElapsedTime = 0.0f;
+	RemainingTime = ResolvedDuration;
+	SyncedObjectiveProgress = 0;
+
+	if (bSyncObjectiveProgress && bResetObjectiveProgress && ObjectiveTag.IsValid())
+	{
+		ResetObjectiveProgress();
+	}
+}
+
+void UExLatentTask_QuestTimer::StartProgressRollbackInternal()
+{
+	if (ElapsedTime <= 0.0f)
+	{
+		return;
+	}
+
+	ClearCountdownTimer();
+	bProgressRollingBack = true;
+	BeginCountdownTimer();
+}
+
+void UExLatentTask_QuestTimer::StopProgressRollback(bool bResetObjectiveProgress)
+{
+	ClearCountdownTimer();
+	bProgressRollingBack = false;
 	ElapsedTime = 0.0f;
 	RemainingTime = ResolvedDuration;
 	SyncedObjectiveProgress = 0;
@@ -180,8 +260,22 @@ void UExLatentTask_QuestTimer::ResetCountdownElapsed(bool bResetObjectiveProgres
 
 void UExLatentTask_QuestTimer::BeginCountdownTimer()
 {
-	if (bCountdownActive || !IsRunning() || ElapsedTime >= ResolvedDuration)
+	if (bCountdownActive || !IsRunning())
 	{
+		return;
+	}
+
+	if (bProgressRollingBack)
+	{
+		if (ElapsedTime <= 0.0f)
+		{
+			StopProgressRollback(bResetProgressOnReset);
+			return;
+		}
+	}
+	else if (ElapsedTime >= ResolvedDuration)
+	{
+		CompleteCountdown();
 		return;
 	}
 
@@ -194,11 +288,13 @@ void UExLatentTask_QuestTimer::BeginCountdownTimer()
 	RemainingTime = FMath::Max(0.0f, ResolvedDuration - ElapsedTime);
 	bCountdownActive = true;
 
-	const float FirstDelay = FMath::Min(TickInterval, RemainingTime);
+	const float FirstDelay = bProgressRollingBack
+		? TickInterval
+		: FMath::Min(TickInterval, RemainingTime);
 	World->GetTimerManager().SetTimer(
 		CountdownTickHandle,
 		this,
-		&UExLatentTask_QuestTimer::HandleTimerTick,
+		bProgressRollingBack ? &UExLatentTask_QuestTimer::HandleProgressRollbackTick : &UExLatentTask_QuestTimer::HandleTimerTick,
 		TickInterval,
 		true,
 		FirstDelay);
@@ -224,6 +320,7 @@ void UExLatentTask_QuestTimer::InterruptTimer()
 	}
 
 	ClearCountdownTimer();
+	bProgressRollingBack = false;
 	SyncObjectiveProgressFromElapsed();
 	TryStop();
 }
@@ -236,6 +333,7 @@ void UExLatentTask_QuestTimer::CancelTimer()
 	}
 
 	ClearCountdownTimer();
+	bProgressRollingBack = false;
 
 	if (bSyncObjectiveProgress && bResetProgressOnCancel && ObjectiveTag.IsValid())
 	{
@@ -247,7 +345,7 @@ void UExLatentTask_QuestTimer::CancelTimer()
 
 void UExLatentTask_QuestTimer::HandleTimerTick()
 {
-	if (!IsRunning())
+	if (!IsRunning() || bProgressRollingBack)
 	{
 		return;
 	}
@@ -261,6 +359,26 @@ void UExLatentTask_QuestTimer::HandleTimerTick()
 	if (ElapsedTime >= ResolvedDuration)
 	{
 		CompleteCountdown();
+	}
+}
+
+void UExLatentTask_QuestTimer::HandleProgressRollbackTick()
+{
+	if (!IsRunning() || !bProgressRollingBack)
+	{
+		return;
+	}
+
+	const float RollbackDelta = RollbackRate * TickInterval;
+	ElapsedTime = FMath::Max(0.0f, ElapsedTime - RollbackDelta);
+	RemainingTime = FMath::Max(0.0f, ResolvedDuration - ElapsedTime);
+
+	SyncObjectiveProgressFromElapsed();
+	ReceiveOnTimerTick(RemainingTime, ElapsedTime);
+
+	if (ElapsedTime <= 0.0f)
+	{
+		StopProgressRollback(bResetProgressOnReset);
 	}
 }
 

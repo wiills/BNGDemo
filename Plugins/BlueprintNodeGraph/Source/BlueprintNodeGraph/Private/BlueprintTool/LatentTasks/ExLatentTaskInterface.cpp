@@ -20,6 +20,7 @@ void IExLatentTaskInterface::TryStart()
 		SetState(EExLatentTaskState::Running);
 		PreOnStart();
 		OnStart();
+		PostOnStart();
 	}
 }
 

@@ -5,8 +5,9 @@
 #include "AssetToolsModule.h"
 #include "AssetTypeCategories.h"
 #include "BlueprintTool/AssetActions/ExAssetTypeActions_FlowGraph.h"
-#include "Quest/ExQuestDataImportEditor.h"
+#include "Import/ExDataTableImportEditor.h"
 #include "IAssetTools.h"
+#include "Quest/ExQuestDataTableImportHandler.h"
 
 #define LOCTEXT_NAMESPACE "FBlueprintNodeGraphEditorModule"
 
@@ -14,6 +15,7 @@ namespace
 {
 	EAssetTypeCategories::Type BlueprintNodeGraphAssetCategory = EAssetTypeCategories::Misc;
 	TArray<TSharedPtr<IAssetTypeActions>> RegisteredAssetTypeActions;
+	TSharedPtr<FExQuestDataTableImportHandler> QuestDataTableImportHandler;
 }
 
 void FBlueprintNodeGraphEditorModule::StartupModule()
@@ -34,8 +36,10 @@ void FBlueprintNodeGraphEditorModule::StartupModule()
 		}
 	}
 
-	FExQuestDataImportEditor::RegisterContentBrowserMenus();
-	FExQuestDataImportEditor::RegisterAutoImportOnSave();
+	QuestDataTableImportHandler = MakeShared<FExQuestDataTableImportHandler>();
+	FExDataTableImportEditor::RegisterHandler(QuestDataTableImportHandler.ToSharedRef());
+	FExDataTableImportEditor::RegisterContentBrowserMenus();
+	FExDataTableImportEditor::RegisterAutoImportOnSave();
 }
 
 void FBlueprintNodeGraphEditorModule::ShutdownModule()
@@ -53,8 +57,10 @@ void FBlueprintNodeGraphEditorModule::ShutdownModule()
 	}
 	RegisteredAssetTypeActions.Empty();
 
-	FExQuestDataImportEditor::UnregisterContentBrowserMenus();
-	FExQuestDataImportEditor::UnregisterAutoImportOnSave();
+	FExDataTableImportEditor::UnregisterAutoImportOnSave();
+	FExDataTableImportEditor::UnregisterContentBrowserMenus();
+	FExDataTableImportEditor::UnregisterAllHandlers();
+	QuestDataTableImportHandler.Reset();
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -9,7 +9,8 @@
 /**
  * Quest latent task with a countdown timer.
  * Duration on Quest Task node: >0 manual seconds, 0 = read Objective TargetProgress from quest data.
- * Enter/leave volume (reset on leave): bStartTimerOnStart=false, enter->RestartCountdown, leave->ResetCountdown.
+ * Enter/leave volume: bStartTimerOnStart=false, enter->StartCountdown, leave->ResetCountdown (or StartProgressRollback).
+ * With bRollbackOnReset, leave gradually rolls ElapsedTime back at RollbackRate points/sec; re-enter resumes from current progress.
  */
 UCLASS(Blueprintable, BlueprintType, meta = (ExposedAsyncProxy = AsyncTask, SafeHideThen, DontUseGenericSpawnObject))
 class BLUEPRINTNODEGRAPH_API UExLatentTask_QuestTimer : public UExLatentTask_Quest
@@ -48,6 +49,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer")
 	bool bStartTimerOnStart = true;
 
+	/** When true, ResetCountdown starts gradual rollback instead of instantly clearing progress */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Rollback")
+	bool bRollbackOnReset = false;
+
+	/** Objective progress points removed per second while rolling back (1 point ~= 1 elapsed second) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Rollback", meta = (ClampMin = "0.01"))
+	float RollbackRate = 3.0f;
+
 	/** Resolved countdown length after OnStart (manual Duration or Objective TargetProgress) */
 	UPROPERTY(BlueprintReadOnly, Category = "Timer")
 	float ResolvedDuration = 0.0f;
@@ -73,8 +82,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
 	void RestartCountdown();
 
+	UPROPERTY(BlueprintReadOnly, Category = "Timer|Rollback")
+	bool bProgressRollingBack = false;
+
 	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
 	void ResetCountdown();
+
+	/** Roll ElapsedTime back toward 0 at RollbackRate points/sec; no-op if already at 0 */
+	UFUNCTION(BlueprintCallable, Category = "Quest|Timer|Rollback")
+	void StartProgressRollback();
 
 	UFUNCTION(BlueprintCallable, Category = "Quest|Timer")
 	void InterruptTimer();
@@ -100,6 +116,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Quest|Timer")
 	bool IsCountdownPaused() const;
 
+	UFUNCTION(BlueprintPure, Category = "Quest|Timer|Rollback")
+	bool IsProgressRollingBack() const { return bProgressRollingBack; }
+
+	UFUNCTION(BlueprintPure, Category = "Quest|Timer|Rollback")
+	bool IsProgressRollbackPaused() const;
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "Quest|Timer", meta = (DisplayName = "On Timer Tick"))
 	void ReceiveOnTimerTick(float RemainingSeconds, float ElapsedSeconds);
 
@@ -118,7 +140,10 @@ protected:
 	void ClearCountdownTimer();
 	void BeginCountdownTimer();
 	void StartCountdownInternal(bool bResetElapsed);
+	void StartProgressRollbackInternal();
 	void ResetCountdownElapsed(bool bResetObjectiveProgress);
+	void StopProgressRollback(bool bResetObjectiveProgress);
+	void HandleProgressRollbackTick();
 	void CompleteCountdown();
 	void SyncObjectiveProgressFromElapsed();
 	void ResetObjectiveProgress();

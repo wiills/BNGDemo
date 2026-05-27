@@ -95,6 +95,10 @@ protected:
 	UFUNCTION()
 	virtual void OnStart() {}
 
+	/** Called after the full OnStart chain completes; use for blueprint notification. */
+	UFUNCTION()
+	virtual void PostOnStart() {}
+
 	UFUNCTION()
 	virtual void OnStop() {}
 };

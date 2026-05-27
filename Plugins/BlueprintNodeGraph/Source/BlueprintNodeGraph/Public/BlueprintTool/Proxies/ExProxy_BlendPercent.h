@@ -6,7 +6,6 @@
 #include "BlueprintTool/Subsystems/ExLatentActionManager.h"
 #include "ExProxy_BlendPercent.generated.h"
 
-
 /**
  * Wait Multi-Input Proxy Result
  * Check Condition

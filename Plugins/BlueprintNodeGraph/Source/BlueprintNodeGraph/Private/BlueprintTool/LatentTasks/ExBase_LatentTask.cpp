@@ -84,6 +84,10 @@ void UExBase_LatentTask::Terminate()
 
 void UExBase_LatentTask::OnStart()
 {
+}
+
+void UExBase_LatentTask::PostOnStart()
+{
 	ReceiveOnStart();
 	GetStartDelegate().Broadcast();
 }
