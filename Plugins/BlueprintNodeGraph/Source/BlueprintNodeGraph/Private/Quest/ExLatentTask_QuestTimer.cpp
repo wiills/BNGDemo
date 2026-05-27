@@ -151,6 +151,11 @@ void UExLatentTask_QuestTimer::RestartCountdown()
 
 void UExLatentTask_QuestTimer::ResetCountdown()
 {
+	if (IsStopped() || IsCancelled())
+	{
+		return;
+	}
+
 	if (!IsRunning())
 	{
 		return;
@@ -322,7 +327,6 @@ void UExLatentTask_QuestTimer::InterruptTimer()
 	ClearCountdownTimer();
 	bProgressRollingBack = false;
 	SyncObjectiveProgressFromElapsed();
-	TryStop();
 }
 
 void UExLatentTask_QuestTimer::CancelTimer()
@@ -339,8 +343,6 @@ void UExLatentTask_QuestTimer::CancelTimer()
 	{
 		ResetObjectiveProgress();
 	}
-
-	Terminate();
 }
 
 void UExLatentTask_QuestTimer::HandleTimerTick()
@@ -407,8 +409,8 @@ void UExLatentTask_QuestTimer::CompleteCountdown()
 	RemainingTime = 0.0f;
 	ElapsedTime = ResolvedDuration;
 	bCompletedNaturally = true;
-	SyncObjectiveProgressFromElapsed();
 	TryStop();
+	SyncObjectiveProgressFromElapsed();
 }
 
 int32 UExLatentTask_QuestTimer::ComputeObjectiveProgressFromElapsed() const
