@@ -19,12 +19,12 @@ class BLUEPRINTNODEGRAPH_API UExAsyncAction_BranchSync : public UExBase_AsyncAct
 {
 	GENERATED_BODY()
 
-	/** 是否所有分支都已完�?*/
+	/** 是否所有分支都已完成 */
 	UPROPERTY()
 	bool bBranchesFinished = false;
 
 protected:
-	/** 节点唯一标识�?*/
+	/** 节点唯一标识符 */
 	UPROPERTY()
 	FString m_SelfUUID;
 
@@ -71,7 +71,7 @@ protected:
 
 /**
  * @class UExBase_FlowProxy
- * @brief 等待所有输入分支完成后执行输出的基础异步代理�?
+ * @brief 等待所有输入分支完成后执行输出的基础异步代理类
  */
 UCLASS(Abstract, HideDropdown, NotBlueprintable, NotBlueprintType, meta = (HideThen), HideCategories = "NodeInfo")
 class BLUEPRINTNODEGRAPH_API UExBase_FlowProxy : public UObject
@@ -79,18 +79,18 @@ class BLUEPRINTNODEGRAPH_API UExBase_FlowProxy : public UObject
 	GENERATED_BODY()
 
 protected:
-	/** 任务是否已完�?*/
+	/** 任务是否已完成 */
 	UPROPERTY()
 	bool bFinished = false;
 	/** 任务是否已初始化 */
 	UPROPERTY()
 	bool bInitialized = false;
 
-	/** 是否所有分支都已完�?*/
+	/** 是否所有分支都已完成 */
 	UPROPERTY()
 	bool bBranchesFinished = false;
 
-	/** 超时计时器句�?*/
+	/** 超时计时器句柄 */
 	UPROPERTY()
 	FTimerHandle m_K2NodeTimerHandle;
 
@@ -98,7 +98,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NodeInfo")
 	FExLatentNodeInfo m_NodeInfo;
 
-	/** 节点唯一标识�?*/
+	/** 节点唯一标识符 */
 	UPROPERTY()
 	FString m_SelfUUID;
 
@@ -138,7 +138,7 @@ public:
 	}
 
 	/**
-	 * @brief 设置K2节点编辑器配置信�?
+	 * @brief 设置K2节点编辑器配置信息
 	 * @param K2NodeInfo 节点配置信息
 	 */
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true"))
@@ -153,7 +153,7 @@ public:
 	void TryFinish();
 
 	/**
-	 * @brief 在委托绑定后触发操作执行（默认视为该输入分支成功完成�?
+	 * @brief 在委托绑定后触发操作执行（默认视为该输入分支成功完成）
 	 */
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true"))
 	void Activate();
@@ -173,8 +173,7 @@ protected:
 	void RemoveWaitInstance();
 	
 private:
-	/** 多输入分支中的单次报告：默认实现等价于旧版递减 InputCount；UExProxy_WaitBranch 等子类可覆盖以实�?All/Any/Count */
+	/** 多输入分支中的单次报告：默认实现等价于旧版递减 InputCount；UExProxy_WaitBranch 等子类可覆盖以实现 All/Any/Count */
 	virtual void HandleBranchReported(bool bSuccess);
 	
 };
-

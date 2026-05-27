@@ -10,8 +10,8 @@
 
 /**
  * Wait Multi-Input Proxy
- * All（全部输入已报告�? Any（任一路成功）/ Count（成功路数达到阈值）；单次输入对应一�?Activate / ReportBranchFailed�?
- * 每条输入执行引脚默认调用 Activate() 视为成功；若需将某路记为失败请在该支调�?ReportBranchFailed()�?
+ * All（全部输入已报告）/ Any（任一路成功）/ Count（成功路数达到阈值）；单次输入对应一次 Activate / ReportBranchFailed。
+ * 每条输入执行引脚默认调用 Activate() 视为成功；若需将某路记为失败请在该支调用 ReportBranchFailed()。
  */
 UCLASS()
 class BLUEPRINTNODEGRAPH_API UExProxy_WaitBranch : public UExBase_FlowProxy

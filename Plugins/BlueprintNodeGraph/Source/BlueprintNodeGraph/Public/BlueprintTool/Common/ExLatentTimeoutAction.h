@@ -7,17 +7,17 @@
 #include "LatentActions.h"
 
 /**
- * 异步代理�?FLatentActionManager 中的超时 / 调试 latent（与 FExWaitAction 同类，非 K2 节点）�?
+ * 异步代理在 FLatentActionManager 中的超时 / 调试 latent（与 FExWaitAction 同类，非 K2 节点）。
  *
- * - TimeOut > 0：倒计时并在归零时 TryFinish�?
- * - TimeOut <= 0：仅累计经过时间（Wait All / Wait Count 等未填超时仍�?PIE 气泡）�?
+ * - TimeOut > 0：倒计时并在归零时 TryFinish。
+ * - TimeOut <= 0：仅累计经过时间（Wait All / Wait Count 等未填超时仍显示 PIE 气泡）。
  *
- * 气泡文案仅在编辑器（WITH_EDITOR + GetDescription）；Shipping �?overlay�?
+ * 气泡文案仅在编辑器（WITH_EDITOR + GetDescription）；Shipping 无 overlay。
  */
 class FExLatentTimeoutAction final : public FPendingLatentAction
 {
 public:
-	/** 同一 Proxy + UUID 已存在本�?latent 时返�?true */
+	/** 同一 Proxy + UUID 已存在本次 latent 时返回 true */
 	static bool HasExistingForProxy(UObject* ProxyObject, const FString& UUIDStr);
 
 	static void TryRegister(UObject* ProxyObject, const FExLatentNodeInfo& NodeInfo);

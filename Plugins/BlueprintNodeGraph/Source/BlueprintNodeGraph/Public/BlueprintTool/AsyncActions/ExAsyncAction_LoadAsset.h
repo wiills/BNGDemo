@@ -14,8 +14,8 @@ class UAsyncLoadAssetCallbackProxy;
  * @class UExAsyncAction_LoadAsset
  * @brief 异步加载资产的代理类
  * 
- * 提供非阻塞的资产异步加载能力，支�?UObject �?UClass 两种加载模式�?
- * 自动处理资产流送和依赖关系管理�?
+ * 提供非阻塞的资产异步加载能力，支持 UObject 与 UClass 两种加载模式。
+ * 自动处理资产流送和依赖关系管理。
  */
 UCLASS()
 class BLUEPRINTNODEGRAPH_API UExAsyncAction_LoadAsset : public UExBase_AsyncAction
@@ -23,13 +23,13 @@ class BLUEPRINTNODEGRAPH_API UExAsyncAction_LoadAsset : public UExBase_AsyncActi
 	GENERATED_BODY()
 
 public:
-	/** 资产加载完成时触�?*/
+	/** 资产加载完成时触发 */
 	UPROPERTY(BlueprintAssignable, Category = "AsyncAction|AssetLoading")
 	FOnExAsyncActionProxyResult OnAssetLoaded;
 
 	/**
-	 * @brief 异步加载指定路径的资�?
-	 * @param WorldContextObject 世界上下文对�?
+	 * @brief 异步加载指定路径的资产
+	 * @param WorldContextObject 世界上下文对象
 	 * @param AssetPath 资产路径（如 "/Game/Path/AssetName.AssetName")
 	 * @return 异步操作代理
 	 */
@@ -41,9 +41,9 @@ public:
 
 	/**
 	 * @brief 异步加载指定类的资产
-	 * @param WorldContextObject 世界上下文对�?
+	 * @param WorldContextObject 世界上下文对象
 	 * @param AssetPath 资产路径
-	 * @param AssetClass 资产�?
+	 * @param AssetClass 资产类
 	 * @return 异步操作代理
 	 */
 	UFUNCTION(BlueprintCallable, meta = (WorldContext = "WorldContextObject", Category = "LatentActions|AssetLoading", BlueprintInternalUseOnly = "true", DisplayName = "Async Load Asset Class"))
@@ -55,7 +55,7 @@ public:
 
 	virtual void Activate() override;
 
-	/** 异步加载完成（供内部回调与其�?UObject 调用�?*/
+	/** 异步加载完成（供内部回调与其他 UObject 调用） */
 	void HandleAssetLoaded();
 
 protected:

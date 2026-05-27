@@ -11,7 +11,7 @@
 
 /**
  * @class UExLatentActionManager
- * @brief 延迟动作实例管理�?
+ * @brief 延迟动作实例管理器
  */
 UCLASS()
 class BLUEPRINTNODEGRAPH_API UExLatentActionManager : public UGameInstanceSubsystem, public FExSubsystemGetter<UExLatentActionManager>

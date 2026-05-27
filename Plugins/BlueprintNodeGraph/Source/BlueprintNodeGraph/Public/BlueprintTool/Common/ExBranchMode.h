@@ -6,7 +6,7 @@
 #include "ExBranchMode.generated.h"
 
 
-/** Wait Branch 多路汇入完成策略：All / Any / Count�?*/
+/** Wait Branch 多路汇入完成策略：All / Any / Count。 */
 UENUM(BlueprintType)
 enum class EExBranchMode : uint8
 {

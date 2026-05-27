@@ -8,9 +8,9 @@
 
 /**
  * @class FExSubsystemGetter
- * @brief BlueprintNodeGraph 插件�?Subsystem 访问�?
+ * @brief BlueprintNodeGraph 插件的 Subsystem 访问器
  * 
- * 用于获取 UGameInstanceSubsystem、UWorldSubsystem 的单例实例�?
+ * 用于获取 UGameInstanceSubsystem、UWorldSubsystem 的单例实例。
  */
 template<class T>
 class FExSubsystemGetter
@@ -21,7 +21,7 @@ public:
 	T* operator()() const { return Get(); }
 
 	/**
-	 * @brief 获取世界上下�?
+	 * @brief 获取世界上下文
 	 * @return 当前世界指针
 	 */
 	static UWorld* StaticGetWorld()
@@ -44,7 +44,7 @@ public:
 
 	/**
 	 * @brief 获取 Subsystem 实例
-	 * @return Subsystem 对象指针，失败返�?nullptr
+	 * @return Subsystem 对象指针，失败返回 nullptr
 	 */
 	static T* Get()
 	{

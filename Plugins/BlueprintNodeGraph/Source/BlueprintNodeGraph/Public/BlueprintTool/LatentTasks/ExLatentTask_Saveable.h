@@ -10,11 +10,11 @@
 
 /**
  * @class UExLatentTask_Saveable
- * @brief 支持存档的延迟任务基�?
+ * @brief 支持存档的延迟任务基类
  * 
- * 提供基础的存档和断点续跑能力�?
- * 子类可以重写 SerializeState �?DeserializeState 来实现自定义的序列化逻辑�?
- * 需要存�?断点续跑时的蓝图父类�?
+ * 提供基础的存档和断点续跑能力。
+ * 子类可以重写 SerializeState 与 DeserializeState 来实现自定义的序列化逻辑。
+ * 需要存档/断点续跑时的蓝图父类。
  */
 UCLASS(Abstract, HideDropdown, Blueprintable, BlueprintType)
 class BLUEPRINTNODEGRAPH_API UExLatentTask_Saveable : public UExBase_LatentTask
@@ -23,15 +23,15 @@ class BLUEPRINTNODEGRAPH_API UExLatentTask_Saveable : public UExBase_LatentTask
 
 public:
 	/**
-	 * @brief 序列化任务状�?
-	 * @return 任务状态数据结�?
+	 * @brief 序列化任务状态
+	 * @return 任务状态数据结构
 	 */
 	UFUNCTION(BlueprintCallable, Category = "LatentTask|Saveable")
 	virtual FExFlowTaskState SerializeState();
 
 	/**
-	 * @brief 反序列化任务状�?
-	 * @param State 任务状态数�?
+	 * @brief 反序列化任务状态
+	 * @param State 任务状态数据
 	 */
 	UFUNCTION(BlueprintCallable, Category = "LatentTask|Saveable")
 	virtual void DeserializeState(const FExFlowTaskState& State);
@@ -55,7 +55,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Saveable")
 	bool bAutoSave = true;
 
-	/** 存档间隔（秒�?*/
+	/** 存档间隔（秒） */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Saveable", meta = (EditCondition = "bAutoSave"))
 	float AutoSaveInterval = 60.f;
 
@@ -63,24 +63,24 @@ protected:
 	UPROPERTY()
 	int32 CurrentCheckpointIndex = 0;
 
-	/** 上次存档时间�?*/
+	/** 上次存档时间戳 */
 	UPROPERTY()
 	float LastSaveTimestamp = 0.f;
 
 	/**
-	 * @brief 子类重写：获取任务特定数�?
-	 * @return 任务特定数据�?JSON 字符�?
+	 * @brief 子类重写：获取任务特定数据
+	 * @return 任务特定数据的 JSON 字符串
 	 */
 	virtual FString GetTaskSpecificData() { return TEXT("{}"); }
 
 	/**
 	 * @brief 子类重写：从任务特定数据恢复
-	 * @param Data JSON 字符�?
+	 * @param Data JSON 字符串
 	 */
 	virtual void RestoreTaskSpecificData(const FString& Data) {}
 
 	/**
-	 * @brief 检查是否应该自动存�?
+	 * @brief 检查是否应该自动存档
 	 */
 	void CheckAutoSave();
 

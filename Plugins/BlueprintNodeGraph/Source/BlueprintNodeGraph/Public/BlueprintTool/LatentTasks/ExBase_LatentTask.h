@@ -12,8 +12,8 @@
  * @class UExBase_LatentTask
  * @brief 延迟任务基类
  * 
- * 提供基础的延迟任务功能，支持超时控制、网络复制、状态管理等�?
- * C++ 中间层可继承；蓝图请继承 ExLatentTask_Custom �?ExLatentTask_Saveable�?
+ * 提供基础的延迟任务功能，支持超时控制、网络复制、状态管理等功能。
+ * C++ 中间层可继承；蓝图请继承 ExLatentTask_Custom 或 ExLatentTask_Saveable。
  */
 UCLASS(Abstract, HideDropdown, NotBlueprintType)
 class BLUEPRINTNODEGRAPH_API UExBase_LatentTask : public UObject, public IExLatentTaskInterface
@@ -25,7 +25,7 @@ public:
 	UPROPERTY(BlueprintAssignable, meta = (DisplayName = "OnStart"))
 	FOnExLatentTaskAsyncDelegate StartDelegate;
 
-	/** 任务完成时触�?*/
+	/** 任务完成时触发 */
 	UPROPERTY(BlueprintAssignable, meta = (DisplayName = "OnComplete"))
 	FOnExLatentTaskAsyncDelegate CompleteDelegate;
 
@@ -34,20 +34,20 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NodeInfo")
 	FExLatentNodeInfo NodeInfo;
 
-	/** 超时定时器句�?*/
+	/** 超时定时器句柄 */
 	UPROPERTY()
 	FTimerHandle m_TimeoutTimerHandle;
 
 public:
 	/**
-	 * @brief 构造函�?
+	 * @brief 构造函数
 	 * @param ObjectInitializer 对象初始化器
 	 */
 	UExBase_LatentTask(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/**
-	 * @brief 获取开始委�?
-	 * @return 开始委托引�?
+	 * @brief 获取开始委托
+	 * @return 开始委托引用
 	 */
 	FOnExLatentTaskAsyncDelegate& GetStartDelegate() { return StartDelegate; }
 
@@ -75,15 +75,15 @@ public:
 	// ========== Factory Function ==========
 	/**
 	 * @brief 创建延迟任务
-	 * @param WorldContextObject 世界上下文对�?
-	 * @param Class 要创建的任务�?
-	 * @return 创建的任务实�?
+	 * @param WorldContextObject 世界上下文对象
+	 * @param Class 要创建的任务类
+	 * @return 创建的任务实例
 	 */
 	UFUNCTION(BlueprintCallable, Category = "LatentTasks", meta = (WorldContext = "WorldContextObject", BlueprintInternalUseOnly = "true", DisplayName = "Create Latent Task"))
 	static UExBase_LatentTask* CreateTask(UObject* WorldContextObject, TSubclassOf<UExBase_LatentTask> Class);
 
 	/**
-	 * @brief 设置K2节点编辑器配置信�?
+	 * @brief 设置K2节点编辑器配置信息
 	 * @param K2NodeInfo 节点配置信息
 	 */
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true"))
@@ -102,7 +102,7 @@ public:
 	// ========== Context ==========
 
 	// ========== Task Interface ==========
-	/** 任务开始回调（蓝图实现�?*/
+	/** 任务开始回调（蓝图实现） */
 	UFUNCTION(BlueprintImplementableEvent)
 	void ReceiveOnStart();
 
@@ -116,12 +116,12 @@ public:
 	virtual void Terminate() override;
 	// ========== Task Interface ==========
 
-	// UObject：BeginDestroy 在基类为 public，override 必须保持 public，不能收窄可见�?
+	// UObject：BeginDestroy 在基类为 public，override 必须保持 public，不能收窄可见性
 	virtual void BeginDestroy() override;
 
 protected:
 	/**
-	 * @brief 任务开�?
+	 * @brief 任务开始
 	 */
 	virtual void OnStart() override;
 
@@ -134,7 +134,7 @@ protected:
 	virtual void OnStop() override;
 
 	/**
-	 * @brief 清理定时�?
+	 * @brief 清理定时器
 	 */
 	void ClearTimeoutTimer();
 };
