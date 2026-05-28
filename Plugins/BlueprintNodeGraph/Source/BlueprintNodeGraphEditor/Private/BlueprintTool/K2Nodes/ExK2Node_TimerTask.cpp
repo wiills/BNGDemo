@@ -11,7 +11,6 @@
 #include "K2Node_TemporaryVariable.h"
 #include "KismetCompiler.h"
 #include "Kismet2/BlueprintEditorUtils.h"
-#include "BlueprintTool/LatentTasks/ExLatentTask_Custom.h"
 #include "BlueprintTool/LatentTasks/ExLatentTask_Timer.h"
 
 #define LOCTEXT_NAMESPACE "UExK2Node_TimerTask"
@@ -19,10 +18,10 @@
 UExK2Node_TimerTask::UExK2Node_TimerTask(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(UExLatentTask_Custom, CreateProxy);
-	ProxySetK2NodeInfoFunctionName = GET_FUNCTION_NAME_CHECKED(UExLatentTask_Custom, SetK2NodeInfo);
-	ProxyActivateFunctionName = GET_FUNCTION_NAME_CHECKED(UExLatentTask_Custom, Activate);
-	ProxyFactoryClass = UExLatentTask_Custom::StaticClass();
+	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(UExLatentTask_Timer, CreateTimerProxy);
+	ProxySetK2NodeInfoFunctionName = GET_FUNCTION_NAME_CHECKED(UExLatentTask_Timer, SetK2NodeInfo);
+	ProxyActivateFunctionName = GET_FUNCTION_NAME_CHECKED(UExLatentTask_Timer, Activate);
+	ProxyFactoryClass = UExLatentTask_Timer::StaticClass();
 	ProxyClass = UExLatentTask_Timer::StaticClass();
 }
 
@@ -88,10 +87,23 @@ void UExK2Node_TimerTask::AllocateDefaultPins()
 
 	if (UEdGraphPin* ClassPin = GetClassPin())
 	{
+		ClassPin->PinType.PinSubCategoryObject = UExLatentTask_Timer::StaticClass();
+	}
+}
+
+void UExK2Node_TimerTask::PostPlacedNewNode()
+{
+	Super::PostPlacedNewNode();
+
+	if (UEdGraphPin* ClassPin = GetClassPin())
+	{
 		ClassPin->DefaultObject = UExLatentTask_Timer::StaticClass();
 	}
 
-	CreatePinsForClass(UExLatentTask_Timer::StaticClass());
+	if (UClass* UseSpawnClass = GetClassToSpawn())
+	{
+		CreatePinsForClass(UseSpawnClass);
+	}
 }
 
 FSlateIcon UExK2Node_TimerTask::GetIconAndTint(FLinearColor& OutColor) const
@@ -144,11 +156,7 @@ UClass* UExK2Node_TimerTask::GetClassToSpawn(const TArray<UEdGraphPin*>* InPinsT
 		UseSpawnClass = SourcePin ? Cast<UClass>(SourcePin->PinType.PinSubCategoryObject.Get()) : nullptr;
 	}
 
-	if (UseSpawnClass == nullptr)
-	{
-		UseSpawnClass = UExLatentTask_Timer::StaticClass();
-	}
-	else if (!UseSpawnClass->IsChildOf(UExLatentTask_Timer::StaticClass()))
+	if (UseSpawnClass && !UseSpawnClass->IsChildOf(UExLatentTask_Timer::StaticClass()))
 	{
 		UseSpawnClass = UExLatentTask_Timer::StaticClass();
 	}

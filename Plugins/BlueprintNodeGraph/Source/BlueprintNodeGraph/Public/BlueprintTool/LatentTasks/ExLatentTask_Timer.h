@@ -8,7 +8,7 @@
 #include "ExLatentTask_Timer.generated.h"
 
 /**
- * Generic countdown latent task. Use UExK2Node_TimerTask (not Create Latent Task).
+ * Created via UExK2Node_TimerTask / CreateTimerProxy (not Create Latent Task).
  * Duration is configured on the Timer Task node via ExposeOnSpawn.
  * Enter/leave volume: bStartTimerOnStart=false, enter->StartCountdown, leave->ResetCountdown (or StartProgressRollback).
  */
@@ -18,6 +18,9 @@ class BLUEPRINTNODEGRAPH_API UExLatentTask_Timer : public UExLatentTask_Custom
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintCallable, Category = "LatentTasks|Timer", meta = (WorldContext = "WorldContextObject", BlueprintInternalUseOnly = "true", DisplayName = "Create Timer Latent Task"))
+	static UExLatentTask_Timer* CreateTimerProxy(UObject* WorldContextObject, TSubclassOf<UExLatentTask_Timer> Class);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (ExposeOnSpawn = true, ClampMin = "0.0"))
 	float Duration = 0.f;
 
@@ -104,5 +107,4 @@ protected:
 	void SyncMirrorProperties();
 
 	FExLatentCountdownTimer CountdownTimer;
-	bool bCompletedNaturally = false;
 };

@@ -2,9 +2,25 @@
 
 #include "BlueprintTool/LatentTasks/ExLatentTask_Timer.h"
 
+#include "Kismet/GameplayStatics.h"
+
+UExLatentTask_Timer* UExLatentTask_Timer::CreateTimerProxy(UObject* WorldContextObject, TSubclassOf<UExLatentTask_Timer> Class)
+{
+	if (!Class || !WorldContextObject)
+	{
+		return nullptr;
+	}
+
+	if (!Class->IsChildOf(UExLatentTask_Timer::StaticClass()))
+	{
+		return nullptr;
+	}
+
+	return Cast<UExLatentTask_Timer>(UGameplayStatics::SpawnObject(Class, WorldContextObject));
+}
+
 void UExLatentTask_Timer::OnStart()
 {
-	bCompletedNaturally = false;
 	ResolvedDuration = 0.f;
 	RemainingTime = 0.f;
 	ElapsedTime = 0.f;
@@ -72,7 +88,6 @@ void UExLatentTask_Timer::SetupCountdownTimer(float InResolvedDuration)
 			return;
 		}
 
-		Self->bCompletedNaturally = true;
 		Self->SyncMirrorProperties();
 		Self->TryStop();
 	};

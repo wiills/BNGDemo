@@ -28,6 +28,7 @@ public:
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const override;
 	virtual void AllocateDefaultPins() override;
+	virtual void PostPlacedNewNode() override;
 	virtual FSlateIcon GetIconAndTint(FLinearColor& OutColor) const override;
 
 	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
