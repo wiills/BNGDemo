@@ -42,11 +42,15 @@ struct BLUEPRINTNODEGRAPH_API FExQuestObjective
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	bool bIsOptional = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	bool bUIVisible = true;
+
 	FExQuestObjective()
 		: CurrentProgress(0)
 		, TargetProgress(1)
 		, bIsCompleted(false)
 		, bIsOptional(false)
+		, bUIVisible(true)
 	{
 	}
 };

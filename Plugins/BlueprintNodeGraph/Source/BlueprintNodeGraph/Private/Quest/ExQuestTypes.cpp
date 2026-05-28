@@ -430,6 +430,8 @@ void FExQuestData::EnrichMetadataFrom(const FExQuestData& DefinitionData)
 					Objective.TargetProgress = DefObjective.TargetProgress;
 				}
 
+				Objective.bUIVisible = DefObjective.bUIVisible;
+
 				break;
 			}
 		}

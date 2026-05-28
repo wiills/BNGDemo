@@ -28,6 +28,9 @@ struct BLUEPRINTNODEGRAPH_API FExQuestObjectiveDefinition
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
 	bool bIsOptional = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
+	bool bUIVisible = true;
 };
 
 /** Static task definition (no runtime state) */

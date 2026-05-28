@@ -273,6 +273,11 @@ void UExQuestTreeWidget::CreateQuestItem(const FExQuestTask& QuestTask, UVertica
 	{
 		for (const FExQuestObjective& Objective : QuestTask.Objectives)
 		{
+			if (!Objective.bUIVisible)
+			{
+				continue;
+			}
+
 			if (UTextBlock* ObjectiveText = NewObject<UTextBlock>(ParentContainer))
 			{
 				const FText ObjectiveDisplayText = FText::Format(

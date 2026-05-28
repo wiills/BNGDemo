@@ -43,6 +43,7 @@ FExQuestTask FExQuestTaskDefinition::ToRuntimeTask() const
 		Objective.Description = ObjDef.Description;
 		Objective.TargetProgress = ObjDef.TargetProgress;
 		Objective.bIsOptional = ObjDef.bIsOptional;
+		Objective.bUIVisible = ObjDef.bUIVisible;
 		Objective.CurrentProgress = 0;
 		Objective.bIsCompleted = false;
 		Task.Objectives.Add(Objective);
