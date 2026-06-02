@@ -26,8 +26,12 @@ struct FExLatentNodeInfo
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NodeInfo", meta = (DisplayName = "图表节点Guid", AllowPrivateAccess = true))
 	FString GraphNodeGuid;
 
+	/** 节点自定义名称，不为空时自动显示在标题上 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NodeInfo", meta = (DisplayName = "节点名字", AllowPrivateAccess = true))
+	FString NodeName;
+
 	/** 节点唯一ID（UUID + Owner唯一ID） */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NodeInfo", meta = (DisplayName = "唯一ID", AllowPrivateAccess = true))
+	UPROPERTY(BlueprintReadWrite, Category = "NodeInfo", meta = (DisplayName = "唯一ID", AllowPrivateAccess = true))
 	FString UniqueId;
 
 	/** 开始执行时的日志内容 */

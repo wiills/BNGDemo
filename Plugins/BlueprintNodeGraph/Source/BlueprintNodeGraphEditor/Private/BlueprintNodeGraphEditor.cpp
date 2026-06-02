@@ -5,8 +5,11 @@
 #include "AssetToolsModule.h"
 #include "AssetTypeCategories.h"
 #include "BlueprintTool/AssetActions/ExAssetTypeActions_FlowGraph.h"
+#include "BlueprintTool/Details/ExClassedAsyncNodeDetails.h"
+#include "BlueprintTool/K2Nodes/ExK2Node_ClassedAsyncBase.h"
 #include "Import/ExDataTableImportEditor.h"
 #include "IAssetTools.h"
+#include "PropertyEditorModule.h"
 #include "Quest/ExQuestDataTableImportHandler.h"
 
 #define LOCTEXT_NAMESPACE "FBlueprintNodeGraphEditorModule"
@@ -40,10 +43,23 @@ void FBlueprintNodeGraphEditorModule::StartupModule()
 	FExDataTableImportEditor::RegisterHandler(QuestDataTableImportHandler.ToSharedRef());
 	FExDataTableImportEditor::RegisterContentBrowserMenus();
 	FExDataTableImportEditor::RegisterAutoImportOnSave();
+
+	// Register Detail Customization for classed async nodes
+	FPropertyEditorModule& PropertyEditorModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	PropertyEditorModule.RegisterCustomClassLayout(
+		UExK2Node_ClassedAsyncBase::StaticClass()->GetFName(),
+		FOnGetDetailCustomizationInstance::CreateStatic(&FExClassedAsyncNodeDetails::MakeInstance)
+	);
 }
 
 void FBlueprintNodeGraphEditorModule::ShutdownModule()
 {
+	if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
+	{
+		FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyEditorModule.UnregisterCustomClassLayout(UExK2Node_ClassedAsyncBase::StaticClass()->GetFName());
+	}
+
 	if (FModuleManager::Get().IsModuleLoaded("AssetTools"))
 	{
 		IAssetTools& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();

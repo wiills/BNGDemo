@@ -43,6 +43,31 @@ TSharedPtr<SGraphNode> UExK2Node_AsyncBase::CreateVisualWidget()
 void UExK2Node_AsyncBase::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (UEdGraph* Graph = GetGraph())
+	{
+		Graph->NotifyGraphChanged();
+	}
+}
+
+FText UExK2Node_AsyncBase::GetNodeTitle(ENodeTitleType::Type TitleType) const
+{
+	if (!NodeInfo.NodeName.IsEmpty())
+	{
+		return FText::FromString(NodeInfo.NodeName);
+	}
+	return Super::GetNodeTitle(TitleType);
+}
+
+void UExK2Node_AsyncBase::AllocateDefaultPins()
+{
+	Super::AllocateDefaultPins();
+
+	UEdGraphPin* OutputAsyncTaskProxy = FindPin(FBaseAsyncTaskHelper::GetAsyncTaskProxyName());
+	if (OutputAsyncTaskProxy)
+	{
+		OutputAsyncTaskProxy->bHidden = true;
+	}
 }
 
 void UExK2Node_AsyncBase::SetNodeInfoPinValue(const UEdGraphSchema_K2* Schema, UEdGraphPin* NodeInfoVarPin)

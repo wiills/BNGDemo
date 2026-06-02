@@ -42,7 +42,9 @@ public class BlueprintNodeGraphEditor : ModuleRules
 			"Kismet",
 			// BlueprintGraph：K2 节点与蓝图编译管线。
 			"BlueprintGraph",
-			"KismetCompiler"
+			"KismetCompiler",
+			"PropertyEditor",
+			"ClassViewer",
 		});
 	}
 }

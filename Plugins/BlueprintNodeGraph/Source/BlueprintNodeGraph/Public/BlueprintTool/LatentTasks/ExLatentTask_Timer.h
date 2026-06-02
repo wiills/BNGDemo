@@ -12,7 +12,7 @@
  * Duration is configured on the Timer Task node via ExposeOnSpawn.
  * Enter/leave volume: bStartTimerOnStart=false, enter->StartCountdown, leave->ResetCountdown (or StartProgressRollback).
  */
-UCLASS(Blueprintable, BlueprintType, meta = (ExposedAsyncProxy = AsyncTask, SafeHideThen, DontUseGenericSpawnObject))
+UCLASS(Blueprintable, BlueprintType, HideDropdown, meta = (ExposedAsyncProxy = AsyncTask, SafeHideThen, DontUseGenericSpawnObject))
 class BLUEPRINTNODEGRAPH_API UExLatentTask_Timer : public UExLatentTask_Custom
 {
 	GENERATED_BODY()
