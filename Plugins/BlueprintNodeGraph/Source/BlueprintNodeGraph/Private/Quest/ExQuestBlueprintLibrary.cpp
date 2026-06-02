@@ -63,7 +63,7 @@ FExQuestData UExQuestBlueprintLibrary::CreateExampleQuestData()
 	MainQuest2.TaskName = NSLOCTEXT("ExQuestExample", "Main002_Name", "Main Quest: Restore Peace");
 	MainQuest2.Description = NSLOCTEXT("ExQuestExample", "Main002_Desc", "Restore peace to the world");
 	MainQuest2.State = EExQuestState::Locked;
-	MainQuest2.PreTaskIds.AddTag(MainQuest.TaskId);
+	MainQuest.NextTaskIds.AddTag(MainQuest2.TaskId);
 
 	FExQuestObjective Main2Obj1;
 	Main2Obj1.ObjectiveTag = FGameplayTag::RequestGameplayTag(FName("Quest.Main_002.Obj_001"));
@@ -85,15 +85,16 @@ FExQuestObjective UExQuestBlueprintLibrary::CreateQuestObjective(
 	const FGameplayTag& ObjectiveTag,
 	const FText& Description,
 	int32 TargetProgress,
-	bool bIsOptional)
+	bool bIsOptional,
+	EExQuestState InitialState)
 {
 	FExQuestObjective Objective;
 	Objective.ObjectiveTag = ObjectiveTag;
 	Objective.Description = Description;
 	Objective.TargetProgress = TargetProgress;
 	Objective.bIsOptional = bIsOptional;
+	Objective.State = InitialState;
 	Objective.CurrentProgress = 0;
-	Objective.bIsCompleted = false;
 	return Objective;
 }
 
@@ -130,9 +131,9 @@ FExQuestTask UExQuestBlueprintLibrary::AddSubTaskId(FExQuestTask Task, const FGa
 	return Task;
 }
 
-FExQuestTask UExQuestBlueprintLibrary::AddPreTaskId(FExQuestTask Task, const FGameplayTag& PreTaskId)
+FExQuestTask UExQuestBlueprintLibrary::AddNextTaskId(FExQuestTask Task, const FGameplayTag& NextTaskId)
 {
-	Task.PreTaskIds.AddTag(PreTaskId);
+	Task.NextTaskIds.AddTag(NextTaskId);
 	return Task;
 }
 
@@ -282,6 +283,26 @@ bool UExQuestBlueprintLibrary::ActivateQuest(UObject* WorldContextObject, const 
 	return UExQuestReplicationComponent::RouteActivateQuest(WorldContextObject, TaskId);
 }
 
+bool UExQuestBlueprintLibrary::ForceCompleteQuest(UObject* WorldContextObject, const FGameplayTag& TaskId)
+{
+	if (!TaskId.IsValid())
+	{
+		return false;
+	}
+
+	UWorld* World = WorldContextObject ? WorldContextObject->GetWorld() : nullptr;
+	if (!World || World->GetNetMode() == NM_Client)
+	{
+		UE_LOG(LogBlueprintNodeGraph, Warning,
+			TEXT("ForceCompleteQuest: authority only (Server / Standalone), TaskId '%s'"),
+			*TaskId.ToString());
+		return false;
+	}
+
+	UExQuestManagerSubsystem* Manager = GetQuestManager(WorldContextObject);
+	return Manager ? Manager->ForceCompleteQuest(TaskId) : false;
+}
+
 bool UExQuestBlueprintLibrary::EnsureQuestActive(UObject* WorldContextObject, const FGameplayTag& TaskId)
 {
 	if (!TaskId.IsValid())
@@ -399,9 +420,9 @@ bool UExQuestBlueprintLibrary::HasSubTasks(const FExQuestTask& Task)
 	return Task.SubTaskIds.Num() > 0;
 }
 
-bool UExQuestBlueprintLibrary::HasPreTasks(const FExQuestTask& Task)
+bool UExQuestBlueprintLibrary::HasNextTasks(const FExQuestTask& Task)
 {
-	return Task.PreTaskIds.Num() > 0;
+	return Task.NextTaskIds.Num() > 0;
 }
 
 int32 UExQuestBlueprintLibrary::GetQuestCount(const FExQuestData& QuestData)

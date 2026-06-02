@@ -26,7 +26,8 @@ public:
 		const FGameplayTag& ObjectiveTag,
 		const FText& Description,
 		int32 TargetProgress = 1,
-		bool bIsOptional = false);
+		bool bIsOptional = false,
+		EExQuestState InitialState = EExQuestState::Locked);
 
 	/** Builds FExQuestTask definition data (not the Quest Task latent node). */
 	UFUNCTION(BlueprintPure, Category = "Quest System|Create", meta = (DisplayName = "Make Quest Task Data", ToolTip = "Builds quest task struct for arrays or DataAsset authoring. For runtime latent flow use the Quest Task graph node."))
@@ -45,7 +46,7 @@ public:
 	static FExQuestTask AddSubTaskId(FExQuestTask Task, const FGameplayTag& SubTaskId);
 
 	UFUNCTION(BlueprintCallable, Category = "Quest System|Modify")
-	static FExQuestTask AddPreTaskId(FExQuestTask Task, const FGameplayTag& PreTaskId);
+	static FExQuestTask AddNextTaskId(FExQuestTask Task, const FGameplayTag& NextTaskId);
 
 	UFUNCTION(BlueprintCallable, Category = "Quest System|Modify")
 	static FExQuestTask AddObjectiveToQuest(FExQuestTask Task, const FExQuestObjective& Objective);
@@ -116,6 +117,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest System|Helper", meta = (WorldContext = "WorldContextObject"))
 	static bool ActivateQuest(UObject* WorldContextObject, const FGameplayTag& TaskId);
 
+	/** Test/debug only: skip a task without Active prerequisite. Authority / Standalone only. */
+	UFUNCTION(BlueprintCallable, Category = "Quest System|Debug", meta = (WorldContext = "WorldContextObject", ToolTip = "Test only. Force-completes a task even when Locked or Inactive. Server / Standalone only."))
+	static bool ForceCompleteQuest(UObject* WorldContextObject, const FGameplayTag& TaskId);
+
 	/** Locked -> Inactive -> Active when possible (Quest Task OnStart uses this). */
 	UFUNCTION(BlueprintCallable, Category = "Quest System|Helper", meta = (WorldContext = "WorldContextObject"))
 	static bool EnsureQuestActive(UObject* WorldContextObject, const FGameplayTag& TaskId);
@@ -173,7 +178,7 @@ public:
 	static bool HasSubTasks(const FExQuestTask& Task);
 
 	UFUNCTION(BlueprintPure, Category = "Quest System|Helper")
-	static bool HasPreTasks(const FExQuestTask& Task);
+	static bool HasNextTasks(const FExQuestTask& Task);
 
 	UFUNCTION(BlueprintPure, Category = "Quest System|Helper")
 	static int32 GetQuestCount(const FExQuestData& QuestData);

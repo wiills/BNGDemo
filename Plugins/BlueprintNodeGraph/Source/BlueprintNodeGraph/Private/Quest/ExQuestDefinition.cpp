@@ -15,7 +15,10 @@ FExQuestTaskDefinition FExQuestTaskTableRow::ToTaskDefinition() const
 	Def.Objectives = Objectives;
 	Def.SubTaskIds = SubTaskIds;
 	Def.PreTaskIds = PreTaskIds;
+	Def.NextTaskIds = NextTaskIds;
+	Def.EntryViewClass = EntryViewClass;
 	Def.bIsRepeatable = bIsRepeatable;
+	Def.LatentTaskClass = LatentTaskClass;
 	return Def;
 }
 
@@ -33,8 +36,12 @@ FExQuestTask FExQuestTaskDefinition::ToRuntimeTask() const
 	Task.State = InitialState;
 	Task.SubTaskIds = SubTaskIds;
 	Task.PreTaskIds = PreTaskIds;
+	Task.NextTaskIds = NextTaskIds;
 	Task.ParentTaskId = ParentTaskId;
+	Task.EntryViewClass = EntryViewClass;
 	Task.bIsRepeatable = bIsRepeatable;
+	Task.LatentTaskClass = LatentTaskClass;
+	Task.LatentTaskPayload = LatentTaskPayload;
 
 	for (const FExQuestObjectiveDefinition& ObjDef : Objectives)
 	{
@@ -44,8 +51,10 @@ FExQuestTask FExQuestTaskDefinition::ToRuntimeTask() const
 		Objective.TargetProgress = ObjDef.TargetProgress;
 		Objective.bIsOptional = ObjDef.bIsOptional;
 		Objective.bUIVisible = ObjDef.bUIVisible;
+		Objective.EntryViewClass = ObjDef.EntryViewClass;
+		Objective.LatentTaskClass = ObjDef.LatentTaskClass;
+		Objective.State = ObjDef.InitialState;
 		Objective.CurrentProgress = 0;
-		Objective.bIsCompleted = false;
 		Task.Objectives.Add(Objective);
 	}
 

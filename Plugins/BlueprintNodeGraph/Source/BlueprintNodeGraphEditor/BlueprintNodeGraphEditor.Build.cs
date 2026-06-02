@@ -45,6 +45,7 @@ public class BlueprintNodeGraphEditor : ModuleRules
 			"KismetCompiler",
 			"PropertyEditor",
 			"ClassViewer",
+			"GameplayTagsEditor",
 		});
 	}
 }

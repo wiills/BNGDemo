@@ -293,10 +293,7 @@ void UExQuestTreeWidget::CreateQuestItem(const FExQuestTask& QuestTask, UVertica
 					ObjSlot->SetPadding(ObjectiveIndent);
 				}
 
-				if (Objective.bIsCompleted)
-				{
-					ObjectiveText->SetColorAndOpacity(FLinearColor::Green);
-				}
+				ObjectiveText->SetColorAndOpacity(UExQuestBlueprintLibrary::GetQuestStateColor(Objective.State));
 			}
 		}
 

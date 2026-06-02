@@ -39,4 +39,6 @@ private:
 	void OnBoolChanged(FName PinName, ECheckBoxState NewState);
 	void OnStringChanged(const FText& NewText, ETextCommit::Type CommitType, FName PinName);
 	void OnEnumChanged(FName PinName, int32 NewIndex, UEnum* Enum);
+
+	TMap<FName, TArray<TSharedPtr<FString>>> EnumOptionsMap;
 };

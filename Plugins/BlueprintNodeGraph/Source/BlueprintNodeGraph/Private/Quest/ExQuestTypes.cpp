@@ -4,6 +4,18 @@
 
 #include "BlueprintTool/Common/ExLatentProxyDefine.h"
 
+void FExQuestObjective::ApplyProgressToState()
+{
+	if (CurrentProgress >= TargetProgress)
+	{
+		State = EExQuestState::Completed;
+	}
+	else if (State == EExQuestState::Completed)
+	{
+		State = EExQuestState::Active;
+	}
+}
+
 bool FExQuestTask::CanActivate() const
 {
 	return State == EExQuestState::Inactive;
@@ -37,7 +49,7 @@ bool FExQuestTask::IsFullyCompleted() const
 {
 	for (const FExQuestObjective& Objective : Objectives)
 	{
-		if (!Objective.bIsOptional && !Objective.bIsCompleted)
+		if (!Objective.bIsOptional && !Objective.IsCompleted())
 		{
 			return false;
 		}
@@ -72,6 +84,7 @@ bool FExQuestTask::AreAllSubTasksCompleted(const FExQuestData& QuestData) const
 
 bool FExQuestTask::IsReadyToComplete(const FExQuestData& QuestData) const
 {
+	// Task 自动 Complete 门槛：必填 Objective 全完 且 SubTaskIds 子 Task 全 Completed
 	return IsFullyCompleted() && AreAllSubTasksCompleted(QuestData);
 }
 
@@ -90,7 +103,7 @@ float FExQuestTask::GetCompletionPercent() const
 		if (!Objective.bIsOptional)
 		{
 			TotalItems++;
-			if (Objective.bIsCompleted)
+			if (Objective.IsCompleted())
 			{
 				CompletedItems++;
 			}
@@ -115,7 +128,7 @@ float FExQuestTask::GetAggregateCompletionPercent(const FExQuestData& QuestData)
 		if (!Objective.bIsOptional)
 		{
 			TotalItems++;
-			if (Objective.bIsCompleted)
+			if (Objective.IsCompleted())
 			{
 				CompletedItems++;
 			}
@@ -152,6 +165,7 @@ void FExQuestData::RebuildIndices()
 	ParentTaskIdToChildIndices.Empty();
 	PreTaskIdToDependentIndices.Empty();
 
+	// 第一遍：TaskId → 数组下标
 	for (int32 TaskIndex = 0; TaskIndex < AllTasks.Num(); ++TaskIndex)
 	{
 		const FExQuestTask& Task = AllTasks[TaskIndex];
@@ -161,7 +175,7 @@ void FExQuestData::RebuildIndices()
 		}
 	}
 
-	// Top-down hierarchy: parent row SubTaskIds is authoritative; derive child ParentTaskId.
+	// 第二遍：任务树 — 父行 SubTaskIds 为权威来源，写回子行 ParentTaskId
 	TMap<FGameplayTag, FGameplayTag> ChildToParentFromSubTaskIds;
 	for (const FExQuestTask& Task : AllTasks)
 	{
@@ -222,7 +236,7 @@ void FExQuestData::RebuildIndices()
 
 	for (int32 TaskIndex = 0; TaskIndex < AllTasks.Num(); ++TaskIndex)
 	{
-		const FExQuestTask& Task = AllTasks[TaskIndex];
+		FExQuestTask& Task = AllTasks[TaskIndex];
 		if (!Task.TaskId.IsValid())
 		{
 			continue;
@@ -233,9 +247,13 @@ void FExQuestData::RebuildIndices()
 			ParentTaskIdToChildIndices.FindOrAdd(Task.ParentTaskId).Add(TaskIndex);
 		}
 
-		for (const FGameplayTag& PreTaskId : Task.PreTaskIds)
+		// 收集 NextTaskIds 反向边，供后续推导 PreTaskIds
+		for (const FGameplayTag& NextId : Task.NextTaskIds)
 		{
-			PreTaskIdToDependentIndices.FindOrAdd(PreTaskId).Add(TaskIndex);
+			if (NextId.IsValid())
+			{
+				PreTaskIdToDependentIndices.FindOrAdd(NextId).Add(TaskIndex);
+			}
 		}
 
 		for (const FExQuestObjective& Objective : Task.Objectives)
@@ -258,6 +276,28 @@ void FExQuestData::RebuildIndices()
 			}
 
 			ObjectiveTagToTaskIndex.Add(Objective.ObjectiveTag, TaskIndex);
+		}
+	}
+
+	// 第三遍：由 NextTaskIds 反推 PreTaskIds（ActivateQuest 前置校验用）
+	for (FExQuestTask& Task : AllTasks)
+	{
+		if (!Task.TaskId.IsValid())
+		{
+			continue;
+		}
+
+		Task.PreTaskIds.Reset();
+
+		if (const TArray<int32>* DependentIndices = PreTaskIdToDependentIndices.Find(Task.TaskId))
+		{
+			for (const int32 DependentIndex : *DependentIndices)
+			{
+				if (AllTasks.IsValidIndex(DependentIndex))
+				{
+					Task.PreTaskIds.AddTag(AllTasks[DependentIndex].TaskId);
+				}
+			}
 		}
 	}
 }
@@ -349,7 +389,7 @@ FExQuestRuntimeState FExQuestData::ExtractRuntimeState() const
 			FExQuestObjectiveRuntime ObjRuntime;
 			ObjRuntime.ObjectiveTag = Objective.ObjectiveTag;
 			ObjRuntime.CurrentProgress = Objective.CurrentProgress;
-			ObjRuntime.bIsCompleted = Objective.bIsCompleted;
+			ObjRuntime.State = Objective.State;
 			TaskRuntime.Objectives.Add(ObjRuntime);
 		}
 
@@ -383,7 +423,7 @@ void FExQuestData::ApplyRuntimeState(const FExQuestRuntimeState& RuntimeState)
 				if (Objective.ObjectiveTag == ObjRuntime.ObjectiveTag)
 				{
 					Objective.CurrentProgress = ObjRuntime.CurrentProgress;
-					Objective.bIsCompleted = ObjRuntime.bIsCompleted;
+					Objective.State = ObjRuntime.State;
 					break;
 				}
 			}
@@ -411,6 +451,22 @@ void FExQuestData::EnrichMetadataFrom(const FExQuestData& DefinitionData)
 			Task.Description = DefTask.Description;
 		}
 
+		if (Task.EntryViewClass.IsNull() && !DefTask.EntryViewClass.IsNull())
+		{
+			Task.EntryViewClass = DefTask.EntryViewClass;
+		}
+
+		if (!Task.LatentTaskClass && DefTask.LatentTaskClass)
+		{
+			Task.LatentTaskClass = DefTask.LatentTaskClass;
+		}
+
+		if (!Task.LatentTaskPayload.IsValid() && DefTask.LatentTaskPayload.IsValid())
+		{
+			Task.LatentTaskPayload = DefTask.LatentTaskPayload;
+		}
+
+		// RuntimeState 只保存进度/状态；UI 样式属于定义侧元数据，所以读档后需要从定义快照补回到每个目标。
 		for (FExQuestObjective& Objective : Task.Objectives)
 		{
 			for (const FExQuestObjective& DefObjective : DefTask.Objectives)
@@ -431,6 +487,16 @@ void FExQuestData::EnrichMetadataFrom(const FExQuestData& DefinitionData)
 				}
 
 				Objective.bUIVisible = DefObjective.bUIVisible;
+
+				if (Objective.EntryViewClass.IsNull() && !DefObjective.EntryViewClass.IsNull())
+				{
+					Objective.EntryViewClass = DefObjective.EntryViewClass;
+				}
+
+				if (!Objective.LatentTaskClass && DefObjective.LatentTaskClass)
+				{
+					Objective.LatentTaskClass = DefObjective.LatentTaskClass;
+				}
 
 				break;
 			}

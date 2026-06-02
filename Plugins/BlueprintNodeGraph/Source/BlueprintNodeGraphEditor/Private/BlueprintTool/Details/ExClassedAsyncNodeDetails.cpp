@@ -16,6 +16,8 @@
 #include "Widgets/Input/STextComboBox.h"
 #include "Widgets/Input/SNumericEntryBox.h"
 #include "PropertyCustomizationHelpers.h"
+#include "SGameplayTagCombo.h"
+#include "Subsystems/AssetEditorSubsystem.h"
 
 #define LOCTEXT_NAMESPACE "FExClassedAsyncNodeDetails"
 
@@ -76,18 +78,58 @@ void FExClassedAsyncNodeDetails::BuildClassRow(IDetailCategoryBuilder& Category)
 		.ValueContent()
 		.MinDesiredWidth(250.f)
 		[
-			SNew(SClassPropertyEntryBox)
-			.MetaClass(Node->GetValidBaseClass())
-			.AllowAbstract(false)
-			.AllowNone(true)
-			.SelectedClass_Lambda([this]()
-			{
-				return Node.IsValid() ? Node->GetClassToSpawn() : nullptr;
-			})
-			.OnSetClass_Lambda([this](const UClass* NewClass)
-			{
-				OnClassChanged(NewClass);
-			})
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.f)
+			[
+				SNew(SClassPropertyEntryBox)
+				.MetaClass(Node->GetValidBaseClass())
+				.AllowAbstract(false)
+				.AllowNone(true)
+				.SelectedClass_Lambda([this]()
+				{
+					return Node.IsValid() ? Node->GetClassToSpawn() : nullptr;
+				})
+				.OnSetClass_Lambda([this](const UClass* NewClass)
+				{
+					OnClassChanged(NewClass);
+				})
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2.f, 0.f, 0.f, 0.f)
+			[
+				SNew(SButton)
+				.ButtonStyle(FAppStyle::Get(), "SimpleButton")
+				.ToolTipText(LOCTEXT("OpenClassAsset_Tooltip", "Open Blueprint Class in Editor"))
+				.OnClicked_Lambda([this]() -> FReply
+				{
+					if (Node.IsValid())
+					{
+						if (UClass* CurrentClass = Node->GetClassToSpawn())
+						{
+							if (UBlueprint* BP = Cast<UBlueprint>(CurrentClass->ClassGeneratedBy))
+							{
+								if (GEditor)
+								{
+									UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+									if (AssetEditorSubsystem)
+									{
+										AssetEditorSubsystem->OpenEditorForAsset(BP);
+										return FReply::Handled();
+									}
+								}
+							}
+						}
+					}
+					return FReply::Unhandled();
+				})
+				.Content()
+				[
+					SNew(SImage)
+					.Image(FAppStyle::GetBrush("Icons.Edit"))
+				]
+			]
 		];
 }
 
@@ -137,35 +179,55 @@ TSharedRef<SWidget> FExClassedAsyncNodeDetails::CreatePropertyEditor(const FProp
 	{
 		if (StructProp->Struct == FGameplayTag::StaticStruct())
 		{
-			FGameplayTag CurrentTag;
-			FString StringValue = Pin->GetDefaultAsString();
-			if (!StringValue.IsEmpty())
-			{
-				CurrentTag = FGameplayTag::RequestGameplayTag(FName(*StringValue), false);
-				if (!CurrentTag.IsValid())
+			return SNew(SGameplayTagCombo)
+				.Filter(Property->GetMetaData(TEXT("Categories")))
+				.Tag_Lambda([this, PinName = Pin->PinName]() -> FGameplayTag
 				{
-					FString TagNameStr;
-					if (FParse::Value(*StringValue, TEXT("TagName="), TagNameStr))
+					if (Node.IsValid())
 					{
-						TagNameStr = TagNameStr.TrimQuotes();
-						CurrentTag = FGameplayTag::RequestGameplayTag(FName(*TagNameStr), false);
+						if (UEdGraphPin* LocalPin = Node->FindPin(PinName))
+						{
+							FString StringValue = LocalPin->GetDefaultAsString();
+							if (!StringValue.IsEmpty())
+							{
+								FGameplayTag Tag = FGameplayTag::RequestGameplayTag(FName(*StringValue), false);
+								if (!Tag.IsValid())
+								{
+									FString TagNameStr;
+									if (FParse::Value(*StringValue, TEXT("TagName="), TagNameStr))
+									{
+										TagNameStr = TagNameStr.TrimQuotes();
+										Tag = FGameplayTag::RequestGameplayTag(FName(*TagNameStr), false);
+									}
+								}
+								return Tag;
+							}
+						}
 					}
-				}
-			}
-
-			return SNew(SEditableTextBox)
-				.Text(FText::FromString(CurrentTag.ToString()))
-				.ToolTipText(FText::FromString(Property->GetMetaData(TEXT("Categories"))))
-				.OnTextCommitted(this, &FExClassedAsyncNodeDetails::OnStringChanged, Pin->PinName);
+					return FGameplayTag();
+				})
+				.OnTagChanged_Lambda([this, PinName = Pin->PinName](const FGameplayTag& NewTag)
+				{
+					OnGameplayTagChanged(PinName, NewTag);
+				});
 		}
 	}
 
 	// 2. Bool
 	if (const FBoolProperty* BoolProp = CastField<FBoolProperty>(Property))
 	{
-		bool bValue = Pin->GetDefaultAsString() == TEXT("true");
 		return SNew(SCheckBox)
-			.IsChecked(bValue ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+			.IsChecked_Lambda([this, PinName = Pin->PinName]() -> ECheckBoxState
+			{
+				if (Node.IsValid())
+				{
+					if (UEdGraphPin* LocalPin = Node->FindPin(PinName))
+					{
+						return (LocalPin->GetDefaultAsString() == TEXT("true")) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+					}
+				}
+				return ECheckBoxState::Unchecked;
+			})
 			.OnCheckStateChanged_Lambda([this, PinName = Pin->PinName](ECheckBoxState NewState)
 			{
 				OnBoolChanged(PinName, NewState);
@@ -186,7 +248,10 @@ TSharedRef<SWidget> FExClassedAsyncNodeDetails::CreatePropertyEditor(const FProp
 	if (Enum)
 	{
 		int32 CurrentIndex = FCString::Atoi(*Pin->GetDefaultAsString());
-		TArray<TSharedPtr<FString>> Options;
+		
+		TArray<TSharedPtr<FString>>& Options = EnumOptionsMap.FindOrAdd(Pin->PinName);
+		Options.Reset();
+
 		for (int32 i = 0; i < Enum->NumEnums() - 1; ++i)
 		{
 			Options.Add(MakeShared<FString>(Enum->GetDisplayNameTextByIndex(i).ToString()));
@@ -214,12 +279,20 @@ TSharedRef<SWidget> FExClassedAsyncNodeDetails::CreatePropertyEditor(const FProp
 	// 4. Numeric (int/float/double)
 	if (const FNumericProperty* NumProp = CastField<FNumericProperty>(Property))
 	{
-		FString CurrentValue = Pin->GetDefaultAsString();
 		if (NumProp->IsFloatingPoint())
 		{
-			float CurrentFloat = FCString::Atof(*CurrentValue);
 			return SNew(SNumericEntryBox<float>)
-				.Value(CurrentFloat)
+				.Value_Lambda([this, PinName = Pin->PinName]() -> TOptional<float>
+				{
+					if (Node.IsValid())
+					{
+						if (UEdGraphPin* LocalPin = Node->FindPin(PinName))
+						{
+							return FCString::Atof(*LocalPin->GetDefaultAsString());
+						}
+					}
+					return 0.f;
+				})
 				.OnValueCommitted_Lambda([this, PinName = Pin->PinName](float NewValue, ETextCommit::Type)
 				{
 					OnStringChanged(FText::FromString(FString::SanitizeFloat(NewValue)), ETextCommit::Type::OnEnter, PinName);
@@ -227,9 +300,18 @@ TSharedRef<SWidget> FExClassedAsyncNodeDetails::CreatePropertyEditor(const FProp
 		}
 		else
 		{
-			int32 CurrentInt = FCString::Atoi(*CurrentValue);
 			return SNew(SNumericEntryBox<int32>)
-				.Value(CurrentInt)
+				.Value_Lambda([this, PinName = Pin->PinName]() -> TOptional<int32>
+				{
+					if (Node.IsValid())
+					{
+						if (UEdGraphPin* LocalPin = Node->FindPin(PinName))
+						{
+							return FCString::Atoi(*LocalPin->GetDefaultAsString());
+						}
+					}
+					return 0;
+				})
 				.OnValueCommitted_Lambda([this, PinName = Pin->PinName](int32 NewValue, ETextCommit::Type)
 				{
 					OnStringChanged(FText::FromString(FString::FromInt(NewValue)), ETextCommit::Type::OnEnter, PinName);
@@ -238,9 +320,18 @@ TSharedRef<SWidget> FExClassedAsyncNodeDetails::CreatePropertyEditor(const FProp
 	}
 
 	// 5. Default: string editor
-	FString CurrentValue = Pin->GetDefaultAsString();
 	return SNew(SEditableTextBox)
-		.Text(FText::FromString(CurrentValue))
+		.Text_Lambda([this, PinName = Pin->PinName]() -> FText
+		{
+			if (Node.IsValid())
+			{
+				if (UEdGraphPin* LocalPin = Node->FindPin(PinName))
+				{
+					return FText::FromString(LocalPin->GetDefaultAsString());
+				}
+			}
+			return FText::GetEmpty();
+		})
 		.OnTextCommitted(this, &FExClassedAsyncNodeDetails::OnStringChanged, Pin->PinName);
 }
 
@@ -277,6 +368,7 @@ void FExClassedAsyncNodeDetails::OnGameplayTagChanged(FName PinName, FGameplayTa
 	if (UEdGraphPin* Pin = Node->FindPin(PinName))
 	{
 		Pin->DefaultValue = NewTag.ToString();
+		Node->PinDefaultValueChanged(Pin);
 		FBlueprintEditorUtils::MarkBlueprintAsModified(Node->GetBlueprint());
 	}
 }
@@ -291,6 +383,7 @@ void FExClassedAsyncNodeDetails::OnBoolChanged(FName PinName, ECheckBoxState New
 	if (UEdGraphPin* Pin = Node->FindPin(PinName))
 	{
 		Pin->DefaultValue = (NewState == ECheckBoxState::Checked) ? TEXT("true") : TEXT("false");
+		Node->PinDefaultValueChanged(Pin);
 		FBlueprintEditorUtils::MarkBlueprintAsModified(Node->GetBlueprint());
 	}
 }
@@ -305,6 +398,7 @@ void FExClassedAsyncNodeDetails::OnStringChanged(const FText& NewText, ETextComm
 	if (UEdGraphPin* Pin = Node->FindPin(PinName))
 	{
 		Pin->DefaultValue = NewText.ToString();
+		Node->PinDefaultValueChanged(Pin);
 		FBlueprintEditorUtils::MarkBlueprintAsModified(Node->GetBlueprint());
 	}
 }
@@ -319,6 +413,7 @@ void FExClassedAsyncNodeDetails::OnEnumChanged(FName PinName, int32 NewIndex, UE
 	if (UEdGraphPin* Pin = Node->FindPin(PinName))
 	{
 		Pin->DefaultValue = FString::FromInt(NewIndex);
+		Node->PinDefaultValueChanged(Pin);
 		FBlueprintEditorUtils::MarkBlueprintAsModified(Node->GetBlueprint());
 	}
 }
