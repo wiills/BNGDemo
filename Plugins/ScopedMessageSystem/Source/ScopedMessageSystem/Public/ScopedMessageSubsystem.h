@@ -122,7 +122,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Scoped Message", DisplayName = "Broadcast Scoped Message",
 		meta = (WorldContext = "WorldContextObject", DefaultToSelf = "ScopeContext"))
-	void K2_BroadcastMessage(
+	static void K2_BroadcastMessage(
 		const UObject* WorldContextObject,
 		FGameplayTag Channel,
 		const FInstancedStruct& Message,

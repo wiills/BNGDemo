@@ -358,16 +358,26 @@ void UScopedMessageSubsystem::K2_BroadcastMessage(
 	UObject* ScopeContext,
 	EScopedMessageReplication Replication)
 {
+	if (!WorldContextObject)
+	{
+		UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("K2_BroadcastMessage called with null WorldContextObject"));
+		return;
+	}
+
 	if (!Message.IsValid())
 	{
 		UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("K2_BroadcastMessage: Message is invalid"));
 		return;
 	}
 
-	const UScriptStruct* PayloadType = Message.GetScriptStruct();
-	const void* PayloadBytes = Message.GetMemory();
-	UObject* ResolvedScopeContext = ScopeContext ? ScopeContext : const_cast<UObject*>(WorldContextObject);
-	BroadcastMessageInternal(Channel, PayloadType, PayloadBytes, ResolveScopeId(ResolvedScopeContext), Replication);
+	if (HasInstance(WorldContextObject))
+	{
+		UScopedMessageSubsystem& Subsystem = Get(WorldContextObject);
+		const UScriptStruct* PayloadType = Message.GetScriptStruct();
+		const void* PayloadBytes = Message.GetMemory();
+		UObject* ResolvedScopeContext = ScopeContext ? ScopeContext : const_cast<UObject*>(WorldContextObject);
+		Subsystem.BroadcastMessageInternal(Channel, PayloadType, PayloadBytes, Subsystem.ResolveScopeId(ResolvedScopeContext), Replication);
+	}
 }
 
 void UScopedMessageSubsystem::OnWorldInitialized(UWorld* World, const UWorld::InitializationValues IValues)
