@@ -18,7 +18,13 @@
 		{
 			"Name": "ScopedMessageSystem",
 			"Type": "Runtime",
-			"LoadingPhase": "PreLoadingScreen"
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "StructUtils",
+			"Enabled": true
 		}
 	]
 }

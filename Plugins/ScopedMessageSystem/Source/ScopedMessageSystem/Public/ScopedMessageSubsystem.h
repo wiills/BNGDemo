@@ -4,6 +4,7 @@
 #include "GameplayTagContainer.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "ScopedMessageTypes.h"
+#include "StructUtils/InstancedStruct.h"
 #include "ScopedMessageSubsystem.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogScopedMessageSubsystem, Log, All);
@@ -25,6 +26,7 @@ public:
 	/** Returns true if the Scoped Message Subsystem instance is currently valid and active. */
 	static bool HasInstance(const UObject* WorldContextObject);
 
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
 	/**
@@ -105,15 +107,28 @@ public:
 	/** Unsubscribes a listener using the provided handle. */
 	void Unsubscribe(FScopedMessageListenerHandle& Handle);
 
-	UFUNCTION(BlueprintCallable, CustomThunk, Category = "Scoped Message",
-		meta = (CustomStructureParam = "Message", AllowAbstract = "false", DisplayName = "Broadcast Scoped Message"))
+	/**
+	 * Blueprint exposed broadcast function using FInstancedStruct for clean wildcard input.
+	 *
+	 * @param Channel       The message tag channel.
+	 * @param Message       The payload wildcard struct.
+	 * @param ScopeContext  Optional scope boundary object.
+	 * @param Replication   Replication strategy.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Scoped Message", DisplayName = "Broadcast Scoped Message",
+		meta = (DefaultToSelf = "ScopeContext"))
 	void K2_BroadcastMessage(
 		FGameplayTag Channel,
-		const int32& Message,
+		const FInstancedStruct& Message,
 		UObject* ScopeContext = nullptr,
 		EScopedMessageReplication Replication = EScopedMessageReplication::LocalOnly);
 
-	DECLARE_FUNCTION(execK2_BroadcastMessage);
+	/** Handles RPC distribution from the GameState replicator component on clients. */
+	void HandleReplicatedMessage(
+		FGameplayTag Channel,
+		FName ScopeIdName,
+		const UScriptStruct* PayloadType,
+		const TArray<uint8>& PayloadBytes);
 
 	/**
 	 * Traverses the owner hierarchy of a given object to find a valid ScopeId.
@@ -152,12 +167,10 @@ private:
 
 	void CleanupInvalidListeners(FGameplayTag ScopeId, FGameplayTag Channel);
 
-	UFUNCTION(NetMulticast, Reliable)
-	void NetMulticast_BroadcastMessage(
-		FGameplayTag Channel,
-		FName ScopeIdName,
-		const UScriptStruct* PayloadType,
-		const TArray<uint8>& PayloadBytes);
+	// World and GameState observation helpers to spawn the replicator component.
+	void OnWorldInitialized(UWorld* World, const UWorld::InitializationValues IValues);
+	void OnActorSpawned(AActor* SpawnedActor);
+	void CreateReplicatorOnGameState(class AGameStateBase* GameState);
 
 	struct FListenerList
 	{

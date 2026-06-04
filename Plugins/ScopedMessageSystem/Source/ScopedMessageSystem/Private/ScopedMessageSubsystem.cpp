@@ -3,6 +3,9 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "GameplayTagsManager.h"
+#include "ScopedMessageReplicatorComponent.h"
+#include "GameFramework/GameStateBase.h"
+#include "StructUtils/InstancedStruct.h"
 
 DEFINE_LOG_CATEGORY(LogScopedMessageSubsystem);
 
@@ -19,6 +22,12 @@ bool UScopedMessageSubsystem::HasInstance(const UObject* WorldContextObject)
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull);
 	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
 	return GameInstance && GameInstance->GetSubsystem<UScopedMessageSubsystem>() != nullptr;
+}
+
+void UScopedMessageSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Super::Initialize(Collection);
+	FWorldDelegates::OnPostWorldInitialization.AddUObject(this, &UScopedMessageSubsystem::OnWorldInitialized);
 }
 
 void UScopedMessageSubsystem::Deinitialize()
@@ -159,36 +168,32 @@ void UScopedMessageSubsystem::BroadcastMessageInternal(
 	}
 
 	FScopeChannelMap* ScopeMap = RoutingTable.Find(ScopeId);
-	if (!ScopeMap)
+	if (ScopeMap)
 	{
-		return;
-	}
-
-	FListenerList* ListenerList = ScopeMap->ChannelMap.Find(Channel);
-	if (!ListenerList)
-	{
-		return;
-	}
-
-	TArray<FScopedMessageListenerData> ListenersCopy = ListenerList->Listeners;
-	for (FScopedMessageListenerData& Listener : ListenersCopy)
-	{
-		if (!Listener.Owner.IsValid())
+		FListenerList* ListenerList = ScopeMap->ChannelMap.Find(Channel);
+		if (ListenerList)
 		{
-			continue;
-		}
+			TArray<FScopedMessageListenerData> ListenersCopy = ListenerList->Listeners;
+			for (FScopedMessageListenerData& Listener : ListenersCopy)
+			{
+				if (!Listener.Owner.IsValid())
+				{
+					continue;
+				}
 
-		if (Listener.PayloadType.IsValid() && Listener.PayloadType.Get() != PayloadType)
-		{
-			UE_LOG(LogScopedMessageSubsystem, Warning,
-				TEXT("Payload type mismatch for channel %s: expected %s, got %s"),
-				*Channel.ToString(),
-				*GetNameSafe(Listener.PayloadType.Get()),
-				*GetNameSafe(PayloadType));
-			continue;
-		}
+				if (Listener.PayloadType.IsValid() && Listener.PayloadType.Get() != PayloadType)
+				{
+					UE_LOG(LogScopedMessageSubsystem, Warning,
+						TEXT("Payload type mismatch for channel %s: expected %s, got %s"),
+						*Channel.ToString(),
+						*GetNameSafe(Listener.PayloadType.Get()),
+						*GetNameSafe(PayloadType));
+					continue;
+				}
 
-		Listener.Callback(Channel, PayloadType, PayloadBytes);
+				Listener.Callback(Channel, PayloadType, PayloadBytes);
+			}
+		}
 	}
 
 	if (Replication != EScopedMessageReplication::LocalOnly)
@@ -197,7 +202,21 @@ void UScopedMessageSubsystem::BroadcastMessageInternal(
 		FMemoryWriter Writer(PayloadBuffer);
 		const_cast<UScriptStruct*>(PayloadType)->SerializeItem(Writer, const_cast<void*>(PayloadBytes), nullptr);
 
-		NetMulticast_BroadcastMessage(Channel, ScopeId.GetTagName(), PayloadType, PayloadBuffer);
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			if (AGameStateBase* GameState = World->GetGameState())
+			{
+				if (UScopedMessageReplicatorComponent* Replicator = GameState->FindComponentByClass<UScopedMessageReplicatorComponent>())
+				{
+					Replicator->NetMulticast_BroadcastMessage(Channel, ScopeId.GetTagName(), PayloadType, PayloadBuffer);
+				}
+				else
+				{
+					UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("BroadcastMessageInternal: Replicator component not found on GameState. Message not replicated."));
+				}
+			}
+		}
 	}
 }
 
@@ -305,7 +324,7 @@ void UScopedMessageSubsystem::CleanupInvalidListeners(FGameplayTag ScopeId, FGam
 	}
 }
 
-void UScopedMessageSubsystem::NetMulticast_BroadcastMessage_Implementation(
+void UScopedMessageSubsystem::HandleReplicatedMessage(
 	FGameplayTag Channel,
 	FName ScopeIdName,
 	const UScriptStruct* PayloadType,
@@ -334,34 +353,53 @@ void UScopedMessageSubsystem::NetMulticast_BroadcastMessage_Implementation(
 	FMemory::Free(PayloadData);
 }
 
-void UScopedMessageSubsystem::execK2_BroadcastMessage(UObject* Context, FFrame& Stack, void* const Z_Param__Result)
+void UScopedMessageSubsystem::K2_BroadcastMessage(
+	FGameplayTag Channel,
+	const FInstancedStruct& Message,
+	UObject* ScopeContext,
+	EScopedMessageReplication Replication)
 {
-	P_GET_STRUCT(FGameplayTag, Channel);
-
-	Stack.MostRecentPropertyAddress = nullptr;
-	Stack.MostRecentPropertyContainer = nullptr;
-	Stack.StepCompiledIn<FStructProperty>(nullptr);
-
-	void* MessagePtr = Stack.MostRecentPropertyAddress;
-	FStructProperty* StructProp = CastField<FStructProperty>(Stack.MostRecentProperty);
-
-	P_GET_OBJECT(UObject, ScopeContext);
-	P_GET_ENUM(EScopedMessageReplication, Replication);
-
-	P_FINISH;
-
-	if (!StructProp || !MessagePtr)
+	if (!Message.IsValid())
 	{
-		UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("K2_BroadcastMessage: invalid message struct"));
+		UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("K2_BroadcastMessage: Message is invalid"));
 		return;
 	}
 
-	UScopedMessageSubsystem* Subsystem = Cast<UScopedMessageSubsystem>(Context);
-	if (!Subsystem)
-	{
-		return;
-	}
+	const UScriptStruct* PayloadType = Message.GetScriptStruct();
+	const void* PayloadBytes = Message.GetMemory();
+	BroadcastMessageInternal(Channel, PayloadType, PayloadBytes, ResolveScopeId(ScopeContext), Replication);
+}
 
-	const UScriptStruct* PayloadType = StructProp->Struct;
-	Subsystem->BroadcastMessageInternal(Channel, PayloadType, MessagePtr, Subsystem->ResolveScopeId(ScopeContext), Replication);
+void UScopedMessageSubsystem::OnWorldInitialized(UWorld* World, const UWorld::InitializationValues IValues)
+{
+	if (World)
+	{
+		World->AddOnActorSpawnedHandler(FOnActorSpawned::FDelegate::CreateUObject(this, &UScopedMessageSubsystem::OnActorSpawned));
+
+		if (AGameStateBase* GameState = World->GetGameState())
+		{
+			CreateReplicatorOnGameState(GameState);
+		}
+	}
+}
+
+void UScopedMessageSubsystem::OnActorSpawned(AActor* SpawnedActor)
+{
+	if (AGameStateBase* GameState = Cast<AGameStateBase>(SpawnedActor))
+	{
+		CreateReplicatorOnGameState(GameState);
+	}
+}
+
+void UScopedMessageSubsystem::CreateReplicatorOnGameState(AGameStateBase* GameState)
+{
+	if (GameState && GameState->HasAuthority())
+	{
+		if (!GameState->FindComponentByClass<UScopedMessageReplicatorComponent>())
+		{
+			UScopedMessageReplicatorComponent* Comp = NewObject<UScopedMessageReplicatorComponent>(GameState, TEXT("ScopedMessageReplicator"));
+			Comp->SetIsReplicated(true);
+			Comp->RegisterComponent();
+		}
+	}
 }
