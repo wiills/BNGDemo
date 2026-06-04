@@ -384,7 +384,7 @@ void UScopedMessageSubsystem::HandleReplicatedMessage(
 void UScopedMessageSubsystem::K2_BroadcastMessage(
 	const UObject* WorldContextObject,
 	FGameplayTag Channel,
-	const FInstancedStruct& Message,
+	const FInstancedStruct& Payload,
 	EScopedMessageReplication Replication)
 {
 	if (!WorldContextObject)
@@ -393,17 +393,17 @@ void UScopedMessageSubsystem::K2_BroadcastMessage(
 		return;
 	}
 
-	if (!Message.IsValid())
+	if (!Payload.IsValid())
 	{
-		UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("[%s] K2_BroadcastMessage: Message is invalid"), *GetNetModePrefix(WorldContextObject));
+		UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("[%s] K2_BroadcastMessage: Payload is invalid"), *GetNetModePrefix(WorldContextObject));
 		return;
 	}
 
 	if (HasInstance(WorldContextObject))
 	{
 		UScopedMessageSubsystem& Subsystem = Get(WorldContextObject);
-		const UScriptStruct* PayloadType = Message.GetScriptStruct();
-		const void* PayloadBytes = Message.GetMemory();
+		const UScriptStruct* PayloadType = Payload.GetScriptStruct();
+		const void* PayloadBytes = Payload.GetMemory();
 		Subsystem.BroadcastMessageInternal(Channel, PayloadType, PayloadBytes, Subsystem.ResolveScopeId(const_cast<UObject*>(WorldContextObject)), Replication);
 	}
 }

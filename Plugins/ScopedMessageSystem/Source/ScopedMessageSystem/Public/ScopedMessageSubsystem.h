@@ -39,18 +39,18 @@ public:
 	 *
 	 * @param WorldContextObject The object used to determine the world context and resolve the scope boundary.
 	 * @param Channel            The message tag channel.
-	 * @param Message            The payload data struct.
+	 * @param Payload            The payload data struct.
 	 * @param Replication        Network replication rules (local, all clients, or scope-specific clients).
 	 */
 	template <typename FMessageStruct>
 	void BroadcastMessage(
 		const UObject* WorldContextObject,
 		FGameplayTag Channel,
-		const FMessageStruct& Message,
+		const FMessageStruct& Payload,
 		EScopedMessageReplication Replication = EScopedMessageReplication::LocalOnly)
 	{
 		const UScriptStruct* StructType = TBaseStructure<FMessageStruct>::Get();
-		BroadcastMessageInternal(Channel, StructType, &Message, ResolveScopeId(const_cast<UObject*>(WorldContextObject)), Replication);
+		BroadcastMessageInternal(Channel, StructType, &Payload, ResolveScopeId(const_cast<UObject*>(WorldContextObject)), Replication);
 	}
 
 	/**
@@ -114,7 +114,7 @@ public:
 	 *
 	 * @param WorldContextObject The object used to determine the world context and resolve the scope boundary.
 	 * @param Channel            The message tag channel.
-	 * @param Message            The payload wildcard struct.
+	 * @param Payload            The payload wildcard struct.
 	 * @param Replication        Replication strategy.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Scoped Message", DisplayName = "Broadcast Scoped Message",
@@ -122,7 +122,7 @@ public:
 	static void K2_BroadcastMessage(
 		const UObject* WorldContextObject,
 		FGameplayTag Channel,
-		const FInstancedStruct& Message,
+		const FInstancedStruct& Payload,
 		EScopedMessageReplication Replication = EScopedMessageReplication::LocalOnly);
 
 	/** Handles RPC distribution from the GameState replicator component on clients. */
