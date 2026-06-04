@@ -341,16 +341,14 @@ void UScopedMessageSubsystem::HandleReplicatedMessage(
 		ScopeId = UGameplayTagsManager::Get().AddNativeGameplayTag(ScopeIdName);
 	}
 
+	FInstancedStruct Message;
+	Message.InitializeAs(PayloadType);
+
 	FMemoryReader Reader(PayloadBytes);
 	UScriptStruct* NonConstPayloadType = const_cast<UScriptStruct*>(PayloadType);
-	uint8* PayloadData = static_cast<uint8*>(FMemory::Malloc(NonConstPayloadType->GetStructureSize()));
-	NonConstPayloadType->InitializeStruct(PayloadData);
-	NonConstPayloadType->SerializeItem(Reader, PayloadData, nullptr);
+	NonConstPayloadType->SerializeItem(Reader, Message.GetMutableMemory(), nullptr);
 
-	BroadcastMessageInternal(Channel, NonConstPayloadType, PayloadData, ScopeId, EScopedMessageReplication::LocalOnly);
-
-	NonConstPayloadType->DestroyStruct(PayloadData);
-	FMemory::Free(PayloadData);
+	BroadcastMessageInternal(Channel, NonConstPayloadType, Message.GetMemory(), ScopeId, EScopedMessageReplication::LocalOnly);
 }
 
 void UScopedMessageSubsystem::K2_BroadcastMessage(

@@ -19,6 +19,8 @@ class SCOPEDMESSAGESYSTEM_API UScopedMessageSubsystem : public UGameInstanceSubs
 {
 	GENERATED_BODY()
 
+	friend class UAsyncAction_ListenForScopedMessage;
+
 public:
 	/** Retrieves the Scoped Message Subsystem instance from a world context object. */
 	static UScopedMessageSubsystem& Get(const UObject* WorldContextObject);

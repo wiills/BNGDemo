@@ -33,6 +33,9 @@ public:
 
 	bool IsValid() const { return HandleID != 0; }
 
+	FGameplayTag GetScopeId() const { return ScopeId; }
+	FGameplayTag GetChannel() const { return Channel; }
+
 private:
 	friend class UScopedMessageSubsystem;
 
