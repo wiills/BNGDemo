@@ -44,9 +44,10 @@ MessageData.MessageText = TEXT("Gate Opened");
 
 UScopedMessageSubsystem& Subsystem = UScopedMessageSubsystem::Get(GetWorld());
 Subsystem.BroadcastMessage(
+    this, // WorldContextObject (acts as default scope context if ScopeContext is null)
     FGameplayTag::RequestGameplayTag("Event.DoorState"),
     MessageData,
-    this, // Will resolve ScopeId to "Scope.Zone.Alpha"
+    this, // Optional specific ScopeContext
     EScopedMessageReplication::ServerToAllClients
 );
 ```

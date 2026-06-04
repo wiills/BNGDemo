@@ -17,18 +17,16 @@ void AScopedMessageTestBroadcaster::BroadcastTestMessage()
 		return;
 	}
 
-	UObject* Context = ScopeContext ? ScopeContext : this;
-
 	FScopedMessageTestPayload Payload;
 	Payload.Message = MessageText;
 	Payload.Counter = ++BroadcastCounter;
 	Payload.Location = GetActorLocation();
 
 	UScopedMessageSubsystem& Subsystem = UScopedMessageSubsystem::Get(this);
-	Subsystem.BroadcastMessage(Channel, Payload, Context, Replication);
+	Subsystem.BroadcastMessage(this, Channel, Payload, ScopeContext, Replication);
 
 	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("Broadcaster %s: Sent [%s] Counter=%d Scope=%s"),
-		*GetName(), *Payload.Message, Payload.Counter, *Subsystem.ResolveScopeId(Context).ToString());
+		*GetName(), *Payload.Message, Payload.Counter, *Subsystem.ResolveScopeId(ScopeContext ? ScopeContext : this).ToString());
 }
 
 void AScopedMessageTestBroadcaster::StartAutoBroadcast(float Interval)

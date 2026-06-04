@@ -352,6 +352,7 @@ void UScopedMessageSubsystem::HandleReplicatedMessage(
 }
 
 void UScopedMessageSubsystem::K2_BroadcastMessage(
+	const UObject* WorldContextObject,
 	FGameplayTag Channel,
 	const FInstancedStruct& Message,
 	UObject* ScopeContext,
@@ -365,7 +366,8 @@ void UScopedMessageSubsystem::K2_BroadcastMessage(
 
 	const UScriptStruct* PayloadType = Message.GetScriptStruct();
 	const void* PayloadBytes = Message.GetMemory();
-	BroadcastMessageInternal(Channel, PayloadType, PayloadBytes, ResolveScopeId(ScopeContext), Replication);
+	UObject* ResolvedScopeContext = ScopeContext ? ScopeContext : const_cast<UObject*>(WorldContextObject);
+	BroadcastMessageInternal(Channel, PayloadType, PayloadBytes, ResolveScopeId(ResolvedScopeContext), Replication);
 }
 
 void UScopedMessageSubsystem::OnWorldInitialized(UWorld* World, const UWorld::InitializationValues IValues)

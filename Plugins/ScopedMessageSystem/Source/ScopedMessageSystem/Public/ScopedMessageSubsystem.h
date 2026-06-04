@@ -41,13 +41,15 @@ public:
 	 */
 	template <typename FMessageStruct>
 	void BroadcastMessage(
+		const UObject* WorldContextObject,
 		FGameplayTag Channel,
 		const FMessageStruct& Message,
 		UObject* ScopeContext = nullptr,
 		EScopedMessageReplication Replication = EScopedMessageReplication::LocalOnly)
 	{
 		const UScriptStruct* StructType = TBaseStructure<FMessageStruct>::Get();
-		BroadcastMessageInternal(Channel, StructType, &Message, ResolveScopeId(ScopeContext), Replication);
+		UObject* ResolvedScopeContext = ScopeContext ? ScopeContext : const_cast<UObject*>(WorldContextObject);
+		BroadcastMessageInternal(Channel, StructType, &Message, ResolveScopeId(ResolvedScopeContext), Replication);
 	}
 
 	/**
@@ -94,6 +96,7 @@ public:
 		EScopedMessageMatch MatchType = EScopedMessageMatch::ExactMatch)
 	{
 		TWeakObjectPtr<TOwner> WeakObject(Object);
+		UObject* ResolvedScopeContext = ScopeContext ? ScopeContext : Object;
 		return Subscribe<FMessageStruct>(Channel,
 			[WeakObject, Function](FGameplayTag Channel, const FMessageStruct& Payload)
 			{
@@ -102,7 +105,7 @@ public:
 					(StrongObject->*Function)(Channel, Payload);
 				}
 			},
-			ScopeContext,
+			ResolvedScopeContext,
 			MatchType);
 	}
 
@@ -118,8 +121,9 @@ public:
 	 * @param Replication   Replication strategy.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Scoped Message", DisplayName = "Broadcast Scoped Message",
-		meta = (DefaultToSelf = "ScopeContext"))
+		meta = (WorldContext = "WorldContextObject", DefaultToSelf = "ScopeContext"))
 	void K2_BroadcastMessage(
+		const UObject* WorldContextObject,
 		FGameplayTag Channel,
 		const FInstancedStruct& Message,
 		UObject* ScopeContext = nullptr,

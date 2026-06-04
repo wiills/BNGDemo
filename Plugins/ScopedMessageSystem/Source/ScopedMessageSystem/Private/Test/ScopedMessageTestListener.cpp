@@ -31,18 +31,16 @@ void AScopedMessageTestListener::SubscribeToChannel()
 		return;
 	}
 
-	UObject* Context = ScopeContext ? ScopeContext : this;
-
 	UScopedMessageSubsystem& Subsystem = UScopedMessageSubsystem::Get(this);
 	ListenerHandle = Subsystem.Subscribe<FScopedMessageTestPayload>(
 		Channel,
 		this,
 		&AScopedMessageTestListener::OnMessageReceived,
-		Context,
+		ScopeContext,
 		MatchType);
 
 	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("Listener %s: Subscribed to channel %s Scope=%s"),
-		*GetName(), *Channel.ToString(), *Subsystem.ResolveScopeId(Context).ToString());
+		*GetName(), *Channel.ToString(), *Subsystem.ResolveScopeId(ScopeContext ? ScopeContext : this).ToString());
 }
 
 void AScopedMessageTestListener::UnsubscribeFromChannel()
