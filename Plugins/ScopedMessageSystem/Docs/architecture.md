@@ -69,3 +69,21 @@ sequenceDiagram
     C_Subsystem->>C_Subsystem: Register tag & Deserializes Payload (FInstancedStruct)
     C_Subsystem->>C_Subsystem: Dispatch locally
 ```
+
+---
+
+## 4. Comparison with GameplayMessageRouter
+
+The following table contrasts the Scoped Message System with Epic Games' native `GameplayMessageRouter` plugin:
+
+| Feature / Dimension | GameplayMessageRouter (Native) | Scoped Message System (SMS) |
+| :--- | :--- | :--- |
+| **Routing Map** | Single-level: `Channel -> Listeners` | Dual-level: `ScopeId -> Channel -> Listeners` |
+| **Isolation** | None (Global broadcasts only; causes crosstalk) | Isolated within local scopes (Global fallback if `ScopeId` is empty) |
+| **Scope Resolving** | Not supported | Interface-driven (`IScopeContextProvider`) with $O(1)$ hierarchical automatic resolution |
+| **Networking** | No built-in replication (Requires custom replication layer) | Built-in replication strategies (`LocalOnly`, `ServerToAllClients`, `ServerToScopedClients`) |
+| **Net Relevancy Safety** | N/A | High (Replicator attached to `GameState` ensuring `bAlwaysRelevant` distribution) |
+| **Dynamic Tag Safety** | N/A | High (Dynamic tags sent via `FName` instead of `FGameplayTag` network indices to prevent mismatch crashes) |
+| **Memory Management** | Template type arguments / Raw memory operations | Modern C++ RAII using `FInstancedStruct` (StructUtils) for type safety and automatic alignment |
+| **Blueprint Usability** | Custom compiler `K2Node` (requires separate uncooked/editor module) | Standard async node with `DefaultToSelf` and `FInstancedStruct` outputs (pure runtime, no editor modules required) |
+
