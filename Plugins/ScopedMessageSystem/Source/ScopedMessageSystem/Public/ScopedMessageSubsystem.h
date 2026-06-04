@@ -28,44 +28,45 @@ public:
 	/** Returns true if the Scoped Message Subsystem instance is currently valid and active. */
 	static bool HasInstance(const UObject* WorldContextObject);
 
+	/** Returns string prefix matching current net mode: "Client", "Server", or "Standalone". */
+	static FString GetNetModePrefix(const UObject* WorldContextObject);
+
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
 	/**
 	 * Broadcasts a typed message struct on the specified channel.
 	 *
-	 * @param Channel       The message tag channel.
-	 * @param Message       The payload data struct.
-	 * @param ScopeContext  Optional scope boundary object; defaults to global (EmptyTag) if null or not a scope.
-	 * @param Replication   Network replication rules (local, all clients, or scope-specific clients).
+	 * @param WorldContextObject The object used to determine the world context and resolve the scope boundary.
+	 * @param Channel            The message tag channel.
+	 * @param Message            The payload data struct.
+	 * @param Replication        Network replication rules (local, all clients, or scope-specific clients).
 	 */
 	template <typename FMessageStruct>
 	void BroadcastMessage(
 		const UObject* WorldContextObject,
 		FGameplayTag Channel,
 		const FMessageStruct& Message,
-		UObject* ScopeContext = nullptr,
 		EScopedMessageReplication Replication = EScopedMessageReplication::LocalOnly)
 	{
 		const UScriptStruct* StructType = TBaseStructure<FMessageStruct>::Get();
-		UObject* ResolvedScopeContext = ScopeContext ? ScopeContext : const_cast<UObject*>(WorldContextObject);
-		BroadcastMessageInternal(Channel, StructType, &Message, ResolveScopeId(ResolvedScopeContext), Replication);
+		BroadcastMessageInternal(Channel, StructType, &Message, ResolveScopeId(const_cast<UObject*>(WorldContextObject)), Replication);
 	}
 
 	/**
 	 * Subscribes a lambda callback to a message channel.
 	 *
+	 * @param Object        The subscribing object context defining the scope boundary and managing callback lifetime.
 	 * @param Channel       The message channel to subscribe to.
 	 * @param Callback      The lambda function to trigger when messages are received.
-	 * @param ScopeContext  The scope context object defining the scope boundary.
 	 * @param MatchType     Exact match or partial match (including sub-categories of gameplay tags).
 	 * @return A handle representing the subscription, which can be unregistered.
 	 */
 	template <typename FMessageStruct>
 	FScopedMessageListenerHandle Subscribe(
+		UObject* Object,
 		FGameplayTag Channel,
 		TFunction<void(FGameplayTag, const FMessageStruct&)> Callback,
-		UObject* ScopeContext = nullptr,
 		EScopedMessageMatch MatchType = EScopedMessageMatch::ExactMatch)
 	{
 		auto ThunkCallback = [InnerCallback = MoveTemp(Callback)](FGameplayTag ActualTag, const UScriptStruct* SenderStructType, const void* SenderPayload)
@@ -74,16 +75,15 @@ public:
 		};
 
 		const UScriptStruct* StructType = TBaseStructure<FMessageStruct>::Get();
-		return SubscribeInternal(Channel, MoveTemp(ThunkCallback), StructType, ResolveScopeId(ScopeContext), MatchType, nullptr);
+		return SubscribeInternal(Channel, MoveTemp(ThunkCallback), StructType, ResolveScopeId(Object), MatchType, Object);
 	}
 
 	/**
 	 * Subscribes a member function callback to a message channel with automatic weak reference safety.
 	 *
 	 * @param Channel       The message channel to subscribe to.
-	 * @param Object        The owner object instance.
+	 * @param Object        The owner object instance defining the scope boundary and callback lifetime.
 	 * @param Function      The member function pointer.
-	 * @param ScopeContext  The scope context object defining the scope boundary.
 	 * @param MatchType     Exact match or partial match (including sub-categories of gameplay tags).
 	 * @return A handle representing the subscription.
 	 */
@@ -92,12 +92,10 @@ public:
 		FGameplayTag Channel,
 		TOwner* Object,
 		void (TOwner::*Function)(FGameplayTag, const FMessageStruct&),
-		UObject* ScopeContext = nullptr,
 		EScopedMessageMatch MatchType = EScopedMessageMatch::ExactMatch)
 	{
 		TWeakObjectPtr<TOwner> WeakObject(Object);
-		UObject* ResolvedScopeContext = ScopeContext ? ScopeContext : Object;
-		return Subscribe<FMessageStruct>(Channel,
+		return Subscribe<FMessageStruct>(Object, Channel,
 			[WeakObject, Function](FGameplayTag Channel, const FMessageStruct& Payload)
 			{
 				if (TOwner* StrongObject = WeakObject.Get())
@@ -105,7 +103,6 @@ public:
 					(StrongObject->*Function)(Channel, Payload);
 				}
 			},
-			ResolvedScopeContext,
 			MatchType);
 	}
 
@@ -115,18 +112,17 @@ public:
 	/**
 	 * Blueprint exposed broadcast function using FInstancedStruct for clean wildcard input.
 	 *
-	 * @param Channel       The message tag channel.
-	 * @param Message       The payload wildcard struct.
-	 * @param ScopeContext  Optional scope boundary object.
-	 * @param Replication   Replication strategy.
+	 * @param WorldContextObject The object used to determine the world context and resolve the scope boundary.
+	 * @param Channel            The message tag channel.
+	 * @param Message            The payload wildcard struct.
+	 * @param Replication        Replication strategy.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Scoped Message", DisplayName = "Broadcast Scoped Message",
-		meta = (WorldContext = "WorldContextObject", DefaultToSelf = "ScopeContext"))
+		meta = (WorldContext = "WorldContextObject"))
 	static void K2_BroadcastMessage(
 		const UObject* WorldContextObject,
 		FGameplayTag Channel,
 		const FInstancedStruct& Message,
-		UObject* ScopeContext = nullptr,
 		EScopedMessageReplication Replication = EScopedMessageReplication::LocalOnly);
 
 	/** Handles RPC distribution from the GameState replicator component on clients. */

@@ -7,7 +7,7 @@ A lightweight, interface-driven, network-replicated local message routing system
 ## Key Features
 
 - **Scoped Isolation**: Messages are routed based on a combination of a channel tag and a scope context tag (`ScopeId`).
-- **Zero-Code Context**: In Blueprints, the `ScopeContext` parameter is automatically wired to `Self`. The subsystem resolves the scope tag dynamically by crawling the caller's hierarchy.
+- **Zero-Code Context**: Zero configuration required. The subsystem resolves the scope tag dynamically by crawling the caller's or listener's hierarchy (the `WorldContextObject` or subscribing `Object` context).
 - **Robust Network Replication**: Replicates message payloads from Server to Clients through a dynamically spawned component on the `GameState`, bypassing Net Relevancy issues.
 - **Memory Safety (RAII)**: Built around `FInstancedStruct` (from the StructUtils plugin) for payload transmission. Eliminates custom thunks, raw memory allocators, and pointer casting.
 - **Auto-Generated Tags**: Seamlessly creates unique dynamic tags for scope providers that do not supply a static tag.
@@ -42,18 +42,17 @@ public:
 FMyPayload MessageData;
 MessageData.MessageText = TEXT("Gate Opened");
 
-UScopedMessageSubsystem& Subsystem = UScopedMessageSubsystem::Get(GetWorld());
+UScopedMessageSubsystem& Subsystem = UScopedMessageSubsystem::Get(this);
 Subsystem.BroadcastMessage(
-    this, // WorldContextObject (acts as default scope context if ScopeContext is null)
+    this, // WorldContextObject (resolves scope context automatically)
     FGameplayTag::RequestGameplayTag("Event.DoorState"),
     MessageData,
-    this, // Optional specific ScopeContext
     EScopedMessageReplication::ServerToAllClients
 );
 ```
 
 #### In Blueprints
-Place the **Broadcast Scoped Message** node. The `Scope Context` pin is hidden by default and automatically bound to `Self`.
+Place the **Broadcast Scoped Message** node. It automatically uses the executing context (`Self` / `WorldContextObject`) to resolve the scope.
 
 ---
 
@@ -61,12 +60,11 @@ Place the **Broadcast Scoped Message** node. The `Scope Context` pin is hidden b
 
 #### In C++
 ```cpp
-UScopedMessageSubsystem& Subsystem = UScopedMessageSubsystem::Get(GetWorld());
+UScopedMessageSubsystem& Subsystem = UScopedMessageSubsystem::Get(this);
 FScopedMessageListenerHandle Handle = Subsystem.Subscribe<FMyPayload>(
     FGameplayTag::RequestGameplayTag("Event.DoorState"),
     this,
-    &AMyActor::OnDoorStateChanged,
-    this // Auto-resolves ScopeId
+    &AMyActor::OnDoorStateChanged
 );
 
 // Unregister when done
@@ -74,7 +72,7 @@ Handle.Unregister();
 ```
 
 #### In Blueprints
-Use the **Listen for Scoped Messages** async node. The `Scope Context` pin is automatically bound to `Self`, and the `Payload` is returned as a wild-card `FInstancedStruct` that you can break using standard Unreal Engine nodes.
+Use the **Listen for Scoped Messages** async node. The node automatically resolves the scope context using the `World Context Object` (`Self`), and the `Payload` is returned as a wild-card `FInstancedStruct` that you can break using standard Unreal Engine nodes.
 
 ---
 
@@ -96,5 +94,4 @@ Use the **Listen for Scoped Messages** async node. The `Scope Context` pin is au
 | **Net Relevancy Safety** | N/A | High (Replicator attached to `GameState` ensuring `bAlwaysRelevant` distribution) |
 | **Dynamic Tag Safety** | N/A | High (Dynamic tags sent via `FName` instead of `FGameplayTag` network indices to prevent mismatch crashes) |
 | **Memory Management** | Template type arguments / Raw memory operations | Modern C++ RAII using `FInstancedStruct` (StructUtils) for type safety and automatic alignment |
-| **Blueprint Usability** | Custom compiler `K2Node` (requires separate uncooked/editor module) | Standard async node with `DefaultToSelf` and `FInstancedStruct` outputs (pure runtime, no editor modules required) |
-
+| **Blueprint Usability** | Custom compiler `K2Node` (requires separate uncooked/editor module) | Standard async node with `WorldContext` and `FInstancedStruct` outputs (pure runtime, no editor modules required) |

@@ -24,6 +24,27 @@ bool UScopedMessageSubsystem::HasInstance(const UObject* WorldContextObject)
 	return GameInstance && GameInstance->GetSubsystem<UScopedMessageSubsystem>() != nullptr;
 }
 
+FString UScopedMessageSubsystem::GetNetModePrefix(const UObject* WorldContextObject)
+{
+	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull))
+	{
+		const ENetMode NetMode = World->GetNetMode();
+		switch (NetMode)
+		{
+		case NM_Client:
+			return TEXT("Client");
+		case NM_DedicatedServer:
+		case NM_ListenServer:
+			return TEXT("Server");
+		case NM_Standalone:
+			return TEXT("Standalone");
+		default:
+			break;
+		}
+	}
+	return TEXT("Unknown");
+}
+
 void UScopedMessageSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
@@ -157,15 +178,18 @@ void UScopedMessageSubsystem::BroadcastMessageInternal(
 {
 	if (!Channel.IsValid())
 	{
-		UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("BroadcastMessageInternal called with invalid Channel"));
+		UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("[%s] BroadcastMessageInternal called with invalid Channel"), *GetNetModePrefix(this));
 		return;
 	}
 
 	if (!PayloadType || !PayloadBytes)
 	{
-		UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("BroadcastMessageInternal called with null PayloadType or PayloadBytes"));
+		UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("[%s] BroadcastMessageInternal called with null PayloadType or PayloadBytes"), *GetNetModePrefix(this));
 		return;
 	}
+
+	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] Subsystem: Broadcasting message on channel %s, Scope=%s, Replication=%d"),
+		*GetNetModePrefix(this), *Channel.ToString(), *ScopeId.ToString(), (int32)Replication);
 
 	FScopeChannelMap* ScopeMap = RoutingTable.Find(ScopeId);
 	if (ScopeMap)
@@ -184,13 +208,16 @@ void UScopedMessageSubsystem::BroadcastMessageInternal(
 				if (Listener.PayloadType.IsValid() && Listener.PayloadType.Get() != PayloadType)
 				{
 					UE_LOG(LogScopedMessageSubsystem, Warning,
-						TEXT("Payload type mismatch for channel %s: expected %s, got %s"),
+						TEXT("[%s] Payload type mismatch for channel %s: expected %s, got %s"),
+						*GetNetModePrefix(this),
 						*Channel.ToString(),
 						*GetNameSafe(Listener.PayloadType.Get()),
 						*GetNameSafe(PayloadType));
 					continue;
 				}
 
+				UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] Subsystem: Routing message on channel %s to listener %s (Scope=%s)"),
+					*GetNetModePrefix(this), *Channel.ToString(), *GetNameSafe(Listener.Owner.Get()), *ScopeId.ToString());
 				Listener.Callback(Channel, PayloadType, PayloadBytes);
 			}
 		}
@@ -341,6 +368,9 @@ void UScopedMessageSubsystem::HandleReplicatedMessage(
 		ScopeId = UGameplayTagsManager::Get().AddNativeGameplayTag(ScopeIdName);
 	}
 
+	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] Subsystem: Received replicated message on channel %s, Scope=%s"),
+		*GetNetModePrefix(this), *Channel.ToString(), *ScopeId.ToString());
+
 	FInstancedStruct Message;
 	Message.InitializeAs(PayloadType);
 
@@ -355,18 +385,17 @@ void UScopedMessageSubsystem::K2_BroadcastMessage(
 	const UObject* WorldContextObject,
 	FGameplayTag Channel,
 	const FInstancedStruct& Message,
-	UObject* ScopeContext,
 	EScopedMessageReplication Replication)
 {
 	if (!WorldContextObject)
 	{
-		UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("K2_BroadcastMessage called with null WorldContextObject"));
+		UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("[Unknown] K2_BroadcastMessage called with null WorldContextObject"));
 		return;
 	}
 
 	if (!Message.IsValid())
 	{
-		UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("K2_BroadcastMessage: Message is invalid"));
+		UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("[%s] K2_BroadcastMessage: Message is invalid"), *GetNetModePrefix(WorldContextObject));
 		return;
 	}
 
@@ -375,8 +404,7 @@ void UScopedMessageSubsystem::K2_BroadcastMessage(
 		UScopedMessageSubsystem& Subsystem = Get(WorldContextObject);
 		const UScriptStruct* PayloadType = Message.GetScriptStruct();
 		const void* PayloadBytes = Message.GetMemory();
-		UObject* ResolvedScopeContext = ScopeContext ? ScopeContext : const_cast<UObject*>(WorldContextObject);
-		Subsystem.BroadcastMessageInternal(Channel, PayloadType, PayloadBytes, Subsystem.ResolveScopeId(ResolvedScopeContext), Replication);
+		Subsystem.BroadcastMessageInternal(Channel, PayloadType, PayloadBytes, Subsystem.ResolveScopeId(const_cast<UObject*>(WorldContextObject)), Replication);
 	}
 }
 

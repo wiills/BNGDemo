@@ -36,11 +36,10 @@ void AScopedMessageTestListener::SubscribeToChannel()
 		Channel,
 		this,
 		&AScopedMessageTestListener::OnMessageReceived,
-		ScopeContext,
 		MatchType);
 
-	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("Listener %s: Subscribed to channel %s Scope=%s"),
-		*GetName(), *Channel.ToString(), *Subsystem.ResolveScopeId(ScopeContext ? ScopeContext : this).ToString());
+	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] Listener %s: Subscribed to channel %s Scope=%s"),
+		*UScopedMessageSubsystem::GetNetModePrefix(this), *GetName(), *Channel.ToString(), *Subsystem.ResolveScopeId(this).ToString());
 }
 
 void AScopedMessageTestListener::UnsubscribeFromChannel()
@@ -48,7 +47,7 @@ void AScopedMessageTestListener::UnsubscribeFromChannel()
 	if (ListenerHandle.IsValid())
 	{
 		ListenerHandle.Unregister();
-		UE_LOG(LogScopedMessageSubsystem, Log, TEXT("Listener %s: Unsubscribed"), *GetName());
+		UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] Listener %s: Unsubscribed"), *UScopedMessageSubsystem::GetNetModePrefix(this), *GetName());
 	}
 }
 
@@ -57,8 +56,8 @@ void AScopedMessageTestListener::OnMessageReceived(FGameplayTag InChannel, const
 	ReceivedCount++;
 	LastReceivedMessage = Payload.Message;
 
-	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("Listener %s: Received [%s] Counter=%d Location=%s (total: %d)"),
-		*GetName(), *Payload.Message, Payload.Counter, *Payload.Location.ToString(), ReceivedCount);
+	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] Listener %s: Received [%s] Counter=%d Location=%s (total: %d)"),
+		*UScopedMessageSubsystem::GetNetModePrefix(this), *GetName(), *Payload.Message, Payload.Counter, *Payload.Location.ToString(), ReceivedCount);
 
 	BP_OnMessageReceived(Payload.Message, Payload.Counter, Payload.Location);
 }

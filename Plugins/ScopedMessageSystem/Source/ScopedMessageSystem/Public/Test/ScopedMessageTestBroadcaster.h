@@ -31,9 +31,6 @@ public:
 	FString MessageText = TEXT("Hello from Broadcaster");
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scoped Message Test")
-	UObject* ScopeContext = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scoped Message Test")
 	EScopedMessageReplication Replication = EScopedMessageReplication::LocalOnly;
 
 private:

@@ -23,10 +23,10 @@ void AScopedMessageTestBroadcaster::BroadcastTestMessage()
 	Payload.Location = GetActorLocation();
 
 	UScopedMessageSubsystem& Subsystem = UScopedMessageSubsystem::Get(this);
-	Subsystem.BroadcastMessage(this, Channel, Payload, ScopeContext, Replication);
+	Subsystem.BroadcastMessage(this, Channel, Payload, Replication);
 
-	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("Broadcaster %s: Sent [%s] Counter=%d Scope=%s"),
-		*GetName(), *Payload.Message, Payload.Counter, *Subsystem.ResolveScopeId(ScopeContext ? ScopeContext : this).ToString());
+	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] Broadcaster %s: Sent [%s] Counter=%d Scope=%s"),
+		*UScopedMessageSubsystem::GetNetModePrefix(this), *GetName(), *Payload.Message, Payload.Counter, *Subsystem.ResolveScopeId(this).ToString());
 }
 
 void AScopedMessageTestBroadcaster::StartAutoBroadcast(float Interval)

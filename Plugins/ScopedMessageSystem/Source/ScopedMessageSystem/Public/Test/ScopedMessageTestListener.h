@@ -31,9 +31,6 @@ public:
 	FGameplayTag Channel;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scoped Message Test")
-	UObject* ScopeContext = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scoped Message Test")
 	EScopedMessageMatch MatchType = EScopedMessageMatch::ExactMatch;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scoped Message Test")

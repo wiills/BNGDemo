@@ -29,18 +29,16 @@ public:
 	/**
 	 * Asynchronously waits for a scoped message to be broadcast on the specified channel.
 	 *
-	 * @param WorldContextObject  The world context object (automatically supplied).
+	 * @param WorldContextObject  The world context object (automatically supplied) and used to resolve the scope context.
 	 * @param Channel             The message channel to listen for.
 	 * @param PayloadType         The expected type of the message payload (optional; if left null, receives all payloads).
-	 * @param ScopeContext        The scope context object defining the scope boundary (defaults to Self/auto-wired context).
 	 * @param MatchType           The rule used for matching the channel with broadcasted messages.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Scoped Message", meta = (WorldContext = "WorldContextObject", DefaultToSelf = "ScopeContext", DisplayName = "Listen for Scoped Messages"))
+	UFUNCTION(BlueprintCallable, Category = "Scoped Message", meta = (WorldContext = "WorldContextObject", DisplayName = "Listen for Scoped Messages"))
 	static UAsyncAction_ListenForScopedMessage* ListenForScopedMessages(
 		UObject* WorldContextObject,
 		FGameplayTag Channel,
 		UScriptStruct* PayloadType = nullptr,
-		UObject* ScopeContext = nullptr,
 		EScopedMessageMatch MatchType = EScopedMessageMatch::ExactMatch);
 
 	virtual void Activate() override;
