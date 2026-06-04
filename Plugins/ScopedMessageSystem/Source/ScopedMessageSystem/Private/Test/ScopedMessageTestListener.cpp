@@ -1,4 +1,4 @@
-#include "ScopedMessageTestListener.h"
+#include "Test/ScopedMessageTestListener.h"
 #include "ScopedMessageSubsystem.h"
 
 AScopedMessageTestListener::AScopedMessageTestListener()

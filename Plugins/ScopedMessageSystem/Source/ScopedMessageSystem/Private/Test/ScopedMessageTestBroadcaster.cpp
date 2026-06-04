@@ -1,4 +1,4 @@
-#include "ScopedMessageTestBroadcaster.h"
+#include "Test/ScopedMessageTestBroadcaster.h"
 #include "ScopedMessageSubsystem.h"
 #include "Engine/World.h"
 #include "TimerManager.h"

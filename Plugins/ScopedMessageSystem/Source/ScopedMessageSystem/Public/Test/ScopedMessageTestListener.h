@@ -4,7 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "GameplayTagContainer.h"
 #include "ScopedMessageTypes.h"
-#include "ScopedMessageTestPayload.h"
+#include "Test/ScopedMessageTestPayload.h"
 #include "ScopedMessageTestListener.generated.h"
 
 UCLASS(BlueprintType, Blueprintable)

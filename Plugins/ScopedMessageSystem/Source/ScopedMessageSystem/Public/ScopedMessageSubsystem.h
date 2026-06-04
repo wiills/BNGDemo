@@ -8,17 +8,33 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogScopedMessageSubsystem, Log, All);
 
+/**
+ * GameInstance subsystem that manages routing and broadcasting of scoped messages.
+ * Uses logical scope identifiers (GameplayTags) to isolate messages within logical areas
+ * (e.g. camps, level instances, or specific gameplay objects).
+ */
 UCLASS(DisplayName = "Scoped Message Subsystem")
 class SCOPEDMESSAGESYSTEM_API UScopedMessageSubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 
 public:
+	/** Retrieves the Scoped Message Subsystem instance from a world context object. */
 	static UScopedMessageSubsystem& Get(const UObject* WorldContextObject);
+
+	/** Returns true if the Scoped Message Subsystem instance is currently valid and active. */
 	static bool HasInstance(const UObject* WorldContextObject);
 
 	virtual void Deinitialize() override;
 
+	/**
+	 * Broadcasts a typed message struct on the specified channel.
+	 *
+	 * @param Channel       The message tag channel.
+	 * @param Message       The payload data struct.
+	 * @param ScopeContext  Optional scope boundary object; defaults to global (EmptyTag) if null or not a scope.
+	 * @param Replication   Network replication rules (local, all clients, or scope-specific clients).
+	 */
 	template <typename FMessageStruct>
 	void BroadcastMessage(
 		FGameplayTag Channel,
@@ -30,6 +46,15 @@ public:
 		BroadcastMessageInternal(Channel, StructType, &Message, ResolveScopeId(ScopeContext), Replication);
 	}
 
+	/**
+	 * Subscribes a lambda callback to a message channel.
+	 *
+	 * @param Channel       The message channel to subscribe to.
+	 * @param Callback      The lambda function to trigger when messages are received.
+	 * @param ScopeContext  The scope context object defining the scope boundary.
+	 * @param MatchType     Exact match or partial match (including sub-categories of gameplay tags).
+	 * @return A handle representing the subscription, which can be unregistered.
+	 */
 	template <typename FMessageStruct>
 	FScopedMessageListenerHandle Subscribe(
 		FGameplayTag Channel,
@@ -46,6 +71,16 @@ public:
 		return SubscribeInternal(Channel, MoveTemp(ThunkCallback), StructType, ResolveScopeId(ScopeContext), MatchType, nullptr);
 	}
 
+	/**
+	 * Subscribes a member function callback to a message channel with automatic weak reference safety.
+	 *
+	 * @param Channel       The message channel to subscribe to.
+	 * @param Object        The owner object instance.
+	 * @param Function      The member function pointer.
+	 * @param ScopeContext  The scope context object defining the scope boundary.
+	 * @param MatchType     Exact match or partial match (including sub-categories of gameplay tags).
+	 * @return A handle representing the subscription.
+	 */
 	template <typename FMessageStruct, typename TOwner>
 	FScopedMessageListenerHandle Subscribe(
 		FGameplayTag Channel,
@@ -67,6 +102,7 @@ public:
 			MatchType);
 	}
 
+	/** Unsubscribes a listener using the provided handle. */
 	void Unsubscribe(FScopedMessageListenerHandle& Handle);
 
 	UFUNCTION(BlueprintCallable, CustomThunk, Category = "Scoped Message",
@@ -79,7 +115,22 @@ public:
 
 	DECLARE_FUNCTION(execK2_BroadcastMessage);
 
+	/**
+	 * Traverses the owner hierarchy of a given object to find a valid ScopeId.
+	 *
+	 * @param ScopeContext  The object to query.
+	 * @return The resolved FGameplayTag.
+	 */
 	FGameplayTag ResolveScopeId(UObject* ScopeContext) const;
+
+	/**
+	 * Retrieves an existing dynamic ScopeId, or generates and registers one
+	 * dynamically in the GameplayTagsManager if it does not already exist.
+	 *
+	 * @param ScopeObject   The provider object instance.
+	 * @return The unique dynamic FGameplayTag.
+	 */
+	FGameplayTag GetOrCreateDynamicScopeId(const UObject* ScopeObject);
 
 private:
 	void BroadcastMessageInternal(
@@ -104,7 +155,7 @@ private:
 	UFUNCTION(NetMulticast, Reliable)
 	void NetMulticast_BroadcastMessage(
 		FGameplayTag Channel,
-		FGameplayTag ScopeId,
+		FName ScopeIdName,
 		const UScriptStruct* PayloadType,
 		const TArray<uint8>& PayloadBytes);
 
@@ -120,4 +171,6 @@ private:
 	};
 
 	TMap<FGameplayTag, FScopeChannelMap> RoutingTable;
+
+	TMap<TWeakObjectPtr<UObject>, FGameplayTag> DynamicScopeMap;
 };
