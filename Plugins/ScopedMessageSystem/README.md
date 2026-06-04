@@ -81,3 +81,19 @@ Use the **Listen for Scoped Messages** async node. The `Scope Context` pin is au
 1. Clone this repository into your project's `Plugins/` folder.
 2. Enable the **StructUtils** engine plugin in your `.uproject`.
 3. Add `"ScopedMessageSystem"` to your game module's dependency list in `*.Build.cs`.
+
+---
+
+## Comparison with GameplayMessageRouter
+
+| Feature / Dimension | GameplayMessageRouter (Native) | Scoped Message System (SMS) |
+| :--- | :--- | :--- |
+| **Routing Map** | Single-level: `Channel -> Listeners` | Dual-level: `ScopeId -> Channel -> Listeners` |
+| **Isolation** | None (Global broadcasts only; causes crosstalk) | Isolated within local scopes (Global fallback if `ScopeId` is empty) |
+| **Scope Resolving** | Not supported | Interface-driven (`IScopeContextProvider`) with $O(1)$ hierarchical automatic resolution |
+| **Networking** | No built-in replication (Requires custom replication layer) | Built-in replication strategies (`LocalOnly`, `ServerToAllClients`, `ServerToScopedClients`) |
+| **Net Relevancy Safety** | N/A | High (Replicator attached to `GameState` ensuring `bAlwaysRelevant` distribution) |
+| **Dynamic Tag Safety** | N/A | High (Dynamic tags sent via `FName` instead of `FGameplayTag` network indices to prevent mismatch crashes) |
+| **Memory Management** | Template type arguments / Raw memory operations | Modern C++ RAII using `FInstancedStruct` (StructUtils) for type safety and automatic alignment |
+| **Blueprint Usability** | Custom compiler `K2Node` (requires separate uncooked/editor module) | Standard async node with `DefaultToSelf` and `FInstancedStruct` outputs (pure runtime, no editor modules required) |
+
