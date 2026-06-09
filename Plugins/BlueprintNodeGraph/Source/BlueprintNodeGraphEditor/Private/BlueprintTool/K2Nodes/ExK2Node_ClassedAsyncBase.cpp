@@ -7,6 +7,44 @@
 
 #define LOCTEXT_NAMESPACE "UExK2Node_ClassedAsyncBase"
 
+namespace ExK2NodeClassedAsyncBasePrivate
+{
+void GetIgnorePropertyList(const UClass* ProxyFactoryClass, FName ProxyFactoryFunctionName, TArray<FString>& OutIgnorePropertyList)
+{
+	const UFunction* ProxyFunction = ProxyFactoryClass ? ProxyFactoryClass->FindFunctionByName(ProxyFactoryFunctionName) : nullptr;
+	if (!ProxyFunction)
+	{
+		return;
+	}
+
+	const FString& IgnorePropertyListStr = ProxyFunction->GetMetaData(FName(TEXT("HideSpawnParms")));
+	if (!IgnorePropertyListStr.IsEmpty())
+	{
+		IgnorePropertyListStr.ParseIntoArray(OutIgnorePropertyList, TEXT(","), true);
+	}
+}
+
+bool IsExposedSpawnProperty(const FProperty* Property, const TArray<FString>& IgnorePropertyList)
+{
+	if (!Property)
+	{
+		return false;
+	}
+
+	const bool bIsDelegate = Property->IsA(FMulticastDelegateProperty::StaticClass());
+	const bool bIsExposedToSpawn = UEdGraphSchema_K2::IsPropertyExposedOnSpawn(Property);
+	const bool bIsSettableExternally = !Property->HasAnyPropertyFlags(CPF_DisableEditOnInstance);
+
+	return bIsExposedToSpawn &&
+		!Property->HasAnyPropertyFlags(CPF_Parm) &&
+		bIsSettableExternally &&
+		Property->HasAllPropertyFlags(CPF_BlueprintVisible) &&
+		!bIsDelegate &&
+		!IgnorePropertyList.Contains(Property->GetName()) &&
+		FBlueprintEditorUtils::PropertyStillExists(const_cast<FProperty*>(Property));
+}
+}
+
 UExK2Node_ClassedAsyncBase::UExK2Node_ClassedAsyncBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -63,6 +101,18 @@ void UExK2Node_ClassedAsyncBase::ReallocatePinsDuringReconstruction(TArray<UEdGr
 	RestoreSplitPins(OldPins);
 }
 
+void UExK2Node_ClassedAsyncBase::PostLoad()
+{
+	Super::PostLoad();
+	SynchronizePinsForCurrentClass(false, false);
+}
+
+void UExK2Node_ClassedAsyncBase::PostReconstructNode()
+{
+	Super::PostReconstructNode();
+	SynchronizePinsForCurrentClass(false, false);
+}
+
 UEdGraphPin* UExK2Node_ClassedAsyncBase::GetClassPin(const TArray<UEdGraphPin*>* InPinsToSearch /*= nullptr*/) const
 {
 	const TArray<UEdGraphPin*>* PinsToSearch = InPinsToSearch ? InPinsToSearch : &Pins;
@@ -115,49 +165,42 @@ void UExK2Node_ClassedAsyncBase::CreatePinsForClass(UClass* InClass)
 {
 	check(InClass != nullptr);
 
+	SpawnParamPins.Reset();
+	SynchronizePinsForClass(InClass);
+}
+
+bool UExK2Node_ClassedAsyncBase::SynchronizePinsForClass(UClass* InClass)
+{
+	if (!InClass)
+	{
+		return false;
+	}
+
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	const UObject* const ClassDefaultObject = InClass->GetDefaultObject(false);
 
-	SpawnParamPins.Reset();
+	bool bChanged = false;
 	bool bHasAdvancedPins = false;
-
 	TArray<FString> IgnorePropertyList;
-	{
-		const UFunction* ProxyFunction = ProxyFactoryClass->FindFunctionByName(ProxyFactoryFunctionName);
-		if (ProxyFunction)
-		{
-			const FString& IgnorePropertyListStr = ProxyFunction->GetMetaData(FName(TEXT("HideSpawnParms")));
-			if (!IgnorePropertyListStr.IsEmpty())
-			{
-				IgnorePropertyListStr.ParseIntoArray(IgnorePropertyList, TEXT(","), true);
-			}
-		}
-	}
+	TSet<FName> ValidSpawnParamPins;
+	ExK2NodeClassedAsyncBasePrivate::GetIgnorePropertyList(ProxyFactoryClass, ProxyFactoryFunctionName, IgnorePropertyList);
 
 	for (TFieldIterator<FProperty> PropertyIt(InClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 	{
 		const FProperty* Property = *PropertyIt;
-		const bool bIsDelegate = Property->IsA(FMulticastDelegateProperty::StaticClass());
-		const bool bIsExposedToSpawn = UEdGraphSchema_K2::IsPropertyExposedOnSpawn(Property);
-		const bool bIsSettableExternally = !Property->HasAnyPropertyFlags(CPF_DisableEditOnInstance);
-
-		if (bIsExposedToSpawn &&
-			!Property->HasAnyPropertyFlags(CPF_Parm) &&
-			bIsSettableExternally &&
-			Property->HasAllPropertyFlags(CPF_BlueprintVisible) &&
-			!bIsDelegate &&
-			!IgnorePropertyList.Contains(Property->GetName()) &&
-			(FindPin(Property->GetFName()) == nullptr))
+		if (!ExK2NodeClassedAsyncBasePrivate::IsExposedSpawnProperty(Property, IgnorePropertyList))
 		{
-			UEdGraphPin* Pin = CreatePin(EGPD_Input, NAME_None, Property->GetFName());
+			continue;
+		}
+
+		UEdGraphPin* Pin = FindPin(Property->GetFName());
+		if (!Pin)
+		{
+			Pin = CreatePin(EGPD_Input, NAME_None, Property->GetFName());
 			check(Pin);
 			const bool bPinGood = K2Schema->ConvertPropertyToPinType(Property, Pin->PinType);
 			check(bPinGood);
-			SpawnParamPins.Add(Pin->PinName);
-
-			const bool bAdvancedPin = Property->HasMetaData(TEXT("AdvancedDisplay"));
-			Pin->bAdvancedView = bAdvancedPin;
-			bHasAdvancedPins |= bAdvancedPin;
+			bChanged = true;
 
 			if (ClassDefaultObject && K2Schema->PinDefaultValueIsEditable(*Pin))
 			{
@@ -170,14 +213,85 @@ void UExK2Node_ClassedAsyncBase::CreatePinsForClass(UClass* InClass)
 
 			K2Schema->ConstructBasicPinTooltip(*Pin, Property->GetToolTipText(), Pin->PinToolTip);
 		}
+
+		ValidSpawnParamPins.Add(Pin->PinName);
+		SpawnParamPins.AddUnique(Pin->PinName);
+
+		const bool bAdvancedPin = Property->HasMetaData(TEXT("AdvancedDisplay")) || Property->HasAnyPropertyFlags(CPF_AdvancedDisplay);
+		bHasAdvancedPins |= bAdvancedPin;
+		if (Pin->bAdvancedView != bAdvancedPin)
+		{
+			Pin->bAdvancedView = bAdvancedPin;
+			bChanged = true;
+		}
+
+		if (ShouldHideSpawnParamPins() && !Pin->bHidden)
+		{
+			Pin->bHidden = true;
+			bChanged = true;
+		}
+	}
+
+	for (int32 PinIndex = SpawnParamPins.Num() - 1; PinIndex >= 0; --PinIndex)
+	{
+		const FName PinName = SpawnParamPins[PinIndex];
+		if (ValidSpawnParamPins.Contains(PinName))
+		{
+			continue;
+		}
+
+		if (UEdGraphPin* StalePin = FindPin(PinName))
+		{
+			StalePin->BreakAllPinLinks();
+			Pins.Remove(StalePin);
+			bChanged = true;
+		}
+		SpawnParamPins.RemoveAtSwap(PinIndex);
 	}
 
 	if (bHasAdvancedPins && AdvancedPinDisplay == ENodeAdvancedPins::NoPins)
 	{
 		AdvancedPinDisplay = ENodeAdvancedPins::Hidden;
+		bChanged = true;
 	}
 
 	ApplyPinVisibility();
+	return bChanged;
+}
+
+bool UExK2Node_ClassedAsyncBase::EnsureSpawnParamPinsUpToDate()
+{
+	return SynchronizePinsForCurrentClass(true, true);
+}
+
+bool UExK2Node_ClassedAsyncBase::SynchronizePinsForCurrentClass(bool bNotifyGraph, bool bMarkBlueprintModified)
+{
+	UClass* UseSpawnClass = GetClassToSpawn();
+	if (!UseSpawnClass)
+	{
+		return false;
+	}
+
+	const bool bChanged = SynchronizePinsForClass(UseSpawnClass);
+	if (!bChanged)
+	{
+		return false;
+	}
+
+	if (bNotifyGraph)
+	{
+		if (UEdGraph* Graph = GetGraph())
+		{
+			Graph->NotifyGraphChanged();
+		}
+	}
+
+	if (bMarkBlueprintModified)
+	{
+		FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprint());
+	}
+
+	return true;
 }
 
 void UExK2Node_ClassedAsyncBase::ApplyPinVisibility()
@@ -233,31 +347,12 @@ void UExK2Node_ClassedAsyncBase::GetExposedPropertiesForClass(UClass* InClass, T
 	}
 
 	TArray<FString> IgnorePropertyList;
-	{
-		const UFunction* ProxyFunction = ProxyFactoryClass->FindFunctionByName(ProxyFactoryFunctionName);
-		if (ProxyFunction)
-		{
-			const FString& IgnorePropertyListStr = ProxyFunction->GetMetaData(FName(TEXT("HideSpawnParms")));
-			if (!IgnorePropertyListStr.IsEmpty())
-			{
-				IgnorePropertyListStr.ParseIntoArray(IgnorePropertyList, TEXT(","), true);
-			}
-		}
-	}
+	ExK2NodeClassedAsyncBasePrivate::GetIgnorePropertyList(ProxyFactoryClass, ProxyFactoryFunctionName, IgnorePropertyList);
 
 	for (TFieldIterator<FProperty> PropertyIt(InClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 	{
 		const FProperty* Property = *PropertyIt;
-		const bool bIsDelegate = Property->IsA(FMulticastDelegateProperty::StaticClass());
-		const bool bIsExposedToSpawn = UEdGraphSchema_K2::IsPropertyExposedOnSpawn(Property);
-		const bool bIsSettableExternally = !Property->HasAnyPropertyFlags(CPF_DisableEditOnInstance);
-
-		if (bIsExposedToSpawn &&
-			!Property->HasAnyPropertyFlags(CPF_Parm) &&
-			bIsSettableExternally &&
-			Property->HasAllPropertyFlags(CPF_BlueprintVisible) &&
-			!bIsDelegate &&
-			!IgnorePropertyList.Contains(Property->GetName()))
+		if (ExK2NodeClassedAsyncBasePrivate::IsExposedSpawnProperty(Property, IgnorePropertyList))
 		{
 			OutProperties.Add(Property);
 		}

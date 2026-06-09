@@ -141,6 +141,8 @@ void FExClassedAsyncNodeDetails::BuildParamRows(IDetailCategoryBuilder& Category
 		return;
 	}
 
+	Node->EnsureSpawnParamPinsUpToDate();
+
 	TArray<const FProperty*> Properties;
 	Node->GetExposedPropertiesForClass(CurrentClass, Properties);
 

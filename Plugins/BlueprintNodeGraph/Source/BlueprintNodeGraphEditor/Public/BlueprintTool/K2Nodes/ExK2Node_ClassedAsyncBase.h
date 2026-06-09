@@ -37,12 +37,16 @@ public:
 
 	virtual void AllocateDefaultPins() override;
 	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
+	virtual void PostLoad() override;
+	virtual void PostReconstructNode() override;
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
 	virtual bool ShouldShowNodeProperties() const override { return true; }
 
 	UEdGraphPin* GetClassPin(const TArray<UEdGraphPin*>* InPinsToSearch = nullptr) const;
 	UClass* GetClassToSpawn(const TArray<UEdGraphPin*>* InPinsToSearch = nullptr) const;
 	void CreatePinsForClass(UClass* InClass);
+	bool SynchronizePinsForClass(UClass* InClass);
+	bool EnsureSpawnParamPinsUpToDate();
 
 	/** Gather all ExposeOnSpawn properties for a given class (used by Detail Customization). */
 	void GetExposedPropertiesForClass(UClass* InClass, TArray<const FProperty*>& OutProperties) const;
@@ -53,4 +57,5 @@ protected:
 
 	/** Hide spawn param pins if configured to do so. Called after CreatePinsForClass. */
 	void ApplyPinVisibility();
+	bool SynchronizePinsForCurrentClass(bool bNotifyGraph, bool bMarkBlueprintModified);
 };
