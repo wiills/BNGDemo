@@ -2,10 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "ScopedMessageTypes.h"
 #include "UObject/Interface.h"
 #include "ScopeContextProvider.generated.h"
 
-UINTERFACE(BlueprintType, meta = (CannotImplementInterfaceInBlueprint))
+UINTERFACE(BlueprintType)
 class UScopeContextProvider : public UInterface
 {
 	GENERATED_BODY()
@@ -28,6 +29,6 @@ public:
 	 *
 	 * @return The GameplayTag representing this scope context.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Scope Context")
-	virtual FGameplayTag GetScopeId() const;
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Scope Context")
+	FScopedMessageScopeId GetScopeId() const;
 };

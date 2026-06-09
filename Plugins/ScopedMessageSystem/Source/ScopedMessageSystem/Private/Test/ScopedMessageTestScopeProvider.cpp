@@ -1,20 +1,37 @@
 #include "Test/ScopedMessageTestScopeProvider.h"
 
+#include "GameFramework/Actor.h"
+#include "Misc/Guid.h"
+#include "Net/UnrealNetwork.h"
+
 AScopedMessageTestScopeProvider::AScopedMessageTestScopeProvider()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
 	// Establish a default root component.
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	bReplicates = true;
 }
 
-FGameplayTag AScopedMessageTestScopeProvider::GetScopeId() const
+void AScopedMessageTestScopeProvider::BeginPlay()
 {
-	// Return the manually configured tag if it is valid.
-	if (ScopeId.IsValid())
+	Super::BeginPlay();
+
+	if (HasAuthority() && !ScopeId.IsValid())
 	{
-		return ScopeId;
+		const FString GeneratedName = FString::Printf(TEXT("TestPOI.%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits));
+		ScopeId = FScopedMessageScopeId(FName(*GeneratedName));
 	}
-	// Fall back to the default interface implementation to auto-generate a unique tag.
-	return IScopeContextProvider::GetScopeId();
+}
+
+void AScopedMessageTestScopeProvider::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AScopedMessageTestScopeProvider, ScopeId);
+}
+
+FScopedMessageScopeId AScopedMessageTestScopeProvider::GetScopeId_Implementation() const
+{
+	return ScopeId;
 }

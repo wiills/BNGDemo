@@ -17,6 +17,7 @@ public class BNGDemo : ModuleRules
 			"AIModule",
 			"StateTreeModule",
 			"GameplayStateTreeModule",
+			"ScopedMessageSystem",
 			"UMG",
 			"Slate"
 		});

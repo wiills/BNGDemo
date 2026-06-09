@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "GameplayTagContainer.h"
+#include "ScopedMessageTypes.h"
 #include "ScopedMessageReplicatorComponent.generated.h"
 
 /**
@@ -19,17 +20,8 @@ public:
 	UScopedMessageReplicatorComponent();
 
 	/**
-	 * Multicast RPC to replicate and distribute the serialized message payload to all clients.
-	 *
-	 * @param Channel       The message tag channel.
-	 * @param ScopeIdName   The name of the ScopeId tag to reconstruct on the client.
-	 * @param PayloadType   The reflection structure type of the message.
-	 * @param PayloadBytes  The serialized struct payload bytes.
+	 * Multicast RPC to replicate a message to all clients.
 	 */
 	UFUNCTION(NetMulticast, Reliable)
-	void NetMulticast_BroadcastMessage(
-		FGameplayTag Channel,
-		FName ScopeIdName,
-		const UScriptStruct* PayloadType,
-		const TArray<uint8>& PayloadBytes);
+	void NetMulticast_BroadcastMessage(const FScopedMessageNetworkPacket& Packet);
 };

@@ -1,97 +1,99 @@
 # Scoped Message System
 
-A lightweight, interface-driven, network-replicated local message routing system for Unreal Engine. It allows sending and receiving messages isolated within logical boundaries (Camps, Level Instances, Rooms) with zero configuration.
-
----
+Scoped Message System is a POI-focused message router for Unreal Engine. It lets
+actors inside one POI instance communicate with shared GameplayTag channels
+without leaking those events into another POI using the same template.
 
 ## Key Features
 
-- **Scoped Isolation**: Messages are routed based on a combination of a channel tag and a scope context tag (`ScopeId`).
-- **Zero-Code Context**: Zero configuration required. The subsystem resolves the scope tag dynamically by crawling the caller's or listener's hierarchy (the `WorldContextObject` or subscribing `Object` context).
-- **Robust Network Replication**: Replicates message payloads from Server to Clients through a dynamically spawned component on the `GameState`, bypassing Net Relevancy issues.
-- **Memory Safety (RAII)**: Built around `FInstancedStruct` (from the StructUtils plugin) for payload transmission. Eliminates custom thunks, raw memory allocators, and pointer casting.
-- **Auto-Generated Tags**: Seamlessly creates unique dynamic tags for scope providers that do not supply a static tag.
-
----
+- `ScopeId + Channel` routing for POI-local isolation.
+- Replicated `FScopedMessageScopeId` instead of runtime GameplayTags for scope IDs.
+- `UScopedMessageScopeComponent` for POI root actors.
+- Server-authoritative network modes, including `ServerToScopedClients`.
+- PlayerController bridge components for owner-targeted scoped client delivery.
+- C++ templates and Blueprint async listening through `FScopedMessagePayload`.
 
 ## Quick Start
 
-### 1. Declaring a Scope Provider
-Implement the `IScopeContextProvider` interface on any Actor or object that defines a boundary (e.g. a Zone Manager, or Level Instance):
+### 1. Add a scope to the POI root
+
+Add `UScopedMessageScopeComponent` to the actor that represents one POI instance.
+Set `ScopeId` manually for authored POIs, or let the server generate one at
+runtime and replicate it.
+
+You can also implement `IScopeContextProvider`:
 
 ```cpp
-#include "ScopeContextProvider.h"
-#include "MyZoneManager.generated.h"
-
 UCLASS()
-class AMyZoneManager : public AActor, public IScopeContextProvider
+class AMyPOIInstance : public AActor, public IScopeContextProvider
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
+
 public:
-    virtual FGameplayTag GetScopeId() const override
-    {
-        return FGameplayTag::RequestGameplayTag("Scope.Zone.Alpha");
-    }
+	virtual FScopedMessageScopeId GetScopeId_Implementation() const override
+	{
+		return POIScopeId;
+	}
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FScopedMessageScopeId POIScopeId;
 };
 ```
 
-### 2. Broadcasting Scoped Messages
+### 2. Broadcast inside the POI
 
-#### In C++
 ```cpp
-FMyPayload MessageData;
-MessageData.MessageText = TEXT("Gate Opened");
+FMyPayload Payload;
+Payload.MessageText = TEXT("Terminal activated");
 
-UScopedMessageSubsystem& Subsystem = UScopedMessageSubsystem::Get(this);
-Subsystem.BroadcastMessage(
-    this, // WorldContextObject (resolves scope context automatically)
-    FGameplayTag::RequestGameplayTag("Event.DoorState"),
-    MessageData,
-    EScopedMessageReplication::ServerToAllClients
-);
+UScopedMessageSubsystem::Get(this).BroadcastMessage(
+	this,
+	FGameplayTag::RequestGameplayTag(TEXT("POI.Terminal.Activated")),
+	Payload,
+	EScopedMessageReplication::ServerToScopedClients);
 ```
 
-#### In Blueprints
-Place the **Broadcast Scoped Message** node. It automatically uses the executing context (`Self` / `WorldContextObject`) to resolve the scope.
+### 3. Listen inside the same POI
 
----
-
-### 3. Listening for Scoped Messages
-
-#### In C++
 ```cpp
-UScopedMessageSubsystem& Subsystem = UScopedMessageSubsystem::Get(this);
-FScopedMessageListenerHandle Handle = Subsystem.Subscribe<FMyPayload>(
-    FGameplayTag::RequestGameplayTag("Event.DoorState"),
-    this,
-    &AMyActor::OnDoorStateChanged
-);
-
-// Unregister when done
-Handle.Unregister();
+ListenerHandle = UScopedMessageSubsystem::Get(this).Subscribe<FMyPayload>(
+	FGameplayTag::RequestGameplayTag(TEXT("POI.Terminal.Activated")),
+	this,
+	&AMyActor::OnTerminalActivated);
 ```
 
-#### In Blueprints
-Use the **Listen for Scoped Messages** async node. The node automatically resolves the scope context using the `World Context Object` (`Self`), and the `Payload` is returned as a wild-card `FInstancedStruct` that you can break using standard Unreal Engine nodes.
+Unregister handles in `EndPlay` when the listener owns the lifetime:
 
----
+```cpp
+ListenerHandle.Unregister();
+```
 
-## Installation
-1. Clone this repository into your project's `Plugins/` folder.
-2. Enable the **StructUtils** engine plugin in your `.uproject`.
-3. Add `"ScopedMessageSystem"` to your game module's dependency list in `*.Build.cs`.
+### 4. Register player interest on the server
 
----
+`ServerToScopedClients` only sends to players registered for that scope.
 
-## Comparison with GameplayMessageRouter
+```cpp
+UScopedMessageSubsystem::Get(this).RegisterPlayerForScope(PlayerController, ScopeId);
+```
 
-| Feature / Dimension | GameplayMessageRouter (Native) | Scoped Message System (SMS) |
-| :--- | :--- | :--- |
-| **Routing Map** | Single-level: `Channel -> Listeners` | Dual-level: `ScopeId -> Channel -> Listeners` |
-| **Isolation** | None (Global broadcasts only; causes crosstalk) | Isolated within local scopes (Global fallback if `ScopeId` is empty) |
-| **Scope Resolving** | Not supported | Interface-driven (`IScopeContextProvider`) with $O(1)$ hierarchical automatic resolution |
-| **Networking** | No built-in replication (Requires custom replication layer) | Built-in replication strategies (`LocalOnly`, `ServerToAllClients`, `ServerToScopedClients`) |
-| **Net Relevancy Safety** | N/A | High (Replicator attached to `GameState` ensuring `bAlwaysRelevant` distribution) |
-| **Dynamic Tag Safety** | N/A | High (Dynamic tags sent via `FName` instead of `FGameplayTag` network indices to prevent mismatch crashes) |
-| **Memory Management** | Template type arguments / Raw memory operations | Modern C++ RAII using `FInstancedStruct` (StructUtils) for type safety and automatic alignment |
-| **Blueprint Usability** | Custom compiler `K2Node` (requires separate uncooked/editor module) | Standard async node with `WorldContext` and `FInstancedStruct` outputs (pure runtime, no editor modules required) |
+Unregister when the player leaves the POI.
+
+## Network Modes
+
+| Mode | Behavior |
+| :--- | :--- |
+| `LocalOnly` | Dispatches only in the current process. |
+| `ServerOnly` | Dispatches only on authority or standalone. |
+| `ClientToServer` | Sends through the local PlayerController bridge; server validates scope interest. |
+| `ServerToAllClients` | Dispatches on server and multicasts to every client. |
+| `ServerToScopedClients` | Dispatches on server and sends only to registered players for the scope. |
+
+## Notes
+
+Payloads sent over the network should be plain reflected UStruct data. Scoped
+messages are for triggers and notifications; long-lived mission state should live
+in authoritative replicated components.
+
+The plugin does not depend on StructUtils. Blueprint listeners receive serialized
+`FScopedMessagePayload` packets; typed struct access should be handled in C++ or
+with a project-specific Blueprint helper for known payload types.

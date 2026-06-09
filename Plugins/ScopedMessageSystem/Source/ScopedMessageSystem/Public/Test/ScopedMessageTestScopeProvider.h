@@ -19,11 +19,14 @@ class SCOPEDMESSAGESYSTEM_API AScopedMessageTestScopeProvider : public AActor, p
 public:
 	AScopedMessageTestScopeProvider();
 
+	virtual void BeginPlay() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 	//~ Begin IScopeContextProvider Interface
-	virtual FGameplayTag GetScopeId() const override;
+	virtual FScopedMessageScopeId GetScopeId_Implementation() const override;
 	//~ End IScopeContextProvider Interface
 
 	/** Manually specified Scope ID tag. Leave empty to automatically generate a unique one. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scoped Message Test")
-	FGameplayTag ScopeId;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "Scoped Message Test")
+	FScopedMessageScopeId ScopeId;
 };

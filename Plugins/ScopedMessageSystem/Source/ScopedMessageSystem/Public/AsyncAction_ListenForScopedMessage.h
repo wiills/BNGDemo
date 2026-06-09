@@ -4,7 +4,6 @@
 #include "Engine/CancellableAsyncAction.h"
 #include "GameplayTagContainer.h"
 #include "ScopedMessageTypes.h"
-#include "StructUtils/InstancedStruct.h"
 #include "AsyncAction_ListenForScopedMessage.generated.h"
 
 class UScriptStruct;
@@ -13,8 +12,8 @@ class UScopedMessageSubsystem;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(
 	FAsyncScopedMessageDelegate,
 	FGameplayTag, ActualChannel,
-	const FInstancedStruct&, Payload,
-	FGameplayTag, ActualScopeId
+	const FScopedMessagePayload&, Payload,
+	FScopedMessageScopeId, ActualScopeId
 );
 
 /**

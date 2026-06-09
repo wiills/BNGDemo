@@ -1,4 +1,6 @@
 #include "ScopedMessageReplicatorComponent.h"
+
+#include "Engine/World.h"
 #include "ScopedMessageSubsystem.h"
 
 UScopedMessageReplicatorComponent::UScopedMessageReplicatorComponent()
@@ -7,15 +9,11 @@ UScopedMessageReplicatorComponent::UScopedMessageReplicatorComponent()
 	SetIsReplicatedByDefault(true);
 }
 
-void UScopedMessageReplicatorComponent::NetMulticast_BroadcastMessage_Implementation(
-	FGameplayTag Channel,
-	FName ScopeIdName,
-	const UScriptStruct* PayloadType,
-	const TArray<uint8>& PayloadBytes)
+void UScopedMessageReplicatorComponent::NetMulticast_BroadcastMessage_Implementation(const FScopedMessageNetworkPacket& Packet)
 {
-	// Route the replicated message to the local ScopedMessageSubsystem instance on the client.
-	if (UScopedMessageSubsystem::HasInstance(this))
+	UWorld* World = GetWorld();
+	if (World && World->GetNetMode() == NM_Client && UScopedMessageSubsystem::HasInstance(this))
 	{
-		UScopedMessageSubsystem::Get(this).HandleReplicatedMessage(Channel, ScopeIdName, PayloadType, PayloadBytes);
+		UScopedMessageSubsystem::Get(this).HandleNetworkMessage(Packet);
 	}
 }

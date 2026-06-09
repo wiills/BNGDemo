@@ -1,6 +1,7 @@
 #include "AsyncAction_ListenForScopedMessage.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "Serialization/MemoryWriter.h"
 #include "ScopedMessageSubsystem.h"
 
 UAsyncAction_ListenForScopedMessage* UAsyncAction_ListenForScopedMessage::ListenForScopedMessages(
@@ -45,7 +46,7 @@ void UAsyncAction_ListenForScopedMessage::Activate()
 	UScopedMessageSubsystem& Subsystem = UScopedMessageSubsystem::Get(World);
 
 	UObject* ResolvedScopeContext = ScopeContextObject.Get();
-	FGameplayTag ScopeId = Subsystem.ResolveScopeId(ResolvedScopeContext);
+	FScopedMessageScopeId ScopeId = Subsystem.ResolveScopeId(ResolvedScopeContext);
 
 	TWeakObjectPtr<UAsyncAction_ListenForScopedMessage> WeakThis(this);
 	ListenerHandle = Subsystem.SubscribeInternal(
@@ -78,11 +79,17 @@ void UAsyncAction_ListenForScopedMessage::HandleMessageReceived(FGameplayTag Cha
 {
 	if (!MessageStructType.IsValid() || (MessageStructType.Get() == StructType))
 	{
-		FInstancedStruct InstancedPayload;
-		InstancedPayload.InitializeAs(StructType, static_cast<const uint8*>(PayloadBytes));
-		FGameplayTag ActualScopeId = ListenerHandle.IsValid() ? ListenerHandle.GetScopeId() : FGameplayTag::EmptyTag;
+		FScopedMessagePayload Payload;
+		Payload.PayloadStructPath = StructType ? StructType->GetPathName() : FString();
+		if (StructType && PayloadBytes)
+		{
+			FMemoryWriter Writer(Payload.PayloadBytes);
+			const_cast<UScriptStruct*>(StructType)->SerializeItem(Writer, const_cast<void*>(PayloadBytes), nullptr);
+		}
 
-		OnMessageReceived.Broadcast(Channel, InstancedPayload, ActualScopeId);
+		FScopedMessageScopeId ActualScopeId = ListenerHandle.IsValid() ? ListenerHandle.GetScopeId() : FScopedMessageScopeId();
+
+		OnMessageReceived.Broadcast(Channel, Payload, ActualScopeId);
 	}
 
 	if (!OnMessageReceived.IsBound())

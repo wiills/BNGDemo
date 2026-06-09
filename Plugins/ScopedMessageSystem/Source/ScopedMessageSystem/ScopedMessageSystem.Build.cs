@@ -13,7 +13,6 @@ public class ScopedMessageSystem : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"GameplayTags",
-				"StructUtils",
 			}
 		);
 
