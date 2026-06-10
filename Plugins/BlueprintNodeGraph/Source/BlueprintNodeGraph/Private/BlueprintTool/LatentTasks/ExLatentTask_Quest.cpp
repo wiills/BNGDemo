@@ -2,8 +2,10 @@
 
 #include "BlueprintTool/LatentTasks/ExLatentTask_Quest.h"
 
+#include "Quest/ExQuestManagerSubsystem.h"
 #include "Quest/ExQuestReplicationComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "BlueprintTool/Common/ExLatentProxyDefine.h"
 
 UExLatentTask_Quest* UExLatentTask_Quest::CreateQuestProxy(UObject* WorldContextObject, TSubclassOf<UExLatentTask_Quest> Class)
 {
@@ -23,6 +25,80 @@ UExLatentTask_Quest* UExLatentTask_Quest::CreateQuestProxy(UObject* WorldContext
 bool UExLatentTask_Quest::IsQuestLatentClass(TSubclassOf<UExLatentTask_Quest> Class)
 {
 	return Class && Class->IsChildOf(UExLatentTask_Quest::StaticClass());
+}
+
+bool UExLatentTask_Quest::UpdateQuestObjectiveProgress(int32 NewProgress)
+{
+	if (!QuestTag.IsValid() || !ObjectiveTag.IsValid())
+	{
+		return false;
+	}
+
+	UObject* WorldContext = GetWorld();
+	if (!WorldContext)
+	{
+		return false;
+	}
+
+	return UExQuestReplicationComponent::RouteUpdateQuestObjective(WorldContext, QuestTag, ObjectiveTag, NewProgress);
+}
+
+bool UExLatentTask_Quest::IncrementQuestObjectiveProgress()
+{
+	if (!QuestTag.IsValid() || !ObjectiveTag.IsValid())
+	{
+		return false;
+	}
+
+	UObject* WorldContext = GetWorld();
+	if (!WorldContext)
+	{
+		return false;
+	}
+
+	return UExQuestReplicationComponent::RouteIncrementQuestObjective(WorldContext, QuestTag, ObjectiveTag, 1);
+}
+
+bool UExLatentTask_Quest::GetQuestObjectiveProgress(int32& OutCurrentProgress, int32& OutTargetProgress) const
+{
+	OutCurrentProgress = 0;
+	OutTargetProgress = 0;
+
+	if (!QuestTag.IsValid() || !ObjectiveTag.IsValid())
+	{
+		return false;
+	}
+
+	const UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
+	const UExQuestManagerSubsystem* Manager = GameInstance ? GameInstance->GetSubsystem<UExQuestManagerSubsystem>() : nullptr;
+	if (!Manager)
+	{
+		return false;
+	}
+
+	FExQuestTask Task;
+	if (!Manager->GetQuestById(QuestTag, Task))
+	{
+		return false;
+	}
+
+	for (const FExQuestObjective& Objective : Task.Objectives)
+	{
+		if (Objective.ObjectiveTag == ObjectiveTag)
+		{
+			OutCurrentProgress = Objective.CurrentProgress;
+			OutTargetProgress = Objective.TargetProgress;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void UExLatentTask_Quest::InitializeFromPayload(const FExQuestLatentTaskPayload& Payload)
+{
+	CompleteAction = Payload.CompleteAction;
+	ProgressDeltaOnStop = Payload.ProgressDeltaOnStop;
 }
 
 void UExLatentTask_Quest::OnStart()

@@ -928,6 +928,7 @@ void UExQuestManagerSubsystem::CreateLatentTaskForQuest(const FGameplayTag& Task
 	}
 
 	LatentTask->QuestTag = TaskId;
+	LatentTask->InitializeFromPayload(Task.LatentTaskPayload);
 
 	ActiveLatentTasks.Add(TaskId, LatentTask);
 	LatentTask->Activate();
@@ -1042,6 +1043,7 @@ void UExQuestManagerSubsystem::CreateLatentTaskForObjective(const FGameplayTag& 
 
 	LatentTask->QuestTag = TaskId;
 	LatentTask->ObjectiveTag = ObjectiveTag;
+	LatentTask->InitializeFromPayload(Objective->LatentTaskPayload);
 
 	ActiveObjectiveLatentTasks.Add(ObjectiveTag, LatentTask);
 	LatentTask->Activate();

@@ -220,6 +220,8 @@ void UExQuestTreeWidget::CreateQuestItem(const FExQuestTask& QuestTask, UVertica
 	{
 		return;
 	}
+	
+	RowBox->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 
 	if (bHasChildren)
 	{
@@ -228,6 +230,7 @@ void UExQuestTreeWidget::CreateQuestItem(const FExQuestTask& QuestTask, UVertica
 			if (UTextBlock* ExpandLabel = NewObject<UTextBlock>(ExpandButton))
 			{
 				ExpandLabel->SetText(FText::FromString(bExpanded ? TEXT("-") : TEXT("+")));
+				ExpandLabel->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 				ExpandButton->AddChild(ExpandLabel);
 			}
 
@@ -247,6 +250,7 @@ void UExQuestTreeWidget::CreateQuestItem(const FExQuestTask& QuestTask, UVertica
 	{
 		if (USpacer* Spacer = NewObject<USpacer>(ParentContainer))
 		{
+			Spacer->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 			Spacer->SetSize(FVector2D(24.0f, 1.0f));
 			RowBox->AddChildToHorizontalBox(Spacer);
 		}
@@ -254,6 +258,7 @@ void UExQuestTreeWidget::CreateQuestItem(const FExQuestTask& QuestTask, UVertica
 
 	if (UTextBlock* TaskNameText = NewObject<UTextBlock>(ParentContainer))
 	{
+		TaskNameText->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 		const FText TaskDisplayText = FText::Format(
 			NSLOCTEXT("QuestUI", "TaskNameFormat", "{0} ({1})"),
 			QuestTask.TaskName,
@@ -280,6 +285,7 @@ void UExQuestTreeWidget::CreateQuestItem(const FExQuestTask& QuestTask, UVertica
 
 			if (UTextBlock* ObjectiveText = NewObject<UTextBlock>(ParentContainer))
 			{
+				ObjectiveText->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 				const FText ObjectiveDisplayText = FText::Format(
 					NSLOCTEXT("QuestUI", "ObjectiveFormat", "  - {0} ({1}/{2})"),
 					ExQuestTreeWidgetInternal::GetObjectiveDisplayText(Objective),

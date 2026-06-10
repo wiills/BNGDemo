@@ -14,6 +14,19 @@ enum class EExQuestCompleteAction : uint8
 	CompleteObjective UMETA(DisplayName = "Complete Objective")
 };
 
+/** Common payload for quest latent task configuration. */
+USTRUCT(BlueprintType)
+struct BLUEPRINTNODEGRAPH_API FExQuestLatentTaskPayload
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	EExQuestCompleteAction CompleteAction = EExQuestCompleteAction::IncrementProgress;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (ClampMin = "1"))
+	int32 ProgressDeltaOnStop = 1;
+};
+
 /**
  * Base class for all quest-related latent tasks.
  * Blueprint subclasses implement gameplay; on successful TryStop the task can push progress to the quest system.
@@ -53,6 +66,17 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "LatentTasks|Quest")
 	static bool IsQuestLatentClass(TSubclassOf<UExLatentTask_Quest> Class);
+
+	UFUNCTION(BlueprintCallable, Category = "LatentTasks|Quest")
+	bool UpdateQuestObjectiveProgress(int32 NewProgress);
+
+	UFUNCTION(BlueprintCallable, Category = "LatentTasks|Quest")
+	bool IncrementQuestObjectiveProgress();
+
+	UFUNCTION(BlueprintPure, Category = "LatentTasks|Quest")
+	bool GetQuestObjectiveProgress(int32& OutCurrentProgress, int32& OutTargetProgress) const;
+
+	void InitializeFromPayload(const FExQuestLatentTaskPayload& Payload);
 
 protected:
 	virtual void OnStart() override;

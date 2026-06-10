@@ -6,7 +6,6 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "BlueprintTool/LatentTasks/ExLatentTask_Quest.h"
-#include "StructUtils/InstancedStruct.h"
 #include "ExQuestTypes.generated.h"
 
 class UExLatentTask_Quest;
@@ -22,6 +21,7 @@ enum class EExQuestState : uint8
 	Locked     // 未解锁
 };
 
+/** 通用的 LatentTask 参数配置 Payload。Common payload for latent task configuration. */
 /** 单个 Objective 运行时数据（进度与定义在 FExQuestData 中合并）。Single objective runtime row. */
 USTRUCT(BlueprintType)
 struct BLUEPRINTNODEGRAPH_API FExQuestObjective
@@ -56,6 +56,9 @@ struct BLUEPRINTNODEGRAPH_API FExQuestObjective
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Execution", meta = (ToolTip = "Optional. When empty, objective waits for external progress (NotifyByTag / Route API)."))
 	TSubclassOf<UExLatentTask_Quest> LatentTaskClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Execution", meta = (AdvancedDisplay, ToolTip = "Payload passed to the objective latent task instance on creation."))
+	FExQuestLatentTaskPayload LatentTaskPayload;
 
 	FExQuestObjective()
 		: CurrentProgress(0)
@@ -119,8 +122,8 @@ struct BLUEPRINTNODEGRAPH_API FExQuestTask
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Execution", meta = (AdvancedDisplay, ToolTip = "Optional. Default leave empty: task completes when Objectives and SubTasks are done."))
 	TSubclassOf<UExLatentTask_Quest> LatentTaskClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Execution", meta = (AdvancedDisplay, EditCondition = "LatentTaskClass != nullptr"))
-	FInstancedStruct LatentTaskPayload;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Execution", meta = (AdvancedDisplay))
+	FExQuestLatentTaskPayload LatentTaskPayload;
 
 	FExQuestTask()
 		: State(EExQuestState::Locked)

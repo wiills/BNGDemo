@@ -6,7 +6,6 @@
 #include "Engine/DataAsset.h"
 #include "Engine/DataTable.h"
 #include "GameplayTagContainer.h"
-#include "StructUtils/InstancedStruct.h"
 #include "Quest/ExQuestTypes.h"
 #include "Quest/ExQuestDataImport.h"
 #include "ExQuestDefinition.generated.h"
@@ -40,6 +39,9 @@ struct BLUEPRINTNODEGRAPH_API FExQuestObjectiveDefinition
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|Execution", meta = (ToolTip = "Optional. When empty, objective stays Active and waits for external progress (NotifyByTag / Route API)."))
 	TSubclassOf<UExLatentTask_Quest> LatentTaskClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|Execution", meta = (AdvancedDisplay, ToolTip = "Payload passed to the objective latent task instance on creation."))
+	FExQuestLatentTaskPayload LatentTaskPayload;
 
 	/** 目标节点专用的任务树条目样式；为空表示沿用父任务 EntryViewClass，便于只给少数目标做特殊表现。 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|UI", meta = (AdvancedDisplay, ToolTip = "目标节点专用的任务树条目样式；未配置时使用父任务 EntryViewClass。"))
@@ -91,8 +93,8 @@ struct BLUEPRINTNODEGRAPH_API FExQuestTaskDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
 	bool bIsRepeatable = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|Execution", meta = (AdvancedDisplay, EditCondition = "LatentTaskClass != nullptr", ToolTip = "Payload passed to the latent task instance on creation."))
-	FInstancedStruct LatentTaskPayload;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|Execution", meta = (AdvancedDisplay, ToolTip = "Payload passed to the latent task instance on creation."))
+	FExQuestLatentTaskPayload LatentTaskPayload;
 
 	FExQuestTask ToRuntimeTask() const;
 };
@@ -139,6 +141,9 @@ struct BLUEPRINTNODEGRAPH_API FExQuestTaskTableRow : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Execution", meta = (AdvancedDisplay, ToolTip = "Optional. Default leave empty: task completes when Objectives and SubTasks are done. Use only when this task has no Objective list and one latent drives the whole task."))
 	TSubclassOf<UExLatentTask_Quest> LatentTaskClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Execution", meta = (AdvancedDisplay, ToolTip = "Payload passed to the latent task instance on creation."))
+	FExQuestLatentTaskPayload LatentTaskPayload;
 
 	FExQuestTaskDefinition ToTaskDefinition() const;
 	FExQuestTask ToRuntimeTask() const;

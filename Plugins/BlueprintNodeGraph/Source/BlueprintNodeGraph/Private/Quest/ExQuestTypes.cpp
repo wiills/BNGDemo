@@ -461,7 +461,7 @@ void FExQuestData::EnrichMetadataFrom(const FExQuestData& DefinitionData)
 			Task.LatentTaskClass = DefTask.LatentTaskClass;
 		}
 
-		if (!Task.LatentTaskPayload.IsValid() && DefTask.LatentTaskPayload.IsValid())
+		if (DefTask.LatentTaskClass)
 		{
 			Task.LatentTaskPayload = DefTask.LatentTaskPayload;
 		}
@@ -496,6 +496,11 @@ void FExQuestData::EnrichMetadataFrom(const FExQuestData& DefinitionData)
 				if (!Objective.LatentTaskClass && DefObjective.LatentTaskClass)
 				{
 					Objective.LatentTaskClass = DefObjective.LatentTaskClass;
+				}
+
+				if (DefObjective.LatentTaskClass)
+				{
+					Objective.LatentTaskPayload = DefObjective.LatentTaskPayload;
 				}
 
 				break;

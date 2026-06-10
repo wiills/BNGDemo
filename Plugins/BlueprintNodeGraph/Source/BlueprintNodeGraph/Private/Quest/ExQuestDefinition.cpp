@@ -19,6 +19,7 @@ FExQuestTaskDefinition FExQuestTaskTableRow::ToTaskDefinition() const
 	Def.EntryViewClass = EntryViewClass;
 	Def.bIsRepeatable = bIsRepeatable;
 	Def.LatentTaskClass = LatentTaskClass;
+	Def.LatentTaskPayload = LatentTaskPayload;
 	return Def;
 }
 
@@ -53,6 +54,7 @@ FExQuestTask FExQuestTaskDefinition::ToRuntimeTask() const
 		Objective.bUIVisible = ObjDef.bUIVisible;
 		Objective.EntryViewClass = ObjDef.EntryViewClass;
 		Objective.LatentTaskClass = ObjDef.LatentTaskClass;
+		Objective.LatentTaskPayload = ObjDef.LatentTaskPayload;
 		Objective.State = ObjDef.InitialState;
 		Objective.CurrentProgress = 0;
 		Task.Objectives.Add(Objective);
