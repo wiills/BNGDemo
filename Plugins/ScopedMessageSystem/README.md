@@ -7,6 +7,7 @@ without leaking those events into another Poi using the same template.
 ## Key Features
 
 - `ScopeId + Channel` routing for Poi-local isolation.
+- `AScopedMessagePoiActor` shared base for common ScopeId readiness handling.
 - `AScopedMessagePoiRootActor` and `AScopedMessagePoiSubActor` base classes for
   common Poi setup.
 - Replicated `FScopedMessageScopeId` instead of runtime GameplayTags for scope IDs.
@@ -26,6 +27,8 @@ current players for scoped client delivery during BeginPlay.
 Actors inside the Poi can derive from `AScopedMessagePoiSubActor`. The base class
 waits until a valid ScopeId can be resolved locally, which avoids client BeginPlay
 subscribing into the empty global scope before the root ScopeId replicates.
+Both classes share `AScopedMessagePoiActor` underneath for common ScopeId readiness
+and retry behavior.
 
 For custom actor hierarchies, you can still add `UScopedMessageScopeComponent`
 manually or implement `IScopeContextProvider`:

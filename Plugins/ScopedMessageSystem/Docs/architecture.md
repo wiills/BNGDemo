@@ -26,11 +26,13 @@ The recommended setup is:
 
 ```text
 AScopedMessagePoiRootActor
+  - inherits AScopedMessagePoiActor shared ScopeId readiness behavior
   - UScopedMessageScopeComponent
       Replicated ScopeId
   - optional auto player-interest registration
 
 AScopedMessagePoiSubActor
+  - inherits AScopedMessagePoiActor shared ScopeId readiness behavior
   - waits until local ScopeId resolution is valid
   - owned by, attached to, outered under, or otherwise able to resolve the Poi root
 ```
@@ -99,9 +101,10 @@ registered for that scope.
 
 `AScopedMessagePoiRootActor` provides `RegisterPlayer`, `UnregisterPlayer`,
 `RegisterAllCurrentPlayers`, and `UnregisterAllCurrentPlayers`. Its BeginPlay
-auto-registration is mainly a convenience for demos and simple Pois; real
-streaming or interest-management systems should still call these functions when
-players enter and leave a Poi.
+auto-registration waits until the root has a valid `ScopeId` and the world has
+PlayerControllers before registering current players. This is mainly a
+convenience for demos and simple Pois; real streaming or interest-management
+systems should still call these functions when players enter and leave a Poi.
 
 ## Payload Serialization
 

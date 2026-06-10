@@ -38,9 +38,10 @@ Scope 隔离，不需要注册玩家兴趣范围。
 DemoRoot->RegisterPlayer(PlayerController);
 ```
 
-Demo Root 默认开启 `bAutoRegisterPlayersOnBeginPlay`，会在服务端 BeginPlay 时把当前
-PlayerController 注册到自己的 Scope，方便在 PIE 里直接验证。如果你想手动控制玩家兴趣
-范围，可以关闭这个开关，然后按项目逻辑调用 `RegisterPlayer` 和 `UnregisterPlayer`。
+Demo Root 默认开启 `bAutoRegisterPlayersOnBeginPlay`，会在服务端等待 `ScopeId` 有效且
+当前世界里已有 PlayerController 后，把当前 PlayerController 注册到自己的 Scope，方便在
+PIE 里直接验证。如果你想手动控制玩家兴趣范围，可以关闭这个开关，然后按项目逻辑调用
+`RegisterPlayer` 和 `UnregisterPlayer`。
 
 真实 Poi 系统里，玩家进入、激活、或流式加载到 Poi 时调用注册；玩家离开 Poi 时调用
 `UnregisterPlayer`。`ActivateTerminal` 是服务端权威逻辑：客户端调用会先转发到服务端，

@@ -7,27 +7,16 @@
 
 AScopedMessagePoiRootActor::AScopedMessagePoiRootActor()
 {
-	PrimaryActorTick.bCanEverTick = false;
-	bReplicates = true;
-
-	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-	RootComponent = SceneRoot;
-
 	ScopeComponent = CreateDefaultSubobject<UScopedMessageScopeComponent>(TEXT("PoiScope"));
-}
-
-void AScopedMessagePoiRootActor::BeginPlay()
-{
-	Super::BeginPlay();
-
-	if (bAutoRegisterPlayersOnBeginPlay && HasAuthority())
-	{
-		RegisterAllCurrentPlayers();
-	}
 }
 
 void AScopedMessagePoiRootActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(PlayerRegistrationRetryTimer);
+	}
+
 	if (bAutoUnregisterPlayersOnEndPlay && HasAuthority())
 	{
 		UnregisterAllCurrentPlayers();
@@ -46,6 +35,15 @@ void AScopedMessagePoiRootActor::RegisterPlayer(APlayerController* PlayerControl
 	if (HasAuthority() && PlayerController && UScopedMessageSubsystem::HasInstance(this))
 	{
 		const FScopedMessageScopeId ScopeId = GetScopeId();
+		if (!ScopeId.IsValid())
+		{
+			UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] ScopedMessage Poi root %s skipped player %s registration because Scope is not valid yet"),
+				*UScopedMessageSubsystem::GetNetModePrefix(this),
+				*GetName(),
+				*GetNameSafe(PlayerController));
+			return;
+		}
+
 		UScopedMessageSubsystem::Get(this).RegisterPlayerForScope(PlayerController, ScopeId);
 
 		UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] ScopedMessage Poi root %s registered player %s Scope=%s"),
@@ -107,4 +105,79 @@ void AScopedMessagePoiRootActor::UnregisterAllCurrentPlayers()
 	{
 		UnregisterPlayer(It->Get());
 	}
+}
+
+void AScopedMessagePoiRootActor::EnsurePlayerRegistrationReady()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	const FScopedMessageScopeId ScopeId = GetScopeId();
+	UWorld* World = GetWorld();
+	bool bHasPlayerController = false;
+	if (World)
+	{
+		for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
+		{
+			if (It->Get())
+			{
+				bHasPlayerController = true;
+				break;
+			}
+		}
+	}
+
+	if (!ScopeId.IsValid() || !bHasPlayerController)
+	{
+		UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] ScopedMessage Poi root %s waiting before player registration Scope=%s HasPlayers=%s"),
+			*UScopedMessageSubsystem::GetNetModePrefix(this),
+			*GetName(),
+			*ScopeId.ToString(),
+			bHasPlayerController ? TEXT("true") : TEXT("false"));
+
+		if (World)
+		{
+			World->GetTimerManager().SetTimer(
+				PlayerRegistrationRetryTimer,
+				this,
+				&AScopedMessagePoiRootActor::EnsurePlayerRegistrationReady,
+				FMath::Max(PlayerRegistrationRetryInterval, 0.01f),
+				true);
+		}
+		return;
+	}
+
+	RegisterAllCurrentPlayers();
+
+	if (World)
+	{
+		World->GetTimerManager().ClearTimer(PlayerRegistrationRetryTimer);
+	}
+
+	OnPlayerRegistrationReady(ScopeId);
+}
+
+FString AScopedMessagePoiRootActor::GetPoiActorLogLabel() const
+{
+	return TEXT("Poi root");
+}
+
+void AScopedMessagePoiRootActor::OnPoiScopeReady(FScopedMessageScopeId ScopeId)
+{
+	Super::OnPoiScopeReady(ScopeId);
+
+	if (bAutoRegisterPlayersOnBeginPlay && HasAuthority())
+	{
+		EnsurePlayerRegistrationReady();
+	}
+}
+
+void AScopedMessagePoiRootActor::OnPlayerRegistrationReady(FScopedMessageScopeId ScopeId)
+{
+	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] ScopedMessage Poi root %s player registration ready Scope=%s"),
+		*UScopedMessageSubsystem::GetNetModePrefix(this),
+		*GetName(),
+		*ScopeId.ToString());
 }

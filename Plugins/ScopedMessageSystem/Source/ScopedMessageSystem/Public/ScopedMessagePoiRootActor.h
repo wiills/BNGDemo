@@ -1,8 +1,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "ScopedMessagePoiActor.h"
 #include "ScopedMessageTypes.h"
+#include "TimerManager.h"
 #include "ScopedMessagePoiRootActor.generated.h"
 
 class APlayerController;
@@ -15,14 +16,13 @@ class UScopedMessageScopeComponent;
  * attachment, or a custom scope resolver so they share the same ScopeId.
  */
 UCLASS(Abstract, BlueprintType, Blueprintable)
-class SCOPEDMESSAGESYSTEM_API AScopedMessagePoiRootActor : public AActor
+class SCOPEDMESSAGESYSTEM_API AScopedMessagePoiRootActor : public AScopedMessagePoiActor
 {
 	GENERATED_BODY()
 
 public:
 	AScopedMessagePoiRootActor();
 
-	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UFUNCTION(BlueprintPure, Category = "Scoped Message|Poi")
@@ -40,8 +40,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Scoped Message|Poi")
 	void UnregisterAllCurrentPlayers();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Scoped Message|Poi")
-	TObjectPtr<USceneComponent> SceneRoot;
+	UFUNCTION(BlueprintCallable, Category = "Scoped Message|Poi")
+	void EnsurePlayerRegistrationReady();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Scoped Message|Poi")
 	TObjectPtr<UScopedMessageScopeComponent> ScopeComponent;
@@ -51,4 +51,15 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scoped Message|Poi")
 	bool bAutoUnregisterPlayersOnEndPlay = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scoped Message|Poi", meta = (ClampMin = "0.01"))
+	float PlayerRegistrationRetryInterval = 0.1f;
+
+protected:
+	virtual FString GetPoiActorLogLabel() const override;
+	virtual void OnPoiScopeReady(FScopedMessageScopeId ScopeId) override;
+	virtual void OnPlayerRegistrationReady(FScopedMessageScopeId ScopeId);
+
+private:
+	FTimerHandle PlayerRegistrationRetryTimer;
 };
