@@ -28,7 +28,7 @@ The recommended setup is:
 AScopedMessagePoiRootActor
   - inherits AScopedMessagePoiActor shared ScopeId readiness behavior
   - UScopedMessageScopeComponent
-      Replicated ScopeId
+      Runtime-generated replicated ScopeId by default
   - optional auto player-interest registration
 
 AScopedMessagePoiSubActor
@@ -40,6 +40,10 @@ AScopedMessagePoiSubActor
 Projects can inherit these two base classes for the common case. Lower-level
 systems can still use `UScopedMessageScopeComponent`, `IScopeContextProvider`, or
 custom scope resolvers directly.
+
+Poi roots generate their ScopeId on authority by default, so authored levels do
+not need hand-filled ScopeId values. Disable `bGenerateRuntimeScopeIdOnAuthority`
+only for special cases that intentionally use a fixed scope.
 
 Scope resolution checks:
 

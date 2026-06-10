@@ -29,6 +29,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Scoped Message|Scope")
 	void SetScopeId(FScopedMessageScopeId InScopeId);
 
+	/** Generates and stores a new ScopeId using GeneratedScopePrefix. */
+	UFUNCTION(BlueprintCallable, Category = "Scoped Message|Scope")
+	FScopedMessageScopeId GenerateNewScopeId();
+
 	UFUNCTION(BlueprintPure, Category = "Scoped Message|Scope")
 	FScopedMessageScopeId GetConfiguredScopeId() const { return ScopeId; }
 

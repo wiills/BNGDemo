@@ -8,6 +8,21 @@
 AScopedMessagePoiRootActor::AScopedMessagePoiRootActor()
 {
 	ScopeComponent = CreateDefaultSubobject<UScopedMessageScopeComponent>(TEXT("PoiScope"));
+	ScopeComponent->bGenerateScopeIdOnAuthority = false;
+}
+
+void AScopedMessagePoiRootActor::BeginPlay()
+{
+	if (bGenerateRuntimeScopeIdOnAuthority && HasAuthority() && ScopeComponent)
+	{
+		const FScopedMessageScopeId GeneratedScopeId = ScopeComponent->GenerateNewScopeId();
+		UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] ScopedMessage Poi root %s generated runtime Scope=%s"),
+			*UScopedMessageSubsystem::GetNetModePrefix(this),
+			*GetName(),
+			*GeneratedScopeId.ToString());
+	}
+
+	Super::BeginPlay();
 }
 
 void AScopedMessagePoiRootActor::EndPlay(const EEndPlayReason::Type EndPlayReason)

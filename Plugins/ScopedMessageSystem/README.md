@@ -21,8 +21,10 @@ without leaking those events into another Poi using the same template.
 ### 1. Add a scope to the Poi root
 
 Prefer deriving your Poi root from `AScopedMessagePoiRootActor`. It already owns
-the replicated `UScopedMessageScopeComponent` and can automatically register
-current players for scoped client delivery during BeginPlay.
+the replicated `UScopedMessageScopeComponent`, generates a runtime ScopeId on the
+server by default, and can automatically register current players for scoped
+client delivery during BeginPlay. You normally do not need to hand-author ScopeId
+values on Poi roots.
 
 Actors inside the Poi can derive from `AScopedMessagePoiSubActor`. The base class
 waits until a valid ScopeId can be resolved locally, which avoids client BeginPlay

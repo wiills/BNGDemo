@@ -6,8 +6,9 @@ Channel，但彼此之间不会串消息。
 ## Actor
 
 - `AScopedMessagePoiDemoRoot`：Poi 根节点，带有 `UScopedMessageScopeComponent`。
-  默认会在服务端 BeginPlay 时自动注册当前 PlayerController，方便测试
-  `ServerToScopedClients`。它继承自通用基类 `AScopedMessagePoiRootActor`。
+  默认在服务端 BeginPlay 自动生成 `ScopeId`，并在时机合适后注册当前
+  PlayerController，方便测试 `ServerToScopedClients`。它继承自通用基类
+  `AScopedMessagePoiRootActor`。
 - `AScopedMessagePoiDemoTerminal`：广播 `Poi.Demo.Terminal.Activated`。
 - `AScopedMessagePoiDemoDoor`：监听同一个 Scope 内的终端激活消息。
   Terminal 和 Door 都继承自 `AScopedMessagePoiSubActor`，会等待本地能解析出有效
@@ -21,6 +22,8 @@ Channel，但彼此之间不会串消息。
 4. 两个 Terminal 都使用 Channel `Poi.Demo.Terminal.Activated`。
 5. 两个 Door 都监听 Channel `Poi.Demo.Terminal.Activated`。
 6. 将每个 Door 的 `RequiredTerminalId` 设置为同一个 Poi 内 Terminal 的 ID。
+
+不需要手填 Root 的 `ScopeId`；Demo Root 会在服务端运行时生成并复制给客户端。
 
 关键点是 Attach 或 Owner 关系：Terminal 和 Door 必须能通过 Scope Resolver 解析到同一个
 Poi Root。默认 Resolver 支持直接 Provider、Actor Component、Owner 链、Attach 父级链和

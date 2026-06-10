@@ -17,11 +17,7 @@ void UScopedMessageScopeComponent::BeginPlay()
 	AActor* Owner = GetOwner();
 	if (bGenerateScopeIdOnAuthority && Owner && Owner->HasAuthority() && !ScopeId.IsValid())
 	{
-		const FString GeneratedName = FString::Printf(
-			TEXT("%s.%s"),
-			*GeneratedScopePrefix.ToString(),
-			*FGuid::NewGuid().ToString(EGuidFormats::Digits));
-		ScopeId = FScopedMessageScopeId(FName(*GeneratedName));
+		GenerateNewScopeId();
 	}
 }
 
@@ -40,4 +36,14 @@ FScopedMessageScopeId UScopedMessageScopeComponent::GetScopeId_Implementation() 
 void UScopedMessageScopeComponent::SetScopeId(FScopedMessageScopeId InScopeId)
 {
 	ScopeId = InScopeId;
+}
+
+FScopedMessageScopeId UScopedMessageScopeComponent::GenerateNewScopeId()
+{
+	const FString GeneratedName = FString::Printf(
+		TEXT("%s.%s"),
+		*GeneratedScopePrefix.ToString(),
+		*FGuid::NewGuid().ToString(EGuidFormats::Digits));
+	ScopeId = FScopedMessageScopeId(FName(*GeneratedName));
+	return ScopeId;
 }

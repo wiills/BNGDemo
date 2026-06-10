@@ -25,6 +25,7 @@ class SCOPEDMESSAGESYSTEM_API AScopedMessagePoiRootActor : public AScopedMessage
 public:
 	AScopedMessagePoiRootActor();
 
+	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UFUNCTION(BlueprintPure, Category = "Scoped Message|Poi")
@@ -53,6 +54,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scoped Message|Poi")
 	bool bAutoUnregisterPlayersOnEndPlay = true;
+
+	/** When true, the root overwrites any authored ScopeId with a fresh server-generated runtime ScopeId. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scoped Message|Poi")
+	bool bGenerateRuntimeScopeIdOnAuthority = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scoped Message|Poi", meta = (ClampMin = "0.01"))
 	float PlayerRegistrationRetryInterval = 0.1f;
