@@ -43,6 +43,9 @@ Scope resolution checks:
 6. UObject outer chain.
 
 Any object or Blueprint can also implement `IScopeContextProvider` directly.
+Projects can also register C++ scope resolver delegates. Custom resolvers run
+before the default resolver and can map project-specific objects to stable scope
+IDs without changing the plugin's default traversal rules.
 
 ## Local Routing
 
@@ -99,13 +102,33 @@ PayloadStructPath
 PayloadBytes
 ```
 
-The payload struct is resolved by path on the receiver, then deserialized into an
-`FStructOnScope` for local dispatch. Blueprint-facing async nodes expose the
-serialized `FScopedMessagePayload` packet instead of `FInstancedStruct`, so this
-plugin does not depend on StructUtils. Payloads should be plain reflected UStruct
-data. Avoid raw UObject pointers inside payloads unless a project-specific
-serializer is added. For authoritative game state, replicate state through normal
-gameplay components; use scoped messages for triggers and notifications.
+The network envelope carries `FScopedMessagePayload` (`StructPath + Bytes`). The
+payload struct is resolved by path on the receiver, then deserialized into an
+`FStructOnScope` for local C++ dispatch. Blueprint-facing APIs use
+`FInstancedStruct` so graphs can work with real struct values instead of raw
+bytes.
+
+The plugin uses the engine's StructUtils C++ module for `FInstancedStruct`, but
+does not add a StructUtils plugin entry to project or plugin config. Payloads
+should be plain reflected UStruct data. Avoid raw UObject pointers inside
+payloads unless a project-specific serializer is added. For authoritative game
+state, replicate state through normal gameplay components; use scoped messages
+for triggers and notifications.
+
+`FScopedMessagePayload::Make<T>` and `TryDecode<T>` cover C++ typed encode/decode.
+`UScopedMessagePayloadLibrary` exposes generic Blueprint inspection and conversion
+helpers between `FScopedMessagePayload` and `FInstancedStruct`.
+
+## Diagnostics
+
+The subsystem exposes two lightweight dump helpers:
+
+- `DumpRoutingTable()`: logs scope, channel, and listener counts.
+- `DumpScopeResolution(Context)`: logs custom resolver output and default resolver
+  output for one context object.
+
+Automation coverage currently includes payload encode/decode, scope isolation,
+partial channel matching, and custom resolver override behavior.
 
 ## POI Task Pattern
 

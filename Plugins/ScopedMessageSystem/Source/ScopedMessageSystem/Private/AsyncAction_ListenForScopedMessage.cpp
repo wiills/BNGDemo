@@ -1,7 +1,6 @@
 #include "AsyncAction_ListenForScopedMessage.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
-#include "Serialization/MemoryWriter.h"
 #include "ScopedMessageSubsystem.h"
 
 UAsyncAction_ListenForScopedMessage* UAsyncAction_ListenForScopedMessage::ListenForScopedMessages(
@@ -79,14 +78,8 @@ void UAsyncAction_ListenForScopedMessage::HandleMessageReceived(FGameplayTag Cha
 {
 	if (!MessageStructType.IsValid() || (MessageStructType.Get() == StructType))
 	{
-		FScopedMessagePayload Payload;
-		Payload.PayloadStructPath = StructType ? StructType->GetPathName() : FString();
-		if (StructType && PayloadBytes)
-		{
-			FMemoryWriter Writer(Payload.PayloadBytes);
-			const_cast<UScriptStruct*>(StructType)->SerializeItem(Writer, const_cast<void*>(PayloadBytes), nullptr);
-		}
-
+		FInstancedStruct Payload;
+		Payload.InitializeAs(StructType, static_cast<const uint8*>(PayloadBytes));
 		FScopedMessageScopeId ActualScopeId = ListenerHandle.IsValid() ? ListenerHandle.GetScopeId() : FScopedMessageScopeId();
 
 		OnMessageReceived.Broadcast(Channel, Payload, ActualScopeId);

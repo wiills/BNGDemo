@@ -2,6 +2,9 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "Serialization/MemoryReader.h"
+#include "Serialization/MemoryWriter.h"
+#include "UObject/UObjectGlobals.h"
 #include "ScopedMessageTypes.generated.h"
 
 class UScopedMessageSubsystem;
@@ -79,6 +82,35 @@ struct SCOPEDMESSAGESYSTEM_API FScopedMessagePayload
 	bool IsValid() const
 	{
 		return !PayloadStructPath.IsEmpty() && PayloadBytes.Num() > 0;
+	}
+
+	const UScriptStruct* ResolvePayloadType() const;
+	bool IsPayloadOfType(const UScriptStruct* PayloadType) const;
+
+	template <typename FMessageStruct>
+	static FScopedMessagePayload Make(const FMessageStruct& Payload)
+	{
+		FScopedMessagePayload Result;
+		const UScriptStruct* StructType = FMessageStruct::StaticStruct();
+		Result.PayloadStructPath = StructType->GetPathName();
+
+		FMemoryWriter Writer(Result.PayloadBytes);
+		const_cast<UScriptStruct*>(StructType)->SerializeItem(Writer, const_cast<FMessageStruct*>(&Payload), nullptr);
+		return Result;
+	}
+
+	template <typename FMessageStruct>
+	bool TryDecode(FMessageStruct& OutPayload) const
+	{
+		const UScriptStruct* ExpectedType = FMessageStruct::StaticStruct();
+		if (!IsPayloadOfType(ExpectedType))
+		{
+			return false;
+		}
+
+		FMemoryReader Reader(PayloadBytes);
+		const_cast<UScriptStruct*>(ExpectedType)->SerializeItem(Reader, &OutPayload, nullptr);
+		return !Reader.IsError();
 	}
 };
 

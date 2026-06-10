@@ -56,14 +56,28 @@ void UScopedMessageSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 	FWorldDelegates::OnPostWorldInitialization.AddUObject(this, &UScopedMessageSubsystem::OnWorldInitialized);
+	FWorldDelegates::OnWorldCleanup.AddUObject(this, &UScopedMessageSubsystem::OnWorldCleanup);
 }
 
 void UScopedMessageSubsystem::Deinitialize()
 {
 	FWorldDelegates::OnPostWorldInitialization.RemoveAll(this);
+	FWorldDelegates::OnWorldCleanup.RemoveAll(this);
+
+	for (const TPair<TWeakObjectPtr<UWorld>, FDelegateHandle>& Entry : ActorSpawnedDelegateHandles)
+	{
+		if (UWorld* World = Entry.Key.Get())
+		{
+			World->RemoveOnActorSpawnedHandler(Entry.Value);
+		}
+	}
+	ActorSpawnedDelegateHandles.Empty();
+	EndPlayBoundActors.Empty();
+
 	RoutingTable.Empty();
 	LocalScopeMap.Empty();
 	ScopePlayerInterests.Empty();
+	CustomScopeResolvers.Empty();
 	Super::Deinitialize();
 }
 
@@ -136,6 +150,25 @@ FScopedMessageScopeId UScopedMessageSubsystem::GetOrCreateLocalScopeId(const UOb
 
 FScopedMessageScopeId UScopedMessageSubsystem::ResolveScopeId(UObject* ScopeContext) const
 {
+	for (const FRegisteredScopeResolver& RegisteredResolver : CustomScopeResolvers)
+	{
+		if (!RegisteredResolver.Resolver.IsBound())
+		{
+			continue;
+		}
+
+		FScopedMessageScopeId ResolvedScopeId;
+		if (RegisteredResolver.Resolver.Execute(ScopeContext, ResolvedScopeId) && ResolvedScopeId.IsValid())
+		{
+			return ResolvedScopeId;
+		}
+	}
+
+	return ResolveScopeIdDefault(ScopeContext);
+}
+
+FScopedMessageScopeId UScopedMessageSubsystem::ResolveScopeIdDefault(UObject* ScopeContext) const
+{
 	if (!ScopeContext)
 	{
 		return FScopedMessageScopeId();
@@ -180,6 +213,27 @@ FScopedMessageScopeId UScopedMessageSubsystem::ResolveScopeId(UObject* ScopeCont
 	}
 
 	return FScopedMessageScopeId();
+}
+
+FDelegateHandle UScopedMessageSubsystem::RegisterScopeResolver(FScopedMessageScopeResolver Resolver)
+{
+	if (!Resolver.IsBound())
+	{
+		return FDelegateHandle();
+	}
+
+	FRegisteredScopeResolver& RegisteredResolver = CustomScopeResolvers.AddDefaulted_GetRef();
+	RegisteredResolver.Handle = FDelegateHandle(FDelegateHandle::GenerateNewHandle);
+	RegisteredResolver.Resolver = MoveTemp(Resolver);
+	return RegisteredResolver.Handle;
+}
+
+void UScopedMessageSubsystem::UnregisterScopeResolver(FDelegateHandle ResolverHandle)
+{
+	CustomScopeResolvers.RemoveAll([ResolverHandle](const FRegisteredScopeResolver& RegisteredResolver)
+	{
+		return RegisteredResolver.Handle == ResolverHandle;
+	});
 }
 
 bool UScopedMessageSubsystem::IsAuthorityOrStandalone() const
@@ -370,6 +424,16 @@ FScopedMessageListenerHandle UScopedMessageSubsystem::SubscribeInternal(
 	NewListener.Owner = Owner;
 	NewListener.PayloadType = PayloadType;
 
+	if (AActor* OwnerActor = Cast<AActor>(Owner))
+	{
+		TWeakObjectPtr<AActor> WeakOwnerActor(OwnerActor);
+		if (!EndPlayBoundActors.Contains(WeakOwnerActor))
+		{
+			OwnerActor->OnEndPlay.AddDynamic(this, &UScopedMessageSubsystem::OnActorEndPlay);
+			EndPlayBoundActors.Add(WeakOwnerActor);
+		}
+	}
+
 	return FScopedMessageListenerHandle(this, ScopeId, Channel, NewHandleID);
 }
 
@@ -444,6 +508,63 @@ void UScopedMessageSubsystem::CleanupInvalidListeners(FScopedMessageScopeId Scop
 		if (ScopeMap->ChannelMap.Num() == 0)
 		{
 			RoutingTable.Remove(ScopeId);
+		}
+	}
+}
+
+void UScopedMessageSubsystem::CleanupInvalidListenersForOwner(const UObject* Owner)
+{
+	if (!Owner)
+	{
+		return;
+	}
+
+	for (auto ScopeIt = RoutingTable.CreateIterator(); ScopeIt; ++ScopeIt)
+	{
+		FScopeChannelMap& ScopeMap = ScopeIt.Value();
+		for (auto ChannelIt = ScopeMap.ChannelMap.CreateIterator(); ChannelIt; ++ChannelIt)
+		{
+			FListenerList& ListenerList = ChannelIt.Value();
+			ListenerList.Listeners.RemoveAll([Owner](const FScopedMessageListenerData& Listener)
+			{
+				return !Listener.Owner.IsValid() || Listener.Owner.Get() == Owner;
+			});
+
+			if (ListenerList.Listeners.Num() == 0)
+			{
+				ChannelIt.RemoveCurrent();
+			}
+		}
+
+		if (ScopeMap.ChannelMap.Num() == 0)
+		{
+			ScopeIt.RemoveCurrent();
+		}
+	}
+}
+
+void UScopedMessageSubsystem::CleanupAllInvalidListeners()
+{
+	for (auto ScopeIt = RoutingTable.CreateIterator(); ScopeIt; ++ScopeIt)
+	{
+		FScopeChannelMap& ScopeMap = ScopeIt.Value();
+		for (auto ChannelIt = ScopeMap.ChannelMap.CreateIterator(); ChannelIt; ++ChannelIt)
+		{
+			FListenerList& ListenerList = ChannelIt.Value();
+			ListenerList.Listeners.RemoveAll([](const FScopedMessageListenerData& Listener)
+			{
+				return !Listener.Owner.IsValid();
+			});
+
+			if (ListenerList.Listeners.Num() == 0)
+			{
+				ChannelIt.RemoveCurrent();
+			}
+		}
+
+		if (ScopeMap.ChannelMap.Num() == 0)
+		{
+			ScopeIt.RemoveCurrent();
 		}
 	}
 }
@@ -536,7 +657,7 @@ void UScopedMessageSubsystem::HandleClientMessage(APlayerController* Sender, con
 void UScopedMessageSubsystem::K2_BroadcastMessage(
 	const UObject* WorldContextObject,
 	FGameplayTag Channel,
-	const FScopedMessagePayload& Payload,
+	const FInstancedStruct& Payload,
 	EScopedMessageReplication Replication)
 {
 	if (!WorldContextObject)
@@ -554,23 +675,11 @@ void UScopedMessageSubsystem::K2_BroadcastMessage(
 	if (HasInstance(WorldContextObject))
 	{
 		UScopedMessageSubsystem& Subsystem = Get(WorldContextObject);
-		FScopedMessageNetworkPacket Packet;
-		Packet.ScopeId = Subsystem.ResolveScopeId(const_cast<UObject*>(WorldContextObject));
-		Packet.Channel = Channel;
-		Packet.Payload = Payload;
-
-		FStructOnScope Message;
-		if (!Subsystem.DeserializePacket(Packet, Message))
-		{
-			return;
-		}
-
-		const UScriptStruct* PayloadType = Cast<UScriptStruct>(const_cast<UStruct*>(Message.GetStruct()));
 		Subsystem.BroadcastMessageInternal(
 			Channel,
-			PayloadType,
-			Message.GetStructMemory(),
-			Packet.ScopeId,
+			Payload.GetScriptStruct(),
+			Payload.GetMemory(),
+			Subsystem.ResolveScopeId(const_cast<UObject*>(WorldContextObject)),
 			Replication);
 	}
 }
@@ -595,6 +704,49 @@ void UScopedMessageSubsystem::K2_UnregisterPlayerForScope(
 	{
 		Get(WorldContextObject).UnregisterPlayerForScope(PlayerController, ScopeId);
 	}
+}
+
+void UScopedMessageSubsystem::DumpRoutingTable() const
+{
+	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] ScopedMessage routing dump: Scopes=%d CustomResolvers=%d"),
+		*GetNetModePrefix(this), RoutingTable.Num(), CustomScopeResolvers.Num());
+
+	for (const TPair<FScopedMessageScopeId, FScopeChannelMap>& ScopePair : RoutingTable)
+	{
+		int32 ListenerCount = 0;
+		for (const TPair<FGameplayTag, FListenerList>& ChannelPair : ScopePair.Value.ChannelMap)
+		{
+			ListenerCount += ChannelPair.Value.Listeners.Num();
+		}
+
+		UE_LOG(LogScopedMessageSubsystem, Log, TEXT("  Scope=%s Channels=%d Listeners=%d"),
+			*ScopePair.Key.ToString(), ScopePair.Value.ChannelMap.Num(), ListenerCount);
+
+		for (const TPair<FGameplayTag, FListenerList>& ChannelPair : ScopePair.Value.ChannelMap)
+		{
+			UE_LOG(LogScopedMessageSubsystem, Log, TEXT("    Channel=%s Listeners=%d"),
+				*ChannelPair.Key.ToString(), ChannelPair.Value.Listeners.Num());
+		}
+	}
+}
+
+void UScopedMessageSubsystem::DumpScopeResolution(UObject* ScopeContext) const
+{
+	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] ScopedMessage scope resolution for %s"),
+		*GetNetModePrefix(this), *GetNameSafe(ScopeContext));
+
+	for (const FRegisteredScopeResolver& RegisteredResolver : CustomScopeResolvers)
+	{
+		FScopedMessageScopeId ResolvedScopeId;
+		const bool bResolved = RegisteredResolver.Resolver.IsBound() && RegisteredResolver.Resolver.Execute(ScopeContext, ResolvedScopeId);
+		UE_LOG(LogScopedMessageSubsystem, Log, TEXT("  CustomResolver ValidHandle=%s Resolved=%s Scope=%s"),
+			RegisteredResolver.Handle.IsValid() ? TEXT("true") : TEXT("false"),
+			bResolved ? TEXT("true") : TEXT("false"),
+			*ResolvedScopeId.ToString());
+	}
+
+	const FScopedMessageScopeId DefaultScopeId = ResolveScopeIdDefault(ScopeContext);
+	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("  DefaultResolver Scope=%s"), *DefaultScopeId.ToString());
 }
 
 void UScopedMessageSubsystem::RegisterPlayerForScope(APlayerController* PlayerController, FScopedMessageScopeId ScopeId)
@@ -738,7 +890,11 @@ void UScopedMessageSubsystem::OnWorldInitialized(UWorld* World, const UWorld::In
 		return;
 	}
 
-	World->AddOnActorSpawnedHandler(FOnActorSpawned::FDelegate::CreateUObject(this, &UScopedMessageSubsystem::OnActorSpawned));
+	if (!ActorSpawnedDelegateHandles.Contains(World))
+	{
+		const FDelegateHandle SpawnedHandle = World->AddOnActorSpawnedHandler(FOnActorSpawned::FDelegate::CreateUObject(this, &UScopedMessageSubsystem::OnActorSpawned));
+		ActorSpawnedDelegateHandles.Add(World, SpawnedHandle);
+	}
 
 	if (AGameStateBase* GameState = World->GetGameState())
 	{
@@ -754,6 +910,31 @@ void UScopedMessageSubsystem::OnWorldInitialized(UWorld* World, const UWorld::In
 	}
 }
 
+void UScopedMessageSubsystem::OnWorldCleanup(UWorld* World, bool bSessionEnded, bool bCleanupResources)
+{
+	if (!World)
+	{
+		return;
+	}
+
+	if (const FDelegateHandle* SpawnedHandle = ActorSpawnedDelegateHandles.Find(World))
+	{
+		World->RemoveOnActorSpawnedHandler(*SpawnedHandle);
+		ActorSpawnedDelegateHandles.Remove(World);
+	}
+
+	CleanupAllInvalidListeners();
+	CleanupInvalidPlayerInterests();
+	LocalScopeMap.Empty();
+	for (auto It = EndPlayBoundActors.CreateIterator(); It; ++It)
+	{
+		if (!It->IsValid())
+		{
+			It.RemoveCurrent();
+		}
+	}
+}
+
 void UScopedMessageSubsystem::OnActorSpawned(AActor* SpawnedActor)
 {
 	if (AGameStateBase* GameState = Cast<AGameStateBase>(SpawnedActor))
@@ -765,6 +946,18 @@ void UScopedMessageSubsystem::OnActorSpawned(AActor* SpawnedActor)
 	{
 		CreateClientBridgeOnPlayerController(PlayerController);
 	}
+}
+
+void UScopedMessageSubsystem::OnActorEndPlay(AActor* Actor, EEndPlayReason::Type EndPlayReason)
+{
+	if (!Actor)
+	{
+		return;
+	}
+
+	Actor->OnEndPlay.RemoveDynamic(this, &UScopedMessageSubsystem::OnActorEndPlay);
+	EndPlayBoundActors.Remove(Actor);
+	CleanupInvalidListenersForOwner(Actor);
 }
 
 void UScopedMessageSubsystem::CreateReplicatorOnGameState(AGameStateBase* GameState)

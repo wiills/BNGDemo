@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "ScopedMessageTypes.h"
+#include "StructUtils/InstancedStruct.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "ScopedMessageSubsystem.generated.h"
 
@@ -13,6 +14,8 @@ class UScopedMessageClientBridgeComponent;
 class UScopedMessageReplicatorComponent;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogScopedMessageSubsystem, Log, All);
+
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FScopedMessageScopeResolver, UObject* /*ScopeContext*/, FScopedMessageScopeId& /*OutScopeId*/);
 
 /**
  * GameInstance subsystem that routes messages by logical scope and channel.
@@ -88,7 +91,7 @@ public:
 	static void K2_BroadcastMessage(
 		const UObject* WorldContextObject,
 		FGameplayTag Channel,
-		const FScopedMessagePayload& Payload,
+		const FInstancedStruct& Payload,
 		EScopedMessageReplication Replication = EScopedMessageReplication::LocalOnly);
 
 	UFUNCTION(BlueprintCallable, Category = "Scoped Message|Interest", meta = (WorldContext = "WorldContextObject"))
@@ -106,11 +109,21 @@ public:
 	void RegisterPlayerForScope(APlayerController* PlayerController, FScopedMessageScopeId ScopeId);
 	void UnregisterPlayerForScope(APlayerController* PlayerController, FScopedMessageScopeId ScopeId);
 
+	FDelegateHandle RegisterScopeResolver(FScopedMessageScopeResolver Resolver);
+	void UnregisterScopeResolver(FDelegateHandle ResolverHandle);
+
 	void HandleNetworkMessage(const FScopedMessageNetworkPacket& Packet);
 	void HandleClientMessage(APlayerController* Sender, const FScopedMessageNetworkPacket& Packet);
 
 	FScopedMessageScopeId ResolveScopeId(UObject* ScopeContext) const;
+	FScopedMessageScopeId ResolveScopeIdDefault(UObject* ScopeContext) const;
 	FScopedMessageScopeId GetOrCreateLocalScopeId(const UObject* ScopeObject);
+
+	UFUNCTION(BlueprintCallable, Category = "Scoped Message|Debug")
+	void DumpRoutingTable() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Scoped Message|Debug")
+	void DumpScopeResolution(UObject* ScopeContext) const;
 
 private:
 	void BroadcastMessageInternal(
@@ -136,6 +149,8 @@ private:
 
 	void UnsubscribeInternal(FScopedMessageScopeId ScopeId, FGameplayTag Channel, int32 HandleID);
 	void CleanupInvalidListeners(FScopedMessageScopeId ScopeId, FGameplayTag Channel);
+	void CleanupInvalidListenersForOwner(const UObject* Owner);
+	void CleanupAllInvalidListeners();
 	void CleanupInvalidPlayerInterests();
 
 	bool BuildNetworkPacket(
@@ -157,7 +172,10 @@ private:
 	bool IsPlayerRegisteredForScope(APlayerController* PlayerController, FScopedMessageScopeId ScopeId) const;
 
 	void OnWorldInitialized(UWorld* World, const UWorld::InitializationValues IValues);
+	void OnWorldCleanup(UWorld* World, bool bSessionEnded, bool bCleanupResources);
 	void OnActorSpawned(AActor* SpawnedActor);
+	UFUNCTION()
+	void OnActorEndPlay(AActor* Actor, EEndPlayReason::Type EndPlayReason);
 	void CreateReplicatorOnGameState(AGameStateBase* GameState);
 	void CreateClientBridgeOnPlayerController(APlayerController* PlayerController);
 
@@ -175,7 +193,16 @@ private:
 		TMap<FGameplayTag, FListenerList> ChannelMap;
 	};
 
+	struct FRegisteredScopeResolver
+	{
+		FDelegateHandle Handle;
+		FScopedMessageScopeResolver Resolver;
+	};
+
 	TMap<FScopedMessageScopeId, FScopeChannelMap> RoutingTable;
 	TMap<TWeakObjectPtr<UObject>, FScopedMessageScopeId> LocalScopeMap;
 	TMap<FScopedMessageScopeId, TArray<TWeakObjectPtr<APlayerController>>> ScopePlayerInterests;
+	TArray<FRegisteredScopeResolver> CustomScopeResolvers;
+	TMap<TWeakObjectPtr<UWorld>, FDelegateHandle> ActorSpawnedDelegateHandles;
+	TSet<TWeakObjectPtr<AActor>> EndPlayBoundActors;
 };
