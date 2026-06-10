@@ -13,7 +13,7 @@ class SCOPEDMESSAGESYSTEM_API AScopedMessagePoiDemoDoor : public AScopedMessageP
 	GENERATED_BODY()
 
 public:
-	AScopedMessagePoiDemoDoor();
+	AScopedMessagePoiDemoDoor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;

@@ -14,5 +14,5 @@ class SCOPEDMESSAGESYSTEM_API AScopedMessagePoiDemoRoot : public AScopedMessageP
 	GENERATED_BODY()
 
 public:
-	AScopedMessagePoiDemoRoot();
+	AScopedMessagePoiDemoRoot(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };

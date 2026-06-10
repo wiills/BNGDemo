@@ -13,7 +13,7 @@ class SCOPEDMESSAGESYSTEM_API AScopedMessagePoiDemoTerminal : public AScopedMess
 	GENERATED_BODY()
 
 public:
-	AScopedMessagePoiDemoTerminal();
+	AScopedMessagePoiDemoTerminal(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UFUNCTION(BlueprintCallable, Category = "Scoped Message Demo")
 	void ActivateTerminal();

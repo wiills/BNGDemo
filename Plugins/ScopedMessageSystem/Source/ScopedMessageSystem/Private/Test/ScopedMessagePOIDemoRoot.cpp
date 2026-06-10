@@ -1,5 +1,6 @@
 #include "Test/ScopedMessagePoiDemoRoot.h"
 
-AScopedMessagePoiDemoRoot::AScopedMessagePoiDemoRoot()
+AScopedMessagePoiDemoRoot::AScopedMessagePoiDemoRoot(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

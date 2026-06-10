@@ -2,7 +2,8 @@
 
 #include "ScopedMessageSubsystem.h"
 
-AScopedMessagePoiActor::AScopedMessagePoiActor()
+AScopedMessagePoiActor::AScopedMessagePoiActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;

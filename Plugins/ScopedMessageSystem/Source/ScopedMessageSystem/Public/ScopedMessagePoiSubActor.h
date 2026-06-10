@@ -17,7 +17,7 @@ class SCOPEDMESSAGESYSTEM_API AScopedMessagePoiSubActor : public AScopedMessageP
 	GENERATED_BODY()
 
 public:
-	AScopedMessagePoiSubActor();
+	AScopedMessagePoiSubActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
 	virtual FString GetPoiActorLogLabel() const override;

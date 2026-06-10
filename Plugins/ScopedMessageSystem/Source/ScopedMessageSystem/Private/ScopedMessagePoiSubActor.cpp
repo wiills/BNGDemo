@@ -1,6 +1,7 @@
 #include "ScopedMessagePoiSubActor.h"
 
-AScopedMessagePoiSubActor::AScopedMessagePoiSubActor()
+AScopedMessagePoiSubActor::AScopedMessagePoiSubActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

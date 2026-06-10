@@ -2,7 +2,8 @@
 
 #include "ScopedMessageSubsystem.h"
 
-AScopedMessagePoiDemoTerminal::AScopedMessagePoiDemoTerminal()
+AScopedMessagePoiDemoTerminal::AScopedMessagePoiDemoTerminal(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ActivationChannel = FGameplayTag::RequestGameplayTag(TEXT("Poi.Demo.Terminal.Activated"), false);
 }

@@ -3,7 +3,8 @@
 #include "Net/UnrealNetwork.h"
 #include "ScopedMessageSubsystem.h"
 
-AScopedMessagePoiDemoDoor::AScopedMessagePoiDemoDoor()
+AScopedMessagePoiDemoDoor::AScopedMessagePoiDemoDoor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ActivationChannel = FGameplayTag::RequestGameplayTag(TEXT("Poi.Demo.Terminal.Activated"), false);
 }

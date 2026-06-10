@@ -5,7 +5,8 @@
 #include "ScopedMessageScopeComponent.h"
 #include "ScopedMessageSubsystem.h"
 
-AScopedMessagePoiRootActor::AScopedMessagePoiRootActor()
+AScopedMessagePoiRootActor::AScopedMessagePoiRootActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ScopeComponent = CreateDefaultSubobject<UScopedMessageScopeComponent>(TEXT("PoiScope"));
 	ScopeComponent->bGenerateScopeIdOnAuthority = false;

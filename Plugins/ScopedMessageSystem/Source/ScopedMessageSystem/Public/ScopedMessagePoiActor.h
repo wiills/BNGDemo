@@ -20,7 +20,7 @@ class SCOPEDMESSAGESYSTEM_API AScopedMessagePoiActor : public AActor
 	GENERATED_BODY()
 
 public:
-	AScopedMessagePoiActor();
+	AScopedMessagePoiActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
