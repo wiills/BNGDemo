@@ -14,6 +14,8 @@ class UScopedMessageScopeComponent;
  *
  * Put actors that belong to the Poi under this actor through ownership,
  * attachment, or a custom scope resolver so they share the same ScopeId.
+ * Root actors also provide the optional player-interest helpers used by
+ * ServerToScopedClients and ClientToServer validation.
  */
 UCLASS(Abstract, BlueprintType, Blueprintable)
 class SCOPEDMESSAGESYSTEM_API AScopedMessagePoiRootActor : public AScopedMessagePoiActor
@@ -57,7 +59,10 @@ public:
 
 protected:
 	virtual FString GetPoiActorLogLabel() const override;
+
+	/** When the root scope is ready, optional auto-registration waits for players and then registers them. */
 	virtual void OnPoiScopeReady(FScopedMessageScopeId ScopeId) override;
+
 	virtual void OnPlayerRegistrationReady(FScopedMessageScopeId ScopeId);
 
 private:

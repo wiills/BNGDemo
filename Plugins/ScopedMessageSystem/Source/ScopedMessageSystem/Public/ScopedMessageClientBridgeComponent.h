@@ -20,9 +20,11 @@ class SCOPEDMESSAGESYSTEM_API UScopedMessageClientBridgeComponent : public UActo
 public:
 	UScopedMessageClientBridgeComponent();
 
+	/** Client-owned bridge RPC used by EScopedMessageReplication::ClientToServer. */
 	UFUNCTION(Server, Reliable)
 	void Server_SendScopedMessage(const FScopedMessageNetworkPacket& Packet);
 
+	/** Owner-targeted client RPC used by EScopedMessageReplication::ServerToScopedClients. */
 	UFUNCTION(Client, Reliable)
 	void Client_ReceiveScopedMessage(const FScopedMessageNetworkPacket& Packet);
 };

@@ -90,6 +90,8 @@ static FScopedMessageScopeId FindScopeIdOnObject(UObject* Object)
 
 	if (Object->GetClass()->ImplementsInterface(UScopeContextProvider::StaticClass()))
 	{
+		// Direct providers win over structural traversal. This lets project actors
+		// expose a ScopeId without requiring a specific component layout.
 		const FScopedMessageScopeId ScopeId = IScopeContextProvider::Execute_GetScopeId(Object);
 		if (ScopeId.IsValid())
 		{
@@ -107,6 +109,8 @@ static FScopedMessageScopeId FindScopeIdOnObject(UObject* Object)
 
 	if (AActor* Actor = Cast<AActor>(Object))
 	{
+		// Components are checked here because the common Poi root setup exposes its
+		// scope through UScopedMessageScopeComponent rather than the actor itself.
 		TInlineComponentArray<UActorComponent*> Components;
 		Actor->GetComponents(Components);
 		for (UActorComponent* Component : Components)
@@ -150,6 +154,9 @@ FScopedMessageScopeId UScopedMessageSubsystem::GetOrCreateLocalScopeId(const UOb
 
 FScopedMessageScopeId UScopedMessageSubsystem::ResolveScopeId(UObject* ScopeContext) const
 {
+	// Custom resolvers are the project escape hatch. They are intentionally tried
+	// before the built-in traversal so games can map arbitrary gameplay objects to
+	// a scope without changing their ownership or attachment model.
 	for (const FRegisteredScopeResolver& RegisteredResolver : CustomScopeResolvers)
 	{
 		if (!RegisteredResolver.Resolver.IsBound())
@@ -181,6 +188,8 @@ FScopedMessageScopeId UScopedMessageSubsystem::ResolveScopeIdDefault(UObject* Sc
 
 	if (AActor* Actor = Cast<AActor>(ScopeContext))
 	{
+		// Owner and attachment chains cover the usual "actor belongs to a Poi root"
+		// layouts while still keeping the message API independent from any Poi class.
 		AActor* CurrentOwner = Actor->GetOwner();
 		while (CurrentOwner)
 		{
@@ -202,6 +211,8 @@ FScopedMessageScopeId UScopedMessageSubsystem::ResolveScopeIdDefault(UObject* Sc
 		}
 	}
 
+	// UObject outers are checked last so non-actor helper objects created under a
+	// scoped actor/component can still participate in scoped messaging.
 	UObject* Current = ScopeContext->GetOuter();
 	while (Current)
 	{
@@ -293,6 +304,8 @@ void UScopedMessageSubsystem::BroadcastMessageInternal(
 	case EScopedMessageReplication::ClientToServer:
 		if (IsClientNetMode())
 		{
+			// Client-originated packets are validated on the server against
+			// ScopePlayerInterests before being dispatched.
 			FScopedMessageNetworkPacket Packet;
 			if (BuildNetworkPacket(ScopeId, Channel, PayloadType, PayloadBytes, Packet))
 			{
@@ -318,6 +331,8 @@ void UScopedMessageSubsystem::BroadcastMessageInternal(
 
 		if (GetWorld() && GetWorld()->GetNetMode() != NM_Standalone)
 		{
+			// Server broadcasts always execute locally first. Network replication is
+			// an additional delivery path for remote clients.
 			FScopedMessageNetworkPacket Packet;
 			if (BuildNetworkPacket(ScopeId, Channel, PayloadType, PayloadBytes, Packet))
 			{
@@ -360,6 +375,8 @@ void UScopedMessageSubsystem::DispatchMessage(
 			continue;
 		}
 
+		// Copy the listener array before invoking callbacks so listeners can safely
+		// unregister or add other listeners while a message is being dispatched.
 		TArray<FScopedMessageListenerData> ListenersCopy = ListenerList.Listeners;
 		for (FScopedMessageListenerData& Listener : ListenersCopy)
 		{
@@ -426,6 +443,8 @@ FScopedMessageListenerHandle UScopedMessageSubsystem::SubscribeInternal(
 
 	if (AActor* OwnerActor = Cast<AActor>(Owner))
 	{
+		// Actor listeners are removed eagerly on EndPlay. Non-actor UObject owners
+		// are held weakly and cleaned during normal sweeps.
 		TWeakObjectPtr<AActor> WeakOwnerActor(OwnerActor);
 		if (!EndPlayBoundActors.Contains(WeakOwnerActor))
 		{
@@ -586,6 +605,8 @@ bool UScopedMessageSubsystem::BuildNetworkPacket(
 	OutPacket.Payload.PayloadStructPath = PayloadType->GetPathName();
 	OutPacket.Payload.PayloadBytes.Reset();
 
+	// Serialize through reflection so payload structs do not need a custom network
+	// serializer at the plugin layer.
 	FMemoryWriter Writer(OutPacket.Payload.PayloadBytes);
 	const_cast<UScriptStruct*>(PayloadType)->SerializeItem(Writer, const_cast<void*>(PayloadBytes), nullptr);
 	return true;
@@ -617,6 +638,8 @@ bool UScopedMessageSubsystem::DeserializePacket(const FScopedMessageNetworkPacke
 	}
 
 	OutMessage.Initialize(PayloadType);
+	// FStructOnScope owns temporary storage for the deserialized payload during
+	// this dispatch. Blueprint listeners receive a copied FInstancedStruct later.
 	FMemoryReader Reader(Packet.Payload.PayloadBytes);
 	const_cast<UScriptStruct*>(PayloadType)->SerializeItem(Reader, OutMessage.GetStructMemory(), nullptr);
 	return true;
@@ -643,6 +666,8 @@ void UScopedMessageSubsystem::HandleClientMessage(APlayerController* Sender, con
 
 	if (!Packet.ScopeId.IsValid() || !IsPlayerRegisteredForScope(Sender, Packet.ScopeId))
 	{
+		// ClientToServer is intentionally gated by interest registration. Without
+		// this, any client could inject messages into any known ScopeId.
 		UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("[%s] Rejected client message %s for unregistered scope %s from %s"),
 			*GetNetModePrefix(this),
 			*Packet.Channel.ToString(),
@@ -758,6 +783,8 @@ void UScopedMessageSubsystem::RegisterPlayerForScope(APlayerController* PlayerCo
 
 	CreateClientBridgeOnPlayerController(PlayerController);
 
+	// Interest sets are weak and idempotent; registering the same player twice is
+	// harmless and useful for simple enter/stream-in flows.
 	TArray<TWeakObjectPtr<APlayerController>>& Players = ScopePlayerInterests.FindOrAdd(ScopeId);
 	const bool bAlreadyRegistered = Players.ContainsByPredicate([PlayerController](const TWeakObjectPtr<APlayerController>& ExistingPlayer)
 	{
@@ -863,6 +890,8 @@ void UScopedMessageSubsystem::SendPacketToScopedClients(const FScopedMessageNetw
 	{
 		if (APlayerController* PlayerController = PlayerPtr.Get())
 		{
+			// Client RPCs on the PlayerController-owned bridge are owner-targeted, so
+			// only the registered player receives this scoped packet.
 			if (UScopedMessageClientBridgeComponent* Bridge = FindClientBridgeForPlayer(PlayerController))
 			{
 				Bridge->Client_ReceiveScopedMessage(Packet);
@@ -892,6 +921,8 @@ void UScopedMessageSubsystem::OnWorldInitialized(UWorld* World, const UWorld::In
 
 	if (!ActorSpawnedDelegateHandles.Contains(World))
 	{
+		// Worlds can appear before their GameState/PlayerControllers are spawned, so
+		// late actors are watched and given bridge components as they arrive.
 		const FDelegateHandle SpawnedHandle = World->AddOnActorSpawnedHandler(FOnActorSpawned::FDelegate::CreateUObject(this, &UScopedMessageSubsystem::OnActorSpawned));
 		ActorSpawnedDelegateHandles.Add(World, SpawnedHandle);
 	}

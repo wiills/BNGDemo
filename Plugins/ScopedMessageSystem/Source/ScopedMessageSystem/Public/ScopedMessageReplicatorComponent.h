@@ -7,9 +7,12 @@
 #include "ScopedMessageReplicatorComponent.generated.h"
 
 /**
- * Replicated ActorComponent attached to GameState to replicate scoped messages across the network.
- * Since GameState is always relevant (bAlwaysRelevant = true), this component inherits that property,
- * guaranteeing that its NetMulticast RPCs will reach all connected clients.
+ * GameState-owned component for all-client scoped message replication.
+ *
+ * It is created by the subsystem on authority when needed. Since GameState is
+ * normally relevant to every client, the multicast path is appropriate for
+ * ServerToAllClients. Scoped client delivery uses PlayerController bridges
+ * instead.
  */
 UCLASS(ClassGroup = (ScopedMessage), meta = (BlueprintSpawnableComponent))
 class SCOPEDMESSAGESYSTEM_API UScopedMessageReplicatorComponent : public UActorComponent
@@ -19,9 +22,7 @@ class SCOPEDMESSAGESYSTEM_API UScopedMessageReplicatorComponent : public UActorC
 public:
 	UScopedMessageReplicatorComponent();
 
-	/**
-	 * Multicast RPC to replicate a message to all clients.
-	 */
+	/** Multicast RPC used by EScopedMessageReplication::ServerToAllClients. */
 	UFUNCTION(NetMulticast, Reliable)
 	void NetMulticast_BroadcastMessage(const FScopedMessageNetworkPacket& Packet);
 };

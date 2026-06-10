@@ -19,6 +19,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(
 
 /**
  * Blueprint asynchronous action to listen for scoped messages on a specific channel.
+ *
+ * The node resolves its scope from WorldContextObject when activated and returns
+ * payloads as FInstancedStruct so Blueprint graphs can inspect concrete UStruct
+ * values without touching the network byte envelope.
  */
 UCLASS(BlueprintType, meta = (HasDedicatedAsyncNode = "false"))
 class SCOPEDMESSAGESYSTEM_API UAsyncAction_ListenForScopedMessage : public UCancellableAsyncAction
@@ -50,6 +54,7 @@ public:
 	FAsyncScopedMessageDelegate OnMessageReceived;
 
 private:
+	/** Converts the type-erased subsystem callback into the Blueprint FInstancedStruct event payload. */
 	void HandleMessageReceived(FGameplayTag Channel, const UScriptStruct* StructType, const void* PayloadBytes);
 
 private:

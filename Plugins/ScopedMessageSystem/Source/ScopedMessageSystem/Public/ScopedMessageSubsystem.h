@@ -15,6 +15,12 @@ class UScopedMessageReplicatorComponent;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogScopedMessageSubsystem, Log, All);
 
+/**
+ * Optional project resolver hook.
+ *
+ * Return true and write OutScopeId to override the default owner/attachment/outer
+ * traversal. Return false to let later resolvers or the default resolver try.
+ */
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FScopedMessageScopeResolver, UObject* /*ScopeContext*/, FScopedMessageScopeId& /*OutScopeId*/);
 
 /**
@@ -31,8 +37,13 @@ class SCOPEDMESSAGESYSTEM_API UScopedMessageSubsystem : public UGameInstanceSubs
 	friend class UAsyncAction_ListenForScopedMessage;
 
 public:
+	/** Returns the subsystem for a valid world context, asserting if the context is invalid. */
 	static UScopedMessageSubsystem& Get(const UObject* WorldContextObject);
+
+	/** Returns whether a scoped message subsystem is available for this context. */
 	static bool HasInstance(const UObject* WorldContextObject);
+
+	/** Human-readable net mode prefix used by diagnostics and demo logs. */
 	static FString GetNetModePrefix(const UObject* WorldContextObject);
 
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
@@ -45,6 +56,8 @@ public:
 		const FMessageStruct& Payload,
 		EScopedMessageReplication Replication = EScopedMessageReplication::LocalOnly)
 	{
+		// Scope is resolved at broadcast time so the same actor class can be reused
+		// under many Poi roots without carrying per-instance channel tags.
 		const UScriptStruct* StructType = FMessageStruct::StaticStruct();
 		BroadcastMessageInternal(Channel, StructType, &Payload, ResolveScopeId(const_cast<UObject*>(WorldContextObject)), Replication);
 	}
@@ -56,6 +69,8 @@ public:
 		TFunction<void(FGameplayTag, const FMessageStruct&)> Callback,
 		EScopedMessageMatch MatchType = EScopedMessageMatch::ExactMatch)
 	{
+		// Store listeners through a type-erased thunk; the registered payload type is
+		// checked before this callback is invoked.
 		auto ThunkCallback = [InnerCallback = MoveTemp(Callback)](FGameplayTag ActualTag, const UScriptStruct* SenderStructType, const void* SenderPayload)
 		{
 			InnerCallback(ActualTag, *reinterpret_cast<const FMessageStruct*>(SenderPayload));
@@ -84,6 +99,7 @@ public:
 			MatchType);
 	}
 
+	/** Removes a listener represented by Handle and invalidates the handle. */
 	void Unsubscribe(FScopedMessageListenerHandle& Handle);
 
 	UFUNCTION(BlueprintCallable, Category = "Scoped Message", DisplayName = "Broadcast Scoped Message",
@@ -106,17 +122,31 @@ public:
 		APlayerController* PlayerController,
 		FScopedMessageScopeId ScopeId);
 
+	/** Registers a PlayerController as interested in a ScopeId for scoped client delivery and client-to-server validation. */
 	void RegisterPlayerForScope(APlayerController* PlayerController, FScopedMessageScopeId ScopeId);
+
+	/** Removes a PlayerController from a ScopeId interest set. */
 	void UnregisterPlayerForScope(APlayerController* PlayerController, FScopedMessageScopeId ScopeId);
 
+	/** Adds a project-specific resolver that runs before the default traversal resolver. */
 	FDelegateHandle RegisterScopeResolver(FScopedMessageScopeResolver Resolver);
+
+	/** Removes a resolver previously returned by RegisterScopeResolver. */
 	void UnregisterScopeResolver(FDelegateHandle ResolverHandle);
 
+	/** Handles a trusted network packet that has already arrived in this process. */
 	void HandleNetworkMessage(const FScopedMessageNetworkPacket& Packet);
+
+	/** Handles a client-originated packet after validating that Sender is registered for the ScopeId. */
 	void HandleClientMessage(APlayerController* Sender, const FScopedMessageNetworkPacket& Packet);
 
+	/** Runs custom resolvers first, then falls back to ResolveScopeIdDefault. */
 	FScopedMessageScopeId ResolveScopeId(UObject* ScopeContext) const;
+
+	/** Default resolver: direct provider, components, owner chain, attachment chain, then outer chain. */
 	FScopedMessageScopeId ResolveScopeIdDefault(UObject* ScopeContext) const;
+
+	/** Utility for purely local scopes that are tied to a UObject lifetime. */
 	FScopedMessageScopeId GetOrCreateLocalScopeId(const UObject* ScopeObject);
 
 	UFUNCTION(BlueprintCallable, Category = "Scoped Message|Debug")
@@ -126,6 +156,7 @@ public:
 	void DumpScopeResolution(UObject* ScopeContext) const;
 
 private:
+	/** Shared broadcast implementation for C++, Blueprint, and deserialized network packets. */
 	void BroadcastMessageInternal(
 		FGameplayTag Channel,
 		const UScriptStruct* PayloadType,
@@ -148,9 +179,17 @@ private:
 		const void* PayloadBytes);
 
 	void UnsubscribeInternal(FScopedMessageScopeId ScopeId, FGameplayTag Channel, int32 HandleID);
+
+	/** Removes stale weak listeners for one route and collapses empty maps. */
 	void CleanupInvalidListeners(FScopedMessageScopeId ScopeId, FGameplayTag Channel);
+
+	/** Removes all listeners owned by an actor that is ending play. */
 	void CleanupInvalidListenersForOwner(const UObject* Owner);
+
+	/** Global weak-listener sweep used during world cleanup. */
 	void CleanupAllInvalidListeners();
+
+	/** Removes invalid PlayerController weak references from interest sets. */
 	void CleanupInvalidPlayerInterests();
 
 	bool BuildNetworkPacket(
@@ -199,10 +238,21 @@ private:
 		FScopedMessageScopeResolver Resolver;
 	};
 
+	/** ScopeId -> Channel -> listeners. This is the isolation boundary of the plugin. */
 	TMap<FScopedMessageScopeId, FScopeChannelMap> RoutingTable;
+
+	/** UObject-lifetime local scopes generated by GetOrCreateLocalScopeId. */
 	TMap<TWeakObjectPtr<UObject>, FScopedMessageScopeId> LocalScopeMap;
+
+	/** Server-side player interest table used by ClientToServer and ServerToScopedClients. */
 	TMap<FScopedMessageScopeId, TArray<TWeakObjectPtr<APlayerController>>> ScopePlayerInterests;
+
+	/** Custom resolvers are evaluated in registration order before the default resolver. */
 	TArray<FRegisteredScopeResolver> CustomScopeResolvers;
+
+	/** Per-world spawn delegate handles so bridge components can be attached to late-spawned actors. */
 	TMap<TWeakObjectPtr<UWorld>, FDelegateHandle> ActorSpawnedDelegateHandles;
+
+	/** Actors whose EndPlay delegate is bound for eager listener cleanup. */
 	TSet<TWeakObjectPtr<AActor>> EndPlayBoundActors;
 };
