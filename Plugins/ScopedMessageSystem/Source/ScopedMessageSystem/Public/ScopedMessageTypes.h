@@ -10,9 +10,9 @@
 class UScopedMessageSubsystem;
 
 /**
- * Stable network identifier for a logical message scope, such as one POI instance.
+ * Stable network identifier for a logical message scope, such as one Poi instance.
  *
- * Channel names remain GameplayTags. Scope IDs are intentionally FNames so runtime POI
+ * Channel names remain GameplayTags. Scope IDs are intentionally FNames so runtime Poi
  * instances can use replicated IDs without depending on per-process GameplayTag tables.
  */
 USTRUCT(BlueprintType)

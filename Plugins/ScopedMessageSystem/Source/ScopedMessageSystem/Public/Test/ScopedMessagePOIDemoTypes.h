@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ScopedMessagePOIDemoTypes.generated.h"
+#include "ScopedMessagePoiDemoTypes.generated.h"
 
 USTRUCT(BlueprintType)
 struct FScopedMessageDemoTerminalActivatedPayload

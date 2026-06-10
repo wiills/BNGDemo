@@ -1,28 +1,25 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
 #include "GameplayTagContainer.h"
+#include "ScopedMessagePoiSubActor.h"
 #include "ScopedMessageTypes.h"
-#include "Test/ScopedMessagePOIDemoTypes.h"
-#include "ScopedMessagePOIDemoTerminal.generated.h"
+#include "Test/ScopedMessagePoiDemoTypes.h"
+#include "ScopedMessagePoiDemoTerminal.generated.h"
 
 UCLASS(BlueprintType, Blueprintable)
-class SCOPEDMESSAGESYSTEM_API AScopedMessagePOIDemoTerminal : public AActor
+class SCOPEDMESSAGESYSTEM_API AScopedMessagePoiDemoTerminal : public AScopedMessagePoiSubActor
 {
 	GENERATED_BODY()
 
 public:
-	AScopedMessagePOIDemoTerminal();
+	AScopedMessagePoiDemoTerminal();
 
 	UFUNCTION(BlueprintCallable, Category = "Scoped Message Demo")
 	void ActivateTerminal();
 
 	UFUNCTION(Server, Reliable)
 	void Server_ActivateTerminal();
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Scoped Message Demo")
-	TObjectPtr<USceneComponent> SceneRoot;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scoped Message Demo")
 	FName TerminalId = TEXT("TerminalA");

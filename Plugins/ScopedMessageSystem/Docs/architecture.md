@@ -1,7 +1,7 @@
-# Scoped Message System - POI Architecture
+# Scoped Message System - Poi Architecture
 
-This plugin is a scoped message layer for POI-style gameplay spaces. It solves the
-case where many identical POI instances contain actors that use the same channels
+This plugin is a scoped message layer for Poi-style gameplay spaces. It solves the
+case where many identical Poi instances contain actors that use the same channels
 but must not hear each other's messages.
 
 ## Core Model
@@ -12,12 +12,12 @@ Messages are routed by two keys:
 FScopedMessageScopeId + FGameplayTag Channel -> ListenerList
 ```
 
-- `FScopedMessageScopeId` is a replicated `FName` identifier for one POI or
+- `FScopedMessageScopeId` is a replicated `FName` identifier for one Poi or
   logical gameplay space. It is not a GameplayTag, because runtime scope IDs must
   be stable across server and clients.
-- `Channel` remains a static GameplayTag such as `POI.Terminal.Activated` or
-  `POI.Objective.Progressed`.
-- An empty scope is treated as a global fallback and should be avoided for POI
+- `Channel` remains a static GameplayTag such as `Poi.Terminal.Activated` or
+  `Poi.Objective.Progressed`.
+- An empty scope is treated as a global fallback and should be avoided for Poi
   instance communication.
 
 ## Scope Ownership
@@ -25,13 +25,19 @@ FScopedMessageScopeId + FGameplayTag Channel -> ListenerList
 The recommended setup is:
 
 ```text
-APOIInstanceActor
+AScopedMessagePoiRootActor
   - UScopedMessageScopeComponent
       Replicated ScopeId
+  - optional auto player-interest registration
 
-Actors inside the POI
-  - owned by, attached to, outered under, or otherwise able to resolve the POI root
+AScopedMessagePoiSubActor
+  - waits until local ScopeId resolution is valid
+  - owned by, attached to, outered under, or otherwise able to resolve the Poi root
 ```
+
+Projects can inherit these two base classes for the common case. Lower-level
+systems can still use `UScopedMessageScopeComponent`, `IScopeContextProvider`, or
+custom scope resolvers directly.
 
 Scope resolution checks:
 
@@ -74,7 +80,7 @@ intent:
   only to PlayerControllers registered for the target scope.
 
 Scoped client delivery uses `UScopedMessageClientBridgeComponent` on each
-PlayerController. This avoids using global multicast for POI-local events and is
+PlayerController. This avoids using global multicast for Poi-local events and is
 the path to prefer for mobile bandwidth.
 
 ## Player Interest
@@ -86,10 +92,16 @@ UScopedMessageSubsystem::Get(this).RegisterPlayerForScope(PlayerController, Scop
 ```
 
 Call this when a player enters, activates, streams in, or otherwise becomes
-relevant to a POI. Unregister when the player leaves the POI.
+relevant to a Poi. Unregister when the player leaves the Poi.
 
 Client-to-server messages are rejected unless the sending PlayerController is
 registered for that scope.
+
+`AScopedMessagePoiRootActor` provides `RegisterPlayer`, `UnregisterPlayer`,
+`RegisterAllCurrentPlayers`, and `UnregisterAllCurrentPlayers`. Its BeginPlay
+auto-registration is mainly a convenience for demos and simple Pois; real
+streaming or interest-management systems should still call these functions when
+players enter and leave a Poi.
 
 ## Payload Serialization
 
@@ -108,12 +120,12 @@ payload struct is resolved by path on the receiver, then deserialized into an
 `FInstancedStruct` so graphs can work with real struct values instead of raw
 bytes.
 
-The plugin uses the engine's StructUtils C++ module for `FInstancedStruct`, but
-does not add a StructUtils plugin entry to project or plugin config. Payloads
-should be plain reflected UStruct data. Avoid raw UObject pointers inside
-payloads unless a project-specific serializer is added. For authoritative game
-state, replicate state through normal gameplay components; use scoped messages
-for triggers and notifications.
+The plugin uses `FInstancedStruct` from engine headers for Blueprint-facing APIs,
+but this project does not declare an explicit StructUtils dependency in
+`.uplugin`, `.uproject`, or `Build.cs`. Payloads should be plain reflected
+UStruct data. Avoid raw UObject pointers inside payloads unless a project-specific
+serializer is added. For authoritative game state, replicate state through normal
+gameplay components; use scoped messages for triggers and notifications.
 
 `FScopedMessagePayload::Make<T>` and `TryDecode<T>` cover C++ typed encode/decode.
 `UScopedMessagePayloadLibrary` exposes generic Blueprint inspection and conversion
@@ -128,19 +140,22 @@ The subsystem exposes two lightweight dump helpers:
   output for one context object.
 
 Automation coverage currently includes payload encode/decode, scope isolation,
-partial channel matching, and custom resolver override behavior.
+partial channel matching, and custom resolver override behavior. The manual test
+surface is the Poi demo actors under `Source/ScopedMessageSystem/*/Test`; the old
+generic broadcaster/listener/scope-provider sample was removed to avoid carrying
+two competing examples.
 
-## POI Task Pattern
+## Poi Task Pattern
 
 Use scoped messages for decoupled events:
 
 ```text
-Terminal -> POI.Terminal.Activated
-Door     -> listens POI.Terminal.Activated
-Spawner  -> listens POI.Alert.Raised
+Terminal -> Poi.Terminal.Activated
+Door     -> listens Poi.Terminal.Activated
+Spawner  -> listens Poi.Alert.Raised
 ObjectiveStateComponent -> listens and owns authoritative state
-UI       -> listens server/client notifications for the local player's POI
+UI       -> listens server/client notifications for the local player's Poi
 ```
 
-Messages are not the source of truth. The POI objective/state component should
+Messages are not the source of truth. The Poi objective/state component should
 own durable state and replicate that state normally.

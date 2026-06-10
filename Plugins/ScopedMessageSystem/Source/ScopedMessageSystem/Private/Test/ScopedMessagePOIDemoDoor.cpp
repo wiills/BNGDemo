@@ -1,22 +1,78 @@
-#include "Test/ScopedMessagePOIDemoDoor.h"
+#include "Test/ScopedMessagePoiDemoDoor.h"
 
 #include "Net/UnrealNetwork.h"
 #include "ScopedMessageSubsystem.h"
 
-AScopedMessagePOIDemoDoor::AScopedMessagePOIDemoDoor()
+AScopedMessagePoiDemoDoor::AScopedMessagePoiDemoDoor()
 {
-	PrimaryActorTick.bCanEverTick = false;
-	bReplicates = true;
-
-	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-	RootComponent = SceneRoot;
-
-	ActivationChannel = FGameplayTag::RequestGameplayTag(TEXT("POI.Demo.Terminal.Activated"), false);
+	ActivationChannel = FGameplayTag::RequestGameplayTag(TEXT("Poi.Demo.Terminal.Activated"), false);
 }
 
-void AScopedMessagePOIDemoDoor::BeginPlay()
+void AScopedMessagePoiDemoDoor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	Super::BeginPlay();
+	UnsubscribeFromTerminal();
+	Super::EndPlay(EndPlayReason);
+}
+
+void AScopedMessagePoiDemoDoor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AScopedMessagePoiDemoDoor, bIsOpen);
+}
+
+void AScopedMessagePoiDemoDoor::SubscribeToTerminal()
+{
+	if (!ActivationChannel.IsValid())
+	{
+		UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("Poi demo door %s has invalid ActivationChannel"), *GetName());
+		return;
+	}
+
+	UScopedMessageSubsystem& Subsystem = UScopedMessageSubsystem::Get(this);
+	const FScopedMessageScopeId ResolvedScopeId = Subsystem.ResolveScopeId(this);
+	if (!ResolvedScopeId.IsValid())
+	{
+		EnsurePoiScopeReady();
+		return;
+	}
+
+	if (ListenerHandle.IsValid())
+	{
+		if (SubscribedScopeId == ResolvedScopeId)
+		{
+			return;
+		}
+
+		ListenerHandle.Unregister();
+	}
+
+	ListenerHandle = Subsystem.Subscribe<FScopedMessageDemoTerminalActivatedPayload>(
+		ActivationChannel,
+		this,
+		&AScopedMessagePoiDemoDoor::OnTerminalActivated);
+	SubscribedScopeId = ResolvedScopeId;
+
+	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] Poi demo door %s subscribed Scope=%s Channel=%s"),
+		*UScopedMessageSubsystem::GetNetModePrefix(this),
+		*GetName(),
+		*SubscribedScopeId.ToString(),
+		*ActivationChannel.ToString());
+}
+
+void AScopedMessagePoiDemoDoor::UnsubscribeFromTerminal()
+{
+	if (ListenerHandle.IsValid())
+	{
+		ListenerHandle.Unregister();
+	}
+
+	SubscribedScopeId = FScopedMessageScopeId();
+}
+
+void AScopedMessagePoiDemoDoor::OnPoiScopeReady(FScopedMessageScopeId ScopeId)
+{
+	Super::OnPoiScopeReady(ScopeId);
 
 	if (bAutoSubscribeOnBeginPlay)
 	{
@@ -24,54 +80,7 @@ void AScopedMessagePOIDemoDoor::BeginPlay()
 	}
 }
 
-void AScopedMessagePOIDemoDoor::EndPlay(const EEndPlayReason::Type EndPlayReason)
-{
-	UnsubscribeFromTerminal();
-	Super::EndPlay(EndPlayReason);
-}
-
-void AScopedMessagePOIDemoDoor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(AScopedMessagePOIDemoDoor, bIsOpen);
-}
-
-void AScopedMessagePOIDemoDoor::SubscribeToTerminal()
-{
-	if (ListenerHandle.IsValid())
-	{
-		return;
-	}
-
-	if (!ActivationChannel.IsValid())
-	{
-		UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("POI demo door %s has invalid ActivationChannel"), *GetName());
-		return;
-	}
-
-	UScopedMessageSubsystem& Subsystem = UScopedMessageSubsystem::Get(this);
-	ListenerHandle = Subsystem.Subscribe<FScopedMessageDemoTerminalActivatedPayload>(
-		ActivationChannel,
-		this,
-		&AScopedMessagePOIDemoDoor::OnTerminalActivated);
-
-	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] POI demo door %s subscribed Scope=%s Channel=%s"),
-		*UScopedMessageSubsystem::GetNetModePrefix(this),
-		*GetName(),
-		*Subsystem.ResolveScopeId(this).ToString(),
-		*ActivationChannel.ToString());
-}
-
-void AScopedMessagePOIDemoDoor::UnsubscribeFromTerminal()
-{
-	if (ListenerHandle.IsValid())
-	{
-		ListenerHandle.Unregister();
-	}
-}
-
-void AScopedMessagePOIDemoDoor::ResetDoor()
+void AScopedMessagePoiDemoDoor::ResetDoor()
 {
 	if (HasAuthority())
 	{
@@ -80,7 +89,7 @@ void AScopedMessagePOIDemoDoor::ResetDoor()
 	}
 }
 
-void AScopedMessagePOIDemoDoor::OnRep_IsOpen()
+void AScopedMessagePoiDemoDoor::OnRep_IsOpen()
 {
 	if (bIsOpen)
 	{
@@ -88,17 +97,28 @@ void AScopedMessagePOIDemoDoor::OnRep_IsOpen()
 	}
 }
 
-void AScopedMessagePOIDemoDoor::OnTerminalActivated(FGameplayTag Channel, const FScopedMessageDemoTerminalActivatedPayload& Payload)
+void AScopedMessagePoiDemoDoor::OnTerminalActivated(FGameplayTag Channel, const FScopedMessageDemoTerminalActivatedPayload& Payload)
 {
+	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] Poi demo door %s received Channel=%s Scope=%s TerminalId=%s RequiredTerminalId=%s"),
+		*UScopedMessageSubsystem::GetNetModePrefix(this),
+		*GetName(),
+		*Channel.ToString(),
+		*UScopedMessageSubsystem::Get(this).ResolveScopeId(this).ToString(),
+		*Payload.TerminalId.ToString(),
+		*RequiredTerminalId.ToString());
+
 	if (!RequiredTerminalId.IsNone() && Payload.TerminalId != RequiredTerminalId)
 	{
+		UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] Poi demo door %s ignored terminal activation because TerminalId did not match"),
+			*UScopedMessageSubsystem::GetNetModePrefix(this),
+			*GetName());
 		return;
 	}
 
 	OpenDoor(Payload);
 }
 
-void AScopedMessagePOIDemoDoor::OpenDoor(const FScopedMessageDemoTerminalActivatedPayload& Payload)
+void AScopedMessagePoiDemoDoor::OpenDoor(const FScopedMessageDemoTerminalActivatedPayload& Payload)
 {
 	if (!bIsOpen)
 	{
@@ -107,7 +127,7 @@ void AScopedMessagePOIDemoDoor::OpenDoor(const FScopedMessageDemoTerminalActivat
 
 	OpenCount++;
 
-	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] POI demo door %s opened by TerminalId=%s Count=%d"),
+	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] Poi demo door %s opened by TerminalId=%s Count=%d"),
 		*UScopedMessageSubsystem::GetNetModePrefix(this),
 		*GetName(),
 		*Payload.TerminalId.ToString(),

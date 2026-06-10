@@ -2,7 +2,7 @@
 
 #include "ScopedMessageSubsystem.h"
 #include "Test/ScopedMessageAutomationTestTypes.h"
-#include "Test/ScopedMessagePOIDemoTypes.h"
+#include "Test/ScopedMessagePoiDemoTypes.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 
@@ -43,8 +43,8 @@ bool FScopedMessageRoutingAutomationTest::RunTest(const FString& Parameters)
 	ScopeA->ScopeId = FScopedMessageScopeId(FName(TEXT("Automation.Scope.A")));
 	ScopeB->ScopeId = FScopedMessageScopeId(FName(TEXT("Automation.Scope.B")));
 
-	const FGameplayTag ParentChannel = FGameplayTag::RequestGameplayTag(TEXT("POI.Demo.Terminal"));
-	const FGameplayTag ActivationChannel = FGameplayTag::RequestGameplayTag(TEXT("POI.Demo.Terminal.Activated"));
+	const FGameplayTag ParentChannel = FGameplayTag::RequestGameplayTag(TEXT("Poi.Demo.Terminal"));
+	const FGameplayTag ActivationChannel = FGameplayTag::RequestGameplayTag(TEXT("Poi.Demo.Terminal.Activated"));
 
 	int32 ExactCountA = 0;
 	int32 ExactCountB = 0;

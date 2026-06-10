@@ -1,19 +1,13 @@
-#include "Test/ScopedMessagePOIDemoTerminal.h"
+#include "Test/ScopedMessagePoiDemoTerminal.h"
 
 #include "ScopedMessageSubsystem.h"
 
-AScopedMessagePOIDemoTerminal::AScopedMessagePOIDemoTerminal()
+AScopedMessagePoiDemoTerminal::AScopedMessagePoiDemoTerminal()
 {
-	PrimaryActorTick.bCanEverTick = false;
-	bReplicates = true;
-
-	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-	RootComponent = SceneRoot;
-
-	ActivationChannel = FGameplayTag::RequestGameplayTag(TEXT("POI.Demo.Terminal.Activated"), false);
+	ActivationChannel = FGameplayTag::RequestGameplayTag(TEXT("Poi.Demo.Terminal.Activated"), false);
 }
 
-void AScopedMessagePOIDemoTerminal::ActivateTerminal()
+void AScopedMessagePoiDemoTerminal::ActivateTerminal()
 {
 	if (!HasAuthority())
 	{
@@ -23,7 +17,7 @@ void AScopedMessagePOIDemoTerminal::ActivateTerminal()
 
 	if (!ActivationChannel.IsValid())
 	{
-		UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("POI demo terminal %s has invalid ActivationChannel"), *GetName());
+		UE_LOG(LogScopedMessageSubsystem, Warning, TEXT("Poi demo terminal %s has invalid ActivationChannel"), *GetName());
 		return;
 	}
 
@@ -35,7 +29,7 @@ void AScopedMessagePOIDemoTerminal::ActivateTerminal()
 	UScopedMessageSubsystem& Subsystem = UScopedMessageSubsystem::Get(this);
 	Subsystem.BroadcastMessage(this, ActivationChannel, Payload, Replication);
 
-	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] POI demo terminal %s activated TerminalId=%s Count=%d Scope=%s"),
+	UE_LOG(LogScopedMessageSubsystem, Log, TEXT("[%s] Poi demo terminal %s activated TerminalId=%s Count=%d Scope=%s"),
 		*UScopedMessageSubsystem::GetNetModePrefix(this),
 		*GetName(),
 		*TerminalId.ToString(),
@@ -43,7 +37,7 @@ void AScopedMessagePOIDemoTerminal::ActivateTerminal()
 		*Subsystem.ResolveScopeId(this).ToString());
 }
 
-void AScopedMessagePOIDemoTerminal::Server_ActivateTerminal_Implementation()
+void AScopedMessagePoiDemoTerminal::Server_ActivateTerminal_Implementation()
 {
 	ActivateTerminal();
 }

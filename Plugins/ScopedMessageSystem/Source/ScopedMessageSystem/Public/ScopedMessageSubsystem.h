@@ -20,7 +20,7 @@ DECLARE_DELEGATE_RetVal_TwoParams(bool, FScopedMessageScopeResolver, UObject* /*
 /**
  * GameInstance subsystem that routes messages by logical scope and channel.
  *
- * Intended use: one replicated scope ID per POI/mission-space instance, with
+ * Intended use: one replicated scope ID per Poi/mission-space instance, with
  * static GameplayTag channels inside that scope.
  */
 UCLASS(DisplayName = "Scoped Message Subsystem")

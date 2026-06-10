@@ -1,21 +1,20 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
 #include "GameplayTagContainer.h"
+#include "ScopedMessagePoiSubActor.h"
 #include "ScopedMessageTypes.h"
-#include "Test/ScopedMessagePOIDemoTypes.h"
-#include "ScopedMessagePOIDemoDoor.generated.h"
+#include "Test/ScopedMessagePoiDemoTypes.h"
+#include "ScopedMessagePoiDemoDoor.generated.h"
 
 UCLASS(BlueprintType, Blueprintable)
-class SCOPEDMESSAGESYSTEM_API AScopedMessagePOIDemoDoor : public AActor
+class SCOPEDMESSAGESYSTEM_API AScopedMessagePoiDemoDoor : public AScopedMessagePoiSubActor
 {
 	GENERATED_BODY()
 
 public:
-	AScopedMessagePOIDemoDoor();
+	AScopedMessagePoiDemoDoor();
 
-	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -33,9 +32,6 @@ public:
 
 	UFUNCTION()
 	void OnRep_IsOpen();
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Scoped Message Demo")
-	TObjectPtr<USceneComponent> SceneRoot;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scoped Message Demo")
 	FName DoorId = TEXT("DoorA");
@@ -55,8 +51,12 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Scoped Message Demo")
 	int32 OpenCount = 0;
 
+protected:
+	virtual void OnPoiScopeReady(FScopedMessageScopeId ScopeId) override;
+
 private:
 	FScopedMessageListenerHandle ListenerHandle;
+	FScopedMessageScopeId SubscribedScopeId;
 
 	void OnTerminalActivated(FGameplayTag Channel, const FScopedMessageDemoTerminalActivatedPayload& Payload);
 	void OpenDoor(const FScopedMessageDemoTerminalActivatedPayload& Payload);

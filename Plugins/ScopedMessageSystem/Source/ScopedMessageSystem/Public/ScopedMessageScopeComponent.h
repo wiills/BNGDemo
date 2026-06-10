@@ -7,11 +7,11 @@
 #include "ScopedMessageScopeComponent.generated.h"
 
 /**
- * Replicated scope provider for POI/root actors.
+ * Replicated scope provider for Poi/root actors.
  *
- * Add this component to the actor that represents one POI instance. Child actors can
+ * Add this component to the actor that represents one Poi instance. Child actors can
  * resolve this ScopeId through owner/attachment/outer traversal and route messages
- * without leaking into another POI using the same channels.
+ * without leaking into another Poi using the same channels.
  */
 UCLASS(ClassGroup = (ScopedMessage), meta = (BlueprintSpawnableComponent))
 class SCOPEDMESSAGESYSTEM_API UScopedMessageScopeComponent : public UActorComponent, public IScopeContextProvider
@@ -39,5 +39,5 @@ public:
 	bool bGenerateScopeIdOnAuthority = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scoped Message|Scope")
-	FName GeneratedScopePrefix = TEXT("POI");
+	FName GeneratedScopePrefix = TEXT("Poi");
 };
