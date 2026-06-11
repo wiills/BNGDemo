@@ -8,8 +8,8 @@ AScopedMessagePoiActor::AScopedMessagePoiActor(const FObjectInitializer& ObjectI
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
 
-	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-	RootComponent = SceneRoot;
+	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
+	SetRootComponent(SceneRoot);
 }
 
 void AScopedMessagePoiActor::BeginPlay()

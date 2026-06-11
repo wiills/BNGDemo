@@ -248,8 +248,8 @@ void UK2Node_AsyncAction_ListenForScopedMessages::ConfigureAdvancedPins()
 	MarkAdvancedPin(ScopedMessageListenK2Node::ActualChannelPinName);
 	MarkAdvancedPin(ScopedMessageListenK2Node::ActualScopeIdPinName);
 	MarkAdvancedPin(ScopedMessageListenK2Node::MatchTypePinName);
-	MarkAdvancedPin(ScopedMessageListenK2Node::PayloadPinName);
 	MarkAdvancedPin(ScopedMessageListenK2Node::ScopeContextObjectPinName);
+	MarkAdvancedPin(ScopedMessageListenK2Node::PayloadPinName);
 
 	if (bHasAdvancedPins && AdvancedPinDisplay == ENodeAdvancedPins::NoPins)
 	{
