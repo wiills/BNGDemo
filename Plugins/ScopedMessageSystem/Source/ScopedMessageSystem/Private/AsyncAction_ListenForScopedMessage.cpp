@@ -2,6 +2,8 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "ScopedMessageSubsystem.h"
+#include "UObject/ScriptMacros.h"
+#include "UObject/Stack.h"
 
 UAsyncAction_ListenForScopedMessage* UAsyncAction_ListenForScopedMessage::ListenForScopedMessages(
 	UObject* WorldContextObject,
@@ -74,15 +76,44 @@ void UAsyncAction_ListenForScopedMessage::SetReadyToDestroy()
 	Super::SetReadyToDestroy();
 }
 
+bool UAsyncAction_ListenForScopedMessage::GetPayload(int32& OutPayload)
+{
+	checkNoEntry();
+	return false;
+}
+
+DEFINE_FUNCTION(UAsyncAction_ListenForScopedMessage::execGetPayload)
+{
+	Stack.MostRecentPropertyAddress = nullptr;
+	Stack.StepCompiledIn<FStructProperty>(nullptr);
+	void* MessagePtr = Stack.MostRecentPropertyAddress;
+	FStructProperty* StructProp = CastField<FStructProperty>(Stack.MostRecentProperty);
+	P_FINISH;
+
+	bool bSuccess = false;
+	if ((StructProp != nullptr) &&
+		(StructProp->Struct != nullptr) &&
+		(MessagePtr != nullptr) &&
+		(StructProp->Struct == P_THIS->MessageStructType.Get()) &&
+		(P_THIS->ReceivedMessagePayloadPtr != nullptr))
+	{
+		StructProp->Struct->CopyScriptStruct(MessagePtr, P_THIS->ReceivedMessagePayloadPtr);
+		bSuccess = true;
+	}
+
+	*(bool*)RESULT_PARAM = bSuccess;
+}
+
 void UAsyncAction_ListenForScopedMessage::HandleMessageReceived(FGameplayTag Channel, const UScriptStruct* StructType, const void* PayloadBytes)
 {
 	if (!MessageStructType.IsValid() || (MessageStructType.Get() == StructType))
 	{
-		FInstancedStruct Payload;
-		Payload.InitializeAs(StructType, static_cast<const uint8*>(PayloadBytes));
+		ReceivedMessagePayloadPtr = PayloadBytes;
 		FScopedMessageScopeId ActualScopeId = ListenerHandle.IsValid() ? ListenerHandle.GetScopeId() : FScopedMessageScopeId();
 
-		OnMessageReceived.Broadcast(Channel, Payload, ActualScopeId);
+		OnMessageReceived.Broadcast(this, Channel, ActualScopeId);
+
+		ReceivedMessagePayloadPtr = nullptr;
 	}
 
 	if (!OnMessageReceived.IsBound())
