@@ -15,15 +15,32 @@ namespace ScopedMessageListenK2Node
 {
 	static const FName ActualChannelPinName = TEXT("ActualChannel");
 	static const FName ActualScopeIdPinName = TEXT("ActualScopeId");
+	static const FName MatchTypePinName = TEXT("MatchType");
 	static const FName PayloadPinName = TEXT("Payload");
 	static const FName PayloadTypePinName = TEXT("PayloadType");
 	static const FName DelegateProxyPinName = TEXT("ProxyObject");
+	static const FName ScopeContextObjectPinName = TEXT("ScopeContextObject");
+
+	static void SetAdvancedView(UEdGraphPin* Pin)
+	{
+		if (!Pin)
+		{
+			return;
+		}
+
+		Pin->bAdvancedView = true;
+		for (UEdGraphPin* SubPin : Pin->SubPins)
+		{
+			SetAdvancedView(SubPin);
+		}
+	}
 }
 
 void UK2Node_AsyncAction_ListenForScopedMessages::PostReconstructNode()
 {
 	Super::PostReconstructNode();
 	RefreshOutputPayloadType();
+	ConfigureAdvancedPins();
 	HideUnlinkedGeneratedPins();
 }
 
@@ -88,6 +105,7 @@ void UK2Node_AsyncAction_ListenForScopedMessages::AllocateDefaultPins()
 	}
 
 	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Wildcard, ScopedMessageListenK2Node::PayloadPinName);
+	ConfigureAdvancedPins();
 	HideUnlinkedGeneratedPins();
 }
 
@@ -211,6 +229,31 @@ void UK2Node_AsyncAction_ListenForScopedMessages::RefreshOutputPayloadType()
 
 		PayloadPin->PinType.PinSubCategoryObject = PayloadTypePin->DefaultObject;
 		PayloadPin->PinType.PinCategory = (PayloadTypePin->DefaultObject == nullptr) ? UEdGraphSchema_K2::PC_Wildcard : UEdGraphSchema_K2::PC_Struct;
+	}
+}
+
+void UK2Node_AsyncAction_ListenForScopedMessages::ConfigureAdvancedPins()
+{
+	bool bHasAdvancedPins = false;
+
+	auto MarkAdvancedPin = [this, &bHasAdvancedPins](const FName PinName)
+	{
+		if (UEdGraphPin* Pin = FindPin(PinName))
+		{
+			ScopedMessageListenK2Node::SetAdvancedView(Pin);
+			bHasAdvancedPins = true;
+		}
+	};
+
+	MarkAdvancedPin(ScopedMessageListenK2Node::ActualChannelPinName);
+	MarkAdvancedPin(ScopedMessageListenK2Node::ActualScopeIdPinName);
+	MarkAdvancedPin(ScopedMessageListenK2Node::MatchTypePinName);
+	MarkAdvancedPin(ScopedMessageListenK2Node::PayloadPinName);
+	MarkAdvancedPin(ScopedMessageListenK2Node::ScopeContextObjectPinName);
+
+	if (bHasAdvancedPins && AdvancedPinDisplay == ENodeAdvancedPins::NoPins)
+	{
+		AdvancedPinDisplay = ENodeAdvancedPins::Hidden;
 	}
 }
 
