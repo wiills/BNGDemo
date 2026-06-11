@@ -9,7 +9,8 @@ UAsyncAction_ListenForScopedMessage* UAsyncAction_ListenForScopedMessage::Listen
 	UObject* WorldContextObject,
 	FGameplayTag Channel,
 	UScriptStruct* PayloadType,
-	EScopedMessageMatch MatchType)
+	EScopedMessageMatch MatchType,
+	UObject* ScopeContextObject)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if (!World)
@@ -21,8 +22,7 @@ UAsyncAction_ListenForScopedMessage* UAsyncAction_ListenForScopedMessage::Listen
 	Action->WorldPtr = World;
 	Action->ChannelToRegister = Channel;
 	Action->MessageStructType = PayloadType;
-	// Use WorldContextObject directly to resolve the scope context
-	Action->ScopeContextObject = WorldContextObject;
+	Action->ScopeContextObject = ScopeContextObject ? ScopeContextObject : WorldContextObject;
 	Action->MessageMatchType = MatchType;
 	Action->RegisterWithGameInstance(World);
 

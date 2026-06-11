@@ -40,6 +40,9 @@ public:
 	/** Returns the subsystem for a valid world context, asserting if the context is invalid. */
 	static UScopedMessageSubsystem& Get(const UObject* WorldContextObject);
 
+	/** Returns the subsystem for a valid world context, or nullptr if one is not available. */
+	static UScopedMessageSubsystem* GetInstance(const UObject* WorldContextObject);
+
 	/** Returns whether a scoped message subsystem is available for this context. */
 	static bool HasInstance(const UObject* WorldContextObject);
 
@@ -60,6 +63,22 @@ public:
 		// under many Poi roots without carrying per-instance channel tags.
 		const UScriptStruct* StructType = FMessageStruct::StaticStruct();
 		BroadcastMessageInternal(Channel, StructType, &Payload, ResolveScopeId(const_cast<UObject*>(WorldContextObject)), Replication);
+	}
+
+	template <typename FMessageStruct>
+	static bool BroadcastMessageIfAvailable(
+		const UObject* WorldContextObject,
+		FGameplayTag Channel,
+		const FMessageStruct& Payload,
+		EScopedMessageReplication Replication = EScopedMessageReplication::LocalOnly)
+	{
+		if (UScopedMessageSubsystem* Subsystem = GetInstance(WorldContextObject))
+		{
+			Subsystem->BroadcastMessage(WorldContextObject, Channel, Payload, Replication);
+			return true;
+		}
+
+		return false;
 	}
 
 	template <typename FMessageStruct>

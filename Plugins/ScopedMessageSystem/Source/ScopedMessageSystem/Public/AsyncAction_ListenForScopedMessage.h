@@ -38,13 +38,15 @@ public:
 	 * @param Channel             The message channel to listen for.
 	 * @param PayloadType         The expected type of the message payload (optional; if left null, receives all payloads).
 	 * @param MatchType           The rule used for matching the channel with broadcasted messages.
+	 * @param ScopeContextObject  Optional object used to resolve the scope. If unset, WorldContextObject is used.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Scoped Message", meta = (WorldContext = "WorldContextObject", DisplayName = "Listen for Scoped Messages", BlueprintInternalUseOnly = "true"))
 	static UAsyncAction_ListenForScopedMessage* ListenForScopedMessages(
 		UObject* WorldContextObject,
 		FGameplayTag Channel,
 		UScriptStruct* PayloadType = nullptr,
-		EScopedMessageMatch MatchType = EScopedMessageMatch::ExactMatch);
+		EScopedMessageMatch MatchType = EScopedMessageMatch::ExactMatch,
+		UObject* ScopeContextObject = nullptr);
 
 	/**
 	 * Copies the payload received by the current delegate execution into a typed wildcard.

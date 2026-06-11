@@ -25,11 +25,16 @@ UScopedMessageSubsystem& UScopedMessageSubsystem::Get(const UObject* WorldContex
 	return *GameInstance->GetSubsystem<UScopedMessageSubsystem>();
 }
 
-bool UScopedMessageSubsystem::HasInstance(const UObject* WorldContextObject)
+UScopedMessageSubsystem* UScopedMessageSubsystem::GetInstance(const UObject* WorldContextObject)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull);
 	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
-	return GameInstance && GameInstance->GetSubsystem<UScopedMessageSubsystem>() != nullptr;
+	return GameInstance ? GameInstance->GetSubsystem<UScopedMessageSubsystem>() : nullptr;
+}
+
+bool UScopedMessageSubsystem::HasInstance(const UObject* WorldContextObject)
+{
+	return GetInstance(WorldContextObject) != nullptr;
 }
 
 FString UScopedMessageSubsystem::GetNetModePrefix(const UObject* WorldContextObject)
