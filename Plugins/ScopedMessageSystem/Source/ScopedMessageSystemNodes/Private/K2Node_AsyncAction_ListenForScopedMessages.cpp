@@ -24,6 +24,7 @@ void UK2Node_AsyncAction_ListenForScopedMessages::PostReconstructNode()
 {
 	Super::PostReconstructNode();
 	RefreshOutputPayloadType();
+	HideUnlinkedGeneratedPins();
 }
 
 void UK2Node_AsyncAction_ListenForScopedMessages::PinDefaultValueChanged(UEdGraphPin* ChangedPin)
@@ -87,6 +88,7 @@ void UK2Node_AsyncAction_ListenForScopedMessages::AllocateDefaultPins()
 	}
 
 	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Wildcard, ScopedMessageListenK2Node::PayloadPinName);
+	HideUnlinkedGeneratedPins();
 }
 
 bool UK2Node_AsyncAction_ListenForScopedMessages::HandleDelegates(
@@ -209,6 +211,24 @@ void UK2Node_AsyncAction_ListenForScopedMessages::RefreshOutputPayloadType()
 
 		PayloadPin->PinType.PinSubCategoryObject = PayloadTypePin->DefaultObject;
 		PayloadPin->PinType.PinCategory = (PayloadTypePin->DefaultObject == nullptr) ? UEdGraphSchema_K2::PC_Wildcard : UEdGraphSchema_K2::PC_Struct;
+	}
+}
+
+void UK2Node_AsyncAction_ListenForScopedMessages::HideUnlinkedGeneratedPins()
+{
+	if (UEdGraphPin* ThenPin = FindPin(UEdGraphSchema_K2::PN_Then))
+	{
+		ThenPin->bHidden = ThenPin->LinkedTo.Num() == 0;
+	}
+
+	if (UEdGraphPin* AsyncActionPin = FindPin(FBaseAsyncTaskHelper::GetAsyncTaskProxyName()))
+	{
+		AsyncActionPin->bHidden = AsyncActionPin->LinkedTo.Num() == 0;
+	}
+
+	if (UEdGraphPin* DelegateProxyPin = FindPin(ScopedMessageListenK2Node::DelegateProxyPinName))
+	{
+		DelegateProxyPin->bHidden = true;
 	}
 }
 

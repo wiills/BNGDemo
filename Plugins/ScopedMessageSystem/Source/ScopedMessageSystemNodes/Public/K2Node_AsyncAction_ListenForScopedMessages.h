@@ -48,6 +48,7 @@ private:
 		FKismetCompilerContext& CompilerContext);
 
 	void RefreshOutputPayloadType();
+	void HideUnlinkedGeneratedPins();
 
 	UEdGraphPin* GetPayloadPin() const;
 	UEdGraphPin* GetPayloadTypePin() const;
