@@ -4,11 +4,10 @@
 
 #include "Modules/ModuleManager.h"
 
-class FComputeGraphModule : public IModuleInterface
+/** Runtime module for the ScopedLogicGraph (SLG) framework. */
+class FScopedLogicGraphModule : public IModuleInterface
 {
 public:
-
-	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 };

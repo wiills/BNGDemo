@@ -1,0 +1,30 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1",
+	"FriendlyName": "ScopedLogicGraph",
+	"Description": "Data-oriented, scope-instanced parallel logic graph for tasks, combat and AI. Builds on ScopedMessageSystem.",
+	"Category": "Gameplay",
+	"CreatedBy": "wangshuai",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": true,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "ScopedLogicGraph",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "ScopedMessageSystem",
+			"Enabled": true
+		}
+	]
+}
