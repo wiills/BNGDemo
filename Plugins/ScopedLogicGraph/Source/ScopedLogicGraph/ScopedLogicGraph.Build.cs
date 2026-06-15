@@ -15,12 +15,7 @@ public class ScopedLogicGraph : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"GameplayTags",
-			}
-			);
-
-		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
+				// SLG 公有头文件暴露 FScopedMessageScopeId 等类型，故为公有依赖。
 				// Scope identity, local addressing and message isolation come from here.
 				"ScopedMessageSystem",
 			}
