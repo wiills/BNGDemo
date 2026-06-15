@@ -21,15 +21,57 @@ void USLGRunnerComponent::BeginPlay()
 	Subsystem = USLGSubsystem::GetInstance(this);
 	ResolveScopeId();
 
-	// 生命周期复用 ScopedMessageSystem 玩家兴趣机制；此处仅做骨架级直接激活。
-	// 实际激活时机由"POI 是否有人"驱动（M1 接玩家进出回调）。
-	Activate(true);
+	// 决策 #2：生命周期复用 ScopedMessageSystem 的占用信号——POI 有人才激活。
+	// 占用表只在权威端有意义，故 SLG 默认在服务器/单机驱动 wake/sleep。
+	MessageSubsystem = UScopedMessageSubsystem::GetInstance(this);
+	if (UScopedMessageSubsystem* MsgSub = MessageSubsystem.Get())
+	{
+		OccupancyChangedHandle = MsgSub->OnScopeOccupancyChanged.AddUObject(this, &USLGRunnerComponent::HandleScopeOccupancyChanged);
+
+		// 处理"玩家已在 POI 内"先于本组件 BeginPlay 的情况。
+		if (ScopeId.IsValid() && MsgSub->GetScopePlayerCount(ScopeId) > 0)
+		{
+			Activate(true);
+		}
+	}
+	else
+	{
+		// 无消息子系统（如纯本地工具环境）时退回直接激活，保证可单测。
+		Activate(true);
+	}
 }
 
 void USLGRunnerComponent::EndPlay(EEndPlayReason::Type EndPlayReason)
 {
+	if (UScopedMessageSubsystem* MsgSub = MessageSubsystem.Get())
+	{
+		MsgSub->OnScopeOccupancyChanged.Remove(OccupancyChangedHandle);
+	}
+	OccupancyChangedHandle.Reset();
+
 	Deactivate();
 	Super::EndPlay(EndPlayReason);
+}
+
+void USLGRunnerComponent::HandleScopeOccupancyChanged(FScopedMessageScopeId ChangedScope, int32 PlayerCount)
+{
+	// 只关心本运行器所属作用域的占用变化。
+	if (ChangedScope != ScopeId)
+	{
+		return;
+	}
+
+	if (PlayerCount > 0)
+	{
+		if (InstanceState != ESLGInstanceState::Active)
+		{
+			Activate(false);
+		}
+	}
+	else if (InstanceState == ESLGInstanceState::Active)
+	{
+		Deactivate();
+	}
 }
 
 void USLGRunnerComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

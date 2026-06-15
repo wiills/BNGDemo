@@ -11,6 +11,7 @@
 
 class USLGGraphAsset;
 class USLGSubsystem;
+class UScopedMessageSubsystem;
 
 /**
  * 图运行器组件：绑定 ScopeId、实例化烘焙态、按 POI 是否有人管理生命周期。
@@ -58,6 +59,9 @@ private:
 	/** 从同 actor 的 ScopeComponent 解析 ScopeId。 */
 	void ResolveScopeId();
 
+	/** 占用变化回调：仅本 Scope 触发时驱动 wake/sleep（决策 #2）。 */
+	void HandleScopeOccupancyChanged(FScopedMessageScopeId ChangedScope, int32 PlayerCount);
+
 	/** 按烘焙态布局分配连续 POD 实例状态。 */
 	void AllocateInstanceData();
 
@@ -74,4 +78,10 @@ private:
 	FSLGInstanceData InstanceData;
 
 	TWeakObjectPtr<USLGSubsystem> Subsystem;
+
+	/** 消息子系统（占用信号来源），用于解绑委托。 */
+	TWeakObjectPtr<UScopedMessageSubsystem> MessageSubsystem;
+
+	/** OnScopeOccupancyChanged 订阅句柄。 */
+	FDelegateHandle OccupancyChangedHandle;
 };

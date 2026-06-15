@@ -24,6 +24,15 @@ DECLARE_LOG_CATEGORY_EXTERN(LogScopedMessageSubsystem, Log, All);
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FScopedMessageScopeResolver, UObject* /*ScopeContext*/, FScopedMessageScopeId& /*OutScopeId*/);
 
 /**
+ * 作用域占用变化事件。
+ * Fired whenever the count of players registered as interested in a scope changes,
+ * including transitions to and from zero. This is a networking-driven signal, but it
+ * doubles as a reliable wake/sleep source for upper layers (e.g. ScopedLogicGraph)
+ * without exposing the internal interest table. Note: only meaningful on authority.
+ */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnScopeOccupancyChanged, FScopedMessageScopeId /*ScopeId*/, int32 /*PlayerCount*/);
+
+/**
  * GameInstance subsystem that routes messages by logical scope and channel.
  *
  * Intended use: one replicated scope ID per Poi/mission-space instance, with
@@ -147,6 +156,12 @@ public:
 	/** Removes a PlayerController from a ScopeId interest set. */
 	void UnregisterPlayerForScope(APlayerController* PlayerController, FScopedMessageScopeId ScopeId);
 
+	/** Current number of players registered as interested in ScopeId. */
+	int32 GetScopePlayerCount(FScopedMessageScopeId ScopeId) const;
+
+	/** Subscribe here to react to scope occupancy transitions (wake/sleep upper-layer logic). */
+	FOnScopeOccupancyChanged OnScopeOccupancyChanged;
+
 	/** Adds a project-specific resolver that runs before the default traversal resolver. */
 	FDelegateHandle RegisterScopeResolver(FScopedMessageScopeResolver Resolver);
 
@@ -210,6 +225,9 @@ private:
 
 	/** Removes invalid PlayerController weak references from interest sets. */
 	void CleanupInvalidPlayerInterests();
+
+	/** Broadcasts the current player count for a scope to occupancy listeners. */
+	void NotifyScopeOccupancyChanged(FScopedMessageScopeId ScopeId);
 
 	bool BuildNetworkPacket(
 		FScopedMessageScopeId ScopeId,

@@ -799,6 +799,7 @@ void UScopedMessageSubsystem::RegisterPlayerForScope(APlayerController* PlayerCo
 	if (!bAlreadyRegistered)
 	{
 		Players.Add(PlayerController);
+		NotifyScopeOccupancyChanged(ScopeId);
 	}
 }
 
@@ -811,7 +812,7 @@ void UScopedMessageSubsystem::UnregisterPlayerForScope(APlayerController* Player
 
 	if (TArray<TWeakObjectPtr<APlayerController>>* Players = ScopePlayerInterests.Find(ScopeId))
 	{
-		Players->RemoveAll([PlayerController](const TWeakObjectPtr<APlayerController>& ExistingPlayer)
+		const int32 NumRemoved = Players->RemoveAll([PlayerController](const TWeakObjectPtr<APlayerController>& ExistingPlayer)
 		{
 			return !ExistingPlayer.IsValid() || ExistingPlayer.Get() == PlayerController;
 		});
@@ -820,7 +821,26 @@ void UScopedMessageSubsystem::UnregisterPlayerForScope(APlayerController* Player
 		{
 			ScopePlayerInterests.Remove(ScopeId);
 		}
+
+		if (NumRemoved > 0)
+		{
+			NotifyScopeOccupancyChanged(ScopeId);
+		}
 	}
+}
+
+int32 UScopedMessageSubsystem::GetScopePlayerCount(FScopedMessageScopeId ScopeId) const
+{
+	if (const TArray<TWeakObjectPtr<APlayerController>>* Players = ScopePlayerInterests.Find(ScopeId))
+	{
+		return Players->Num();
+	}
+	return 0;
+}
+
+void UScopedMessageSubsystem::NotifyScopeOccupancyChanged(FScopedMessageScopeId ScopeId)
+{
+	OnScopeOccupancyChanged.Broadcast(ScopeId, GetScopePlayerCount(ScopeId));
 }
 
 bool UScopedMessageSubsystem::IsPlayerRegisteredForScope(APlayerController* PlayerController, FScopedMessageScopeId ScopeId) const
@@ -839,17 +859,31 @@ bool UScopedMessageSubsystem::IsPlayerRegisteredForScope(APlayerController* Play
 
 void UScopedMessageSubsystem::CleanupInvalidPlayerInterests()
 {
+	// 失效清理（如玩家掉线）也是占用变化的来源。先收集变化的作用域及其新计数，
+	// 待迭代结束后再广播，避免监听者在回调中修改 ScopePlayerInterests。
+	TArray<TPair<FScopedMessageScopeId, int32>> PendingNotifications;
+
 	for (auto It = ScopePlayerInterests.CreateIterator(); It; ++It)
 	{
-		It.Value().RemoveAll([](const TWeakObjectPtr<APlayerController>& Player)
+		const int32 NumRemoved = It.Value().RemoveAll([](const TWeakObjectPtr<APlayerController>& Player)
 		{
 			return !Player.IsValid();
 		});
+
+		if (NumRemoved > 0)
+		{
+			PendingNotifications.Emplace(It.Key(), It.Value().Num());
+		}
 
 		if (It.Value().Num() == 0)
 		{
 			It.RemoveCurrent();
 		}
+	}
+
+	for (const TPair<FScopedMessageScopeId, int32>& Notification : PendingNotifications)
+	{
+		OnScopeOccupancyChanged.Broadcast(Notification.Key, Notification.Value);
 	}
 }
 
