@@ -54,7 +54,7 @@ FExDataTableImportResult FExQuestDataTableImportHandler::ImportToDataAsset(UData
 		return Result;
 	}
 
-	TArray<FExQuestTaskDefinition> Definitions;
+	TArray<FExQuestTask> Definitions;
 	int32 SkippedRows = 0;
 	if (!FExQuestDataImportUtil::GatherTaskDefinitionsFromTable(Table, Definitions, SkippedRows))
 	{

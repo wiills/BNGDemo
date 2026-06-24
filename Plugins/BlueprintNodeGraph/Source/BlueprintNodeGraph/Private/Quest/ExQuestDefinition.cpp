@@ -5,59 +5,26 @@
 #include "Quest/ExQuestDataImport.h"
 #include "BlueprintTool/Common/ExLatentProxyDefine.h"
 
-FExQuestTaskDefinition FExQuestTaskTableRow::ToTaskDefinition() const
-{
-	FExQuestTaskDefinition Def;
-	Def.TaskId = TaskId;
-	Def.TaskName = TaskName;
-	Def.Description = Description;
-	Def.InitialState = InitialState;
-	Def.Objectives = Objectives;
-	Def.SubTaskIds = SubTaskIds;
-	Def.PreTaskIds = PreTaskIds;
-	Def.NextTaskIds = NextTaskIds;
-	Def.EntryViewClass = EntryViewClass;
-	Def.bIsRepeatable = bIsRepeatable;
-	Def.LatentTaskClass = LatentTaskClass;
-	Def.LatentTaskPayload = LatentTaskPayload;
-	return Def;
-}
-
 FExQuestTask FExQuestTaskTableRow::ToRuntimeTask() const
-{
-	return ToTaskDefinition().ToRuntimeTask();
-}
-
-FExQuestTask FExQuestTaskDefinition::ToRuntimeTask() const
 {
 	FExQuestTask Task;
 	Task.TaskId = TaskId;
 	Task.TaskName = TaskName;
 	Task.Description = Description;
+	Task.ContextID = ContextID;
 	Task.State = InitialState;
+	Task.InitialState = InitialState;
 	Task.SubTaskIds = SubTaskIds;
 	Task.PreTaskIds = PreTaskIds;
 	Task.NextTaskIds = NextTaskIds;
-	Task.ParentTaskId = ParentTaskId;
-	Task.EntryViewClass = EntryViewClass;
 	Task.bIsRepeatable = bIsRepeatable;
-	Task.LatentTaskClass = LatentTaskClass;
-	Task.LatentTaskPayload = LatentTaskPayload;
+	Task.UIConfig = UIConfig;
 
-	for (const FExQuestObjectiveDefinition& ObjDef : Objectives)
+	Task.Objectives = Objectives;
+	for (FExQuestObjective& Obj : Task.Objectives)
 	{
-		FExQuestObjective Objective;
-		Objective.ObjectiveTag = ObjDef.ObjectiveTag;
-		Objective.Description = ObjDef.Description;
-		Objective.TargetProgress = ObjDef.TargetProgress;
-		Objective.bIsOptional = ObjDef.bIsOptional;
-		Objective.bUIVisible = ObjDef.bUIVisible;
-		Objective.EntryViewClass = ObjDef.EntryViewClass;
-		Objective.LatentTaskClass = ObjDef.LatentTaskClass;
-		Objective.LatentTaskPayload = ObjDef.LatentTaskPayload;
-		Objective.State = ObjDef.InitialState;
-		Objective.CurrentProgress = 0;
-		Task.Objectives.Add(Objective);
+		Obj.State = Obj.InitialState;
+		Obj.CurrentProgress = 0;
 	}
 
 	return Task;
@@ -70,11 +37,18 @@ FExQuestData UExQuestDataAsset::BuildInitialQuestData() const
 	Data.QuestSetName = QuestSetName;
 	Data.AllTasks.Reserve(TaskDefinitions.Num());
 
-	for (const FExQuestTaskDefinition& TaskDef : TaskDefinitions)
+	for (const FExQuestTask& TaskDef : TaskDefinitions)
 	{
 		if (TaskDef.TaskId.IsValid())
 		{
-			Data.AllTasks.Add(TaskDef.ToRuntimeTask());
+			FExQuestTask Task = TaskDef;
+			Task.State = Task.InitialState;
+			for (FExQuestObjective& Obj : Task.Objectives)
+			{
+				Obj.State = Obj.InitialState;
+				Obj.CurrentProgress = 0;
+			}
+			Data.AllTasks.Add(Task);
 		}
 	}
 
@@ -153,7 +127,7 @@ FExQuestDataImportResult UExQuestDataAsset::ImportTaskDefinitionsFromDataTable(U
 {
 	FExQuestDataImportResult Result;
 
-	TArray<FExQuestTaskDefinition> Definitions;
+	TArray<FExQuestTask> Definitions;
 	int32 SkippedRows = 0;
 	if (!FExQuestDataImportUtil::GatherTaskDefinitionsFromTable(TaskTable, Definitions, SkippedRows))
 	{

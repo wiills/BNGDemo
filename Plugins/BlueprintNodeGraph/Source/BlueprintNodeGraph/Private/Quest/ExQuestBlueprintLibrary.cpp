@@ -5,6 +5,7 @@
 #include "Quest/ExQuestDefinition.h"
 #include "Quest/ExQuestMessageTypes.h"
 #include "Quest/ExQuestReplicationComponent.h"
+#include "BlueprintTool/Common/ExLatentProxyDefine.h"
 #if WITH_QUEST_MESSAGE_ROUTER
 #include "GameFramework/GameplayMessageSubsystem.h"
 #endif
@@ -53,7 +54,8 @@ FExQuestData UExQuestBlueprintLibrary::CreateExampleQuestData()
 	SubObj2.ObjectiveTag = FGameplayTag::RequestGameplayTag(FName("Quest.Main_001.Sub_001.Obj_002"));
 	SubObj2.Description = NSLOCTEXT("ExQuestExample", "Sub001_Obj2", "Collect 5 armor sets");
 	SubObj2.TargetProgress = 5;
-	SubObj2.bIsOptional = true;
+	SubObj2.Payload.InitializeAs<FExQuestObjectivePayload>();
+	SubObj2.Payload.GetMutable<FExQuestObjectivePayload>().bIsOptional = true;
 	SubQuest.Objectives.Add(SubObj2);
 
 	MainQuest.SubTaskIds.AddTag(SubQuest.TaskId);
@@ -92,7 +94,11 @@ FExQuestObjective UExQuestBlueprintLibrary::CreateQuestObjective(
 	Objective.ObjectiveTag = ObjectiveTag;
 	Objective.Description = Description;
 	Objective.TargetProgress = TargetProgress;
-	Objective.bIsOptional = bIsOptional;
+	if (bIsOptional)
+	{
+		Objective.Payload.InitializeAs<FExQuestObjectivePayload>();
+		Objective.Payload.GetMutable<FExQuestObjectivePayload>().bIsOptional = true;
+	}
 	Objective.State = InitialState;
 	Objective.CurrentProgress = 0;
 	return Objective;
@@ -102,12 +108,14 @@ FExQuestTask UExQuestBlueprintLibrary::MakeQuestTaskData(
 	const FGameplayTag& TaskId,
 	const FText& TaskName,
 	const FText& Description,
+	const FGameplayTag& ContextID,
 	EExQuestState InitialState)
 {
 	FExQuestTask Task;
 	Task.TaskId = TaskId;
 	Task.TaskName = TaskName;
 	Task.Description = Description;
+	Task.ContextID = ContextID;
 	Task.State = InitialState;
 	Task.bIsRepeatable = false;
 	return Task;
@@ -181,6 +189,16 @@ float UExQuestBlueprintLibrary::GetQuestAggregateCompletionPercentWithData(const
 bool UExQuestBlueprintLibrary::IsQuestFullyCompleted(const FExQuestTask& Task)
 {
 	return Task.IsFullyCompleted();
+}
+
+bool UExQuestBlueprintLibrary::IsObjectiveOptional(FExQuestObjective Objective)
+{
+	return Objective.IsOptional();
+}
+
+bool UExQuestBlueprintLibrary::IsQuestObjectiveOptional(FExQuestObjective Objective)
+{
+	return IsObjectiveOptional(Objective);
 }
 
 bool UExQuestBlueprintLibrary::IsQuestReadyToCompleteWithData(const FExQuestData& QuestData, const FExQuestTask& Task)
@@ -317,6 +335,16 @@ bool UExQuestBlueprintLibrary::EnsureQuestActive(UObject* WorldContextObject, co
 bool UExQuestBlueprintLibrary::IncrementQuestObjective(UObject* WorldContextObject, const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 Delta)
 {
 	return UExQuestReplicationComponent::RouteIncrementQuestObjective(WorldContextObject, TaskId, ObjectiveTag, Delta);
+}
+
+bool UExQuestBlueprintLibrary::IncrementQuestObjectiveFloat(UObject* WorldContextObject, const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, float Delta)
+{
+	return UExQuestReplicationComponent::RouteIncrementQuestObjectiveFloat(WorldContextObject, TaskId, ObjectiveTag, Delta);
+}
+
+bool UExQuestBlueprintLibrary::UpdateQuestObjectiveFloat(UObject* WorldContextObject, const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, float NewProgress)
+{
+	return UExQuestReplicationComponent::RouteUpdateQuestObjectiveFloat(WorldContextObject, TaskId, ObjectiveTag, NewProgress);
 }
 
 bool UExQuestBlueprintLibrary::NotifyObjectiveProgressByTag(UObject* WorldContextObject, const FGameplayTag& ObjectiveTag, int32 Delta)

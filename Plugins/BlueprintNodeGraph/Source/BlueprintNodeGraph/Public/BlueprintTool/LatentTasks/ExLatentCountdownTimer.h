@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "TimerManager.h"
+#include "Containers/Ticker.h"
 
 /** Static configuration for a countdown timer instance */
 struct FExLatentCountdownTimerConfig
@@ -64,8 +65,8 @@ private:
 	void StartProgressRollbackInternal();
 	void StopProgressRollback(bool bResetProgress);
 	void FinishProgressRollback();
-	void HandleTimerTick();
-	void HandleProgressRollbackTick();
+	void HandleTimerTick(float DeltaTime);
+	void HandleProgressRollbackTick(float DeltaTime);
 	void CompleteCountdown();
 
 	UWorld* World = nullptr;
@@ -74,6 +75,7 @@ private:
 	FExLatentCountdownTimerCallbacks Callbacks;
 
 	FTimerHandle CountdownTickHandle;
+	FTSTicker::FDelegateHandle TickerHandle;
 
 	float ResolvedDuration = 0.f;
 	float RemainingTime = 0.f;

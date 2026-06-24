@@ -43,6 +43,22 @@ bool UExLatentTask_Quest::UpdateQuestObjectiveProgress(int32 NewProgress)
 	return UExQuestReplicationComponent::RouteUpdateQuestObjective(WorldContext, QuestTag, ObjectiveTag, NewProgress);
 }
 
+bool UExLatentTask_Quest::UpdateQuestObjectiveProgressFloat(float NewProgress)
+{
+	if (!QuestTag.IsValid() || !ObjectiveTag.IsValid())
+	{
+		return false;
+	}
+
+	UObject* WorldContext = GetWorld();
+	if (!WorldContext)
+	{
+		return false;
+	}
+
+	return UExQuestReplicationComponent::RouteUpdateQuestObjectiveFloat(WorldContext, QuestTag, ObjectiveTag, NewProgress);
+}
+
 bool UExLatentTask_Quest::IncrementQuestObjectiveProgress()
 {
 	if (!QuestTag.IsValid() || !ObjectiveTag.IsValid())
@@ -95,11 +111,49 @@ bool UExLatentTask_Quest::GetQuestObjectiveProgress(int32& OutCurrentProgress, i
 	return false;
 }
 
-void UExLatentTask_Quest::InitializeFromPayload(const FExQuestLatentTaskPayload& Payload)
+bool UExLatentTask_Quest::GetQuestObjectiveProgressFloat(float& OutCurrentProgress, float& OutTargetProgress) const
 {
-	CompleteAction = Payload.CompleteAction;
-	ProgressDeltaOnStop = Payload.ProgressDeltaOnStop;
+	OutCurrentProgress = 0.f;
+	OutTargetProgress = 0.f;
+
+	if (!QuestTag.IsValid() || !ObjectiveTag.IsValid())
+	{
+		return false;
+	}
+
+	const UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
+	const UExQuestManagerSubsystem* Manager = GameInstance ? GameInstance->GetSubsystem<UExQuestManagerSubsystem>() : nullptr;
+	if (!Manager)
+	{
+		return false;
+	}
+
+	FExQuestTask Task;
+	if (!Manager->GetQuestById(QuestTag, Task))
+	{
+		return false;
+	}
+
+	for (const FExQuestObjective& Objective : Task.Objectives)
+	{
+		if (Objective.ObjectiveTag == ObjectiveTag)
+		{
+			OutCurrentProgress = Objective.CurrentProgressFloat;
+			OutTargetProgress = static_cast<float>(Objective.TargetProgress);
+			return true;
+		}
+	}
+
+	return false;
 }
+
+bool UExLatentTask_Quest::GetQuestObjectiveTargetProgress(int32& OutTargetProgress) const
+{
+	int32 CurrentProgress = 0;
+	return GetQuestObjectiveProgress(CurrentProgress, OutTargetProgress);
+}
+
+
 
 void UExLatentTask_Quest::OnStart()
 {
@@ -168,7 +222,7 @@ void UExLatentTask_Quest::ApplyQuestOnComplete_Implementation()
 			WorldContext,
 			QuestTag,
 			ObjectiveTag,
-			ProgressDeltaOnStop);
+			ProgressDelta);
 		break;
 	}
 }

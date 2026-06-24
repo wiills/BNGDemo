@@ -279,34 +279,62 @@ void FExLatentCountdownTimer::BeginCountdownTimer()
 	RemainingTime = FMath::Max(0.f, ResolvedDuration - ElapsedTime);
 	bCountdownActive = true;
 
-	const float FirstDelay = bProgressRollingBack
-		? Config.TickInterval
-		: FMath::Min(Config.TickInterval, RemainingTime);
-
 	const TWeakObjectPtr<UObject> WeakOwner = OwnerWeak;
-	const TWeakObjectPtr<UWorld> WeakWorld = World;
 
-	WeakWorld->GetTimerManager().SetTimer(
-		CountdownTickHandle,
-		[WeakOwner, this]()
-		{
-			if (!WeakOwner.IsValid())
+	if (Config.TickInterval <= 0.f)
+	{
+		TickerHandle = FTSTicker::GetCoreTicker().AddTicker(
+			FTickerDelegate::CreateLambda([WeakOwner, this](float DeltaTime) -> bool
 			{
-				return;
-			}
+				if (!WeakOwner.IsValid() || !bCountdownActive)
+				{
+					return false;
+				}
 
-			if (bProgressRollingBack)
+				if (bProgressRollingBack)
+				{
+					HandleProgressRollbackTick(DeltaTime);
+				}
+				else
+				{
+					HandleTimerTick(DeltaTime);
+				}
+
+				return bCountdownActive;
+			}), 
+			0.0f
+		);
+	}
+	else
+	{
+		const float FirstDelay = bProgressRollingBack
+			? Config.TickInterval
+			: FMath::Min(Config.TickInterval, RemainingTime);
+
+		const TWeakObjectPtr<UWorld> WeakWorld = World;
+
+		WeakWorld->GetTimerManager().SetTimer(
+			CountdownTickHandle,
+			[WeakOwner, this]()
 			{
-				HandleProgressRollbackTick();
-			}
-			else
-			{
-				HandleTimerTick();
-			}
-		},
-		Config.TickInterval,
-		true,
-		FirstDelay);
+				if (!WeakOwner.IsValid())
+				{
+					return;
+				}
+
+				if (bProgressRollingBack)
+				{
+					HandleProgressRollbackTick(Config.TickInterval);
+				}
+				else
+				{
+					HandleTimerTick(Config.TickInterval);
+				}
+			},
+			Config.TickInterval,
+			true,
+			FirstDelay);
+	}
 }
 
 void FExLatentCountdownTimer::ClearCountdownTimer()
@@ -321,9 +349,15 @@ void FExLatentCountdownTimer::ClearCountdownTimer()
 		}
 		CountdownTickHandle.Invalidate();
 	}
+
+	if (TickerHandle.IsValid())
+	{
+		FTSTicker::GetCoreTicker().RemoveTicker(TickerHandle);
+		TickerHandle.Reset();
+	}
 }
 
-void FExLatentCountdownTimer::HandleTimerTick()
+void FExLatentCountdownTimer::HandleTimerTick(float DeltaTime)
 {
 	if (!OwnerWeak.IsValid())
 	{
@@ -341,7 +375,7 @@ void FExLatentCountdownTimer::HandleTimerTick()
 		return;
 	}
 
-	ElapsedTime = FMath::Min(ElapsedTime + Config.TickInterval, ResolvedDuration);
+	ElapsedTime = FMath::Min(ElapsedTime + DeltaTime, ResolvedDuration);
 	RemainingTime = FMath::Max(0.f, ResolvedDuration - ElapsedTime);
 
 	if (Callbacks.OnTick)
@@ -355,7 +389,7 @@ void FExLatentCountdownTimer::HandleTimerTick()
 	}
 }
 
-void FExLatentCountdownTimer::HandleProgressRollbackTick()
+void FExLatentCountdownTimer::HandleProgressRollbackTick(float DeltaTime)
 {
 	if (!OwnerWeak.IsValid())
 	{
@@ -373,7 +407,7 @@ void FExLatentCountdownTimer::HandleProgressRollbackTick()
 		return;
 	}
 
-	const float RollbackDelta = Config.RollbackRate * Config.TickInterval;
+	const float RollbackDelta = Config.RollbackRate * DeltaTime;
 	ElapsedTime = FMath::Max(0.f, ElapsedTime - RollbackDelta);
 	RemainingTime = FMath::Max(0.f, ResolvedDuration - ElapsedTime);
 

@@ -80,7 +80,13 @@ public:
 	bool UpdateQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 NewProgress);
 
 	UFUNCTION(BlueprintCallable, Category = "Quest")
+	bool UpdateQuestObjectiveFloat(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, float NewProgress);
+
+	UFUNCTION(BlueprintCallable, Category = "Quest")
 	bool IncrementQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 Delta = 1);
+
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	bool IncrementQuestObjectiveFloat(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, float Delta = 1.0f);
 
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	bool CompleteQuestObjective(const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag);
@@ -183,6 +189,7 @@ private:
 
 	/** 写回 Objective 进度；满足 IsReadyToComplete 时自动 Complete Task。Apply objective progress and auto-complete task. */
 	bool ApplyObjectiveProgress(FExQuestTask& Task, const FGameplayTag& ObjectiveTag, int32 NewProgress);
+	bool ApplyObjectiveProgressFloat(FExQuestTask& Task, const FGameplayTag& ObjectiveTag, float NewProgress);
 
 	FExQuestRuntimeState CachedRuntimeState; // 复制用快照
 	bool bApplyingReplicatedView = false; // 防止复制回写再次 Publish

@@ -12,7 +12,7 @@ class UExQuestDataAsset;
 class UExQuestReplicationComponent;
 
 /** Blueprint helpers for the quest system */
-UCLASS()
+UCLASS(meta = (ScriptName = "ExQuest"))
 class BLUEPRINTNODEGRAPH_API UExQuestBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
@@ -35,6 +35,7 @@ public:
 		const FGameplayTag& TaskId,
 		const FText& TaskName,
 		const FText& Description,
+		const FGameplayTag& ContextID = FGameplayTag(),
 		EExQuestState InitialState = EExQuestState::Locked);
 
 	UFUNCTION(BlueprintCallable, Category = "Quest System|Create")
@@ -75,6 +76,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Quest System|State")
 	static bool IsQuestFullyCompleted(const FExQuestTask& Task);
+
+	UFUNCTION(BlueprintPure, Category = "Quest System|State")
+	static bool IsObjectiveOptional(FExQuestObjective Objective);
+
+	UFUNCTION(BlueprintPure, Category = "Quest System|State")
+	static bool IsQuestObjectiveOptional(FExQuestObjective Objective);
 
 	/** Objectives done and all SubTaskIds completed (matches auto-complete / rollup). */
 	UFUNCTION(BlueprintPure, Category = "Quest System|State")
@@ -127,6 +134,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Quest System|Helper", meta = (WorldContext = "WorldContextObject"))
 	static bool IncrementQuestObjective(UObject* WorldContextObject, const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, int32 Delta = 1);
+
+	UFUNCTION(BlueprintCallable, Category = "QuestHelper", meta = (WorldContext = "WorldContextObject"))
+	static bool IncrementQuestObjectiveFloat(UObject* WorldContextObject, const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, float Delta = 1.f);
+
+	UFUNCTION(BlueprintCallable, Category = "QuestHelper", meta = (WorldContext = "WorldContextObject"))
+	static bool UpdateQuestObjectiveFloat(UObject* WorldContextObject, const FGameplayTag& TaskId, const FGameplayTag& ObjectiveTag, float NewProgress);
 
 	UFUNCTION(BlueprintCallable, Category = "Quest System|Helper", meta = (WorldContext = "WorldContextObject"))
 	static bool NotifyObjectiveProgressByTag(UObject* WorldContextObject, const FGameplayTag& ObjectiveTag, int32 Delta = 1);

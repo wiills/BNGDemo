@@ -30,6 +30,7 @@ FString FExQuestSaveHelper::SerializeProgressToJson(const FExQuestData& QuestDat
 			FExQuestObjectiveSaveJson ObjJson;
 			ObjJson.ObjectiveTag = Objective.ObjectiveTag.ToString();
 			ObjJson.CurrentProgress = Objective.CurrentProgress;
+			ObjJson.CurrentProgressFloat = Objective.CurrentProgressFloat;
 			ObjJson.State = static_cast<int32>(Objective.State);
 			TaskJson.Objectives.Add(ObjJson);
 		}
@@ -105,6 +106,7 @@ bool FExQuestSaveHelper::DeserializeProgressFromJson(const FString& SaveData, FE
 				if (Objective.ObjectiveTag == ObjectiveTag)
 				{
 					Objective.CurrentProgress = ObjJson.CurrentProgress;
+					Objective.CurrentProgressFloat = ObjJson.CurrentProgressFloat;
 					if (ObjJson.bIsCompleted)
 					{
 						Objective.State = EExQuestState::Completed;

@@ -5,10 +5,65 @@
 #include "Blueprint/UserWidget.h"
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
-#include "BlueprintTool/LatentTasks/ExLatentTask_Quest.h"
+#include "StructUtils/InstancedStruct.h"
 #include "ExQuestTypes.generated.h"
 
 class UExLatentTask_Quest;
+
+UENUM(BlueprintType)
+enum class EExQuestCompleteAction : uint8
+{
+	IncrementProgress UMETA(DisplayName = "Increment Progress"),
+	CompleteObjective UMETA(DisplayName = "Complete Objective")
+};
+
+/** UI configuration for quest task/objective entries. */
+USTRUCT(BlueprintType)
+struct BLUEPRINTNODEGRAPH_API FExQuestUIConfig
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI", meta = (DisplayName = "任务条目视图类", EditCondition=bUIVisible, EditConditionHides))
+	TSoftClassPtr<UUserWidget> EntryViewClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI", meta = (DisplayName = "任务图标", EditCondition=bUIVisible, EditConditionHides))
+	TSoftObjectPtr<UObject> TaskIconSoftPtr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI", meta = (DisplayName = "任务图标尺寸", EditCondition=bUIVisible, EditConditionHides))
+	FVector2f TaskIconSize = FVector2f(32, 32);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI", meta = (DisplayName = "是否显示 UI"))
+	bool bUIVisible = true;
+
+	/** 仅 Task 使用：控制是否展示任务完成通知；在 Objective 上暂时无效，可忽略。 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI", meta = (DisplayName = "是否展示任务完成通知"))
+	bool bShowQuestCompleteNotification = true;
+};
+
+USTRUCT(BlueprintType, meta = (Hidden))
+struct BLUEPRINTNODEGRAPH_API FExQuestObjectivePayloadBase
+{
+	GENERATED_BODY()
+	virtual ~FExQuestObjectivePayloadBase() {}
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	bool bIsOptional = false;
+};
+
+USTRUCT(BlueprintType)
+struct BLUEPRINTNODEGRAPH_API FExQuestObjectivePayload : public FExQuestObjectivePayloadBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	EExQuestCompleteAction CompleteAction = EExQuestCompleteAction::IncrementProgress;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (ClampMin = "1"))
+	int32 ProgressDelta = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Execution")
+	TSubclassOf<UExLatentTask_Quest> QuestTaskClass;
+};
 
 /** 任务生命周期状态。Quest lifecycle states. */
 UENUM(BlueprintType)
@@ -35,44 +90,38 @@ struct BLUEPRINTNODEGRAPH_API FExQuestObjective
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	FText Description;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	UPROPERTY(BlueprintReadWrite, Category = "Quest")
 	int32 CurrentProgress = 0; // 当前进度
+
+	UPROPERTY(BlueprintReadWrite, Category = "Quest")
+	float CurrentProgressFloat = 0.f; // 当前浮点进度
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	int32 TargetProgress = 1; // 目标进度（完成阈值）
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	UPROPERTY(BlueprintReadWrite, Category = "Quest")
 	EExQuestState State = EExQuestState::Locked; // Objective 状态
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
-	bool bIsOptional = false;
+	EExQuestState InitialState = EExQuestState::Locked; // 初始状态配置
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	FExQuestUIConfig UIConfig;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
-	bool bUIVisible = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Params")
+	TInstancedStruct<FExQuestObjectivePayloadBase> Payload;
 
-	/** 目标节点专用的任务树条目样式；为空时 UI 会回退使用所属父任务的 EntryViewClass，保证旧配置继续按任务样式显示。 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|UI", meta = (AdvancedDisplay, ToolTip = "目标节点专用的任务树条目样式；未配置时使用所属父任务的 EntryViewClass。"))
-	TSoftClassPtr<UUserWidget> EntryViewClass;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Execution", meta = (ToolTip = "Optional. When empty, objective waits for external progress (NotifyByTag / Route API)."))
-	TSubclassOf<UExLatentTask_Quest> LatentTaskClass;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Execution", meta = (AdvancedDisplay, ToolTip = "Payload passed to the objective latent task instance on creation."))
-	FExQuestLatentTaskPayload LatentTaskPayload;
-
-	FExQuestObjective()
-		: CurrentProgress(0)
-		, TargetProgress(1)
-		, State(EExQuestState::Locked)
-		, bIsOptional(false)
-		, bUIVisible(true)
-	{
-	}
+	FExQuestObjective() {}
 
 	bool IsCompleted() const { return State == EExQuestState::Completed; }
 	bool CanActivate() const { return State == EExQuestState::Inactive; }
 	bool CanUnlock() const { return State == EExQuestState::Locked; }
 	void ApplyProgressToState();
+
+	TSubclassOf<UExLatentTask_Quest> GetQuestTaskClass() const;
+	EExQuestCompleteAction GetCompleteAction() const;
+	int32 GetProgressDelta() const;
+	bool IsOptional() const;
 };
 
 /** 单条 Task 运行时数据。Task 为汇总容器，完成由 Objectives + SubTasks 驱动。Single quest task runtime row. */
@@ -91,7 +140,13 @@ struct BLUEPRINTNODEGRAPH_API FExQuestTask
 	FText Description;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	FGameplayTag ContextID;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Quest")
 	EExQuestState State = EExQuestState::Locked; // Task 状态
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	EExQuestState InitialState = EExQuestState::Locked; // 初始状态配置
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	TArray<FExQuestObjective> Objectives; // 同 Task 内步骤清单（非子 Task）
@@ -101,7 +156,7 @@ struct BLUEPRINTNODEGRAPH_API FExQuestTask
 	FGameplayTagContainer SubTaskIds;
 
 	/** 流程前置：RebuildIndices 从 NextTaskIds 反推，勿手填。Derived activate gate; do not author. */
-	UPROPERTY(BlueprintReadOnly, meta = (Hidden, ToolTip = "Auto-derived from NextTaskIds at RebuildIndices."))
+	UPROPERTY(BlueprintReadOnly, meta = (Hidden))
 	FGameplayTagContainer PreTaskIds;
 
 	/** 流程后继：本 Task 完成后尝试激活的下游 TaskId。Flow edges unlocked on complete. */
@@ -112,24 +167,16 @@ struct BLUEPRINTNODEGRAPH_API FExQuestTask
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (Categories = "Quest", AdvancedDisplay))
 	FGameplayTag ParentTaskId;
 
-	/** Optional task-specific quest entry view. Assign a widget blueprint derived from QuestEntryView when a task needs its own item layout. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|UI", meta = (AdvancedDisplay, ToolTip = "Optional task-specific quest entry view. Assign a widget blueprint derived from QuestEntryView when a task needs its own item layout."))
-	TSoftClassPtr<UUserWidget> EntryViewClass;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	bool bIsRepeatable = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Execution", meta = (AdvancedDisplay, ToolTip = "Optional. Default leave empty: task completes when Objectives and SubTasks are done."))
-	TSubclassOf<UExLatentTask_Quest> LatentTaskClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Execution", meta = (AdvancedDisplay))
+	TSubclassOf<UExLatentTask_Quest> QuestTaskClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Execution", meta = (AdvancedDisplay))
-	FExQuestLatentTaskPayload LatentTaskPayload;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	FExQuestUIConfig UIConfig;
 
-	FExQuestTask()
-		: State(EExQuestState::Locked)
-		, bIsRepeatable(false)
-	{
-	}
+	FExQuestTask() {}
 
 	bool CanActivate() const;
 	bool CanUnlock() const;
@@ -156,6 +203,9 @@ struct BLUEPRINTNODEGRAPH_API FExQuestObjectiveRuntime
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	int32 CurrentProgress = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	float CurrentProgressFloat = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	EExQuestState State = EExQuestState::Locked;

@@ -5,27 +5,9 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "BlueprintTool/LatentTasks/ExBase_LatentTask.h"
+#include "Quest/ExQuestTypes.h"
 #include "ExLatentTask_Quest.generated.h"
 
-UENUM(BlueprintType)
-enum class EExQuestCompleteAction : uint8
-{
-	IncrementProgress UMETA(DisplayName = "Increment Progress"),
-	CompleteObjective UMETA(DisplayName = "Complete Objective")
-};
-
-/** Common payload for quest latent task configuration. */
-USTRUCT(BlueprintType)
-struct BLUEPRINTNODEGRAPH_API FExQuestLatentTaskPayload
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
-	EExQuestCompleteAction CompleteAction = EExQuestCompleteAction::IncrementProgress;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (ClampMin = "1"))
-	int32 ProgressDeltaOnStop = 1;
-};
 
 /**
  * Base class for all quest-related latent tasks.
@@ -51,7 +33,7 @@ public:
 	EExQuestCompleteAction CompleteAction = EExQuestCompleteAction::IncrementProgress;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (ExposeOnSpawn = true, ClampMin = "1", AdvancedDisplay))
-	int32 ProgressDeltaOnStop = 1;
+	int32 ProgressDelta = 1;
 
 	/** When true and state is Completed, ApplyQuestOnComplete runs in OnStop */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest", meta = (ExposeOnSpawn = true, AdvancedDisplay))
@@ -70,13 +52,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LatentTasks|Quest")
 	bool UpdateQuestObjectiveProgress(int32 NewProgress);
 
+	UFUNCTION(BlueprintCallable, Category = "QuestLatentTasks")
+	bool UpdateQuestObjectiveProgressFloat(float NewProgress);
+
 	UFUNCTION(BlueprintCallable, Category = "LatentTasks|Quest")
 	bool IncrementQuestObjectiveProgress();
 
 	UFUNCTION(BlueprintPure, Category = "LatentTasks|Quest")
 	bool GetQuestObjectiveProgress(int32& OutCurrentProgress, int32& OutTargetProgress) const;
 
-	void InitializeFromPayload(const FExQuestLatentTaskPayload& Payload);
+	UFUNCTION(BlueprintPure, Category = "QuestLatentTasks")
+	bool GetQuestObjectiveProgressFloat(float& OutCurrentProgress, float& OutTargetProgress) const;
+
+	UFUNCTION(BlueprintPure, Category = "LatentTasks|Quest")
+	bool GetQuestObjectiveTargetProgress(int32& OutTargetProgress) const;
+
+
 
 protected:
 	virtual void OnStart() override;

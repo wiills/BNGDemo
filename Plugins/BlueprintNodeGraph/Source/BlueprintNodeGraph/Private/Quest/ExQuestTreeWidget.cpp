@@ -278,7 +278,7 @@ void UExQuestTreeWidget::CreateQuestItem(const FExQuestTask& QuestTask, UVertica
 	{
 		for (const FExQuestObjective& Objective : QuestTask.Objectives)
 		{
-			if (!Objective.bUIVisible)
+			if (!Objective.UIConfig.bUIVisible)
 			{
 				continue;
 			}

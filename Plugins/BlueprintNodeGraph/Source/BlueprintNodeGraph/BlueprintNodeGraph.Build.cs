@@ -17,7 +17,7 @@ public class BlueprintNodeGraph : ModuleRules
 		bLegacyParentIncludePaths = false;
 
 		bool bWithMessageRouter = IsGameplayMessageRouterAvailable(Target);
-		PublicDefinitions.Add($"WITH_QUEST_MESSAGE_ROUTER={(bWithMessageRouter ? 1 : 0)}");
+		PublicDefinitions.Add("WITH_QUEST_MESSAGE_ROUTER=" + (bWithMessageRouter ? "1" : "0"));
 
 		PublicDependencyModuleNames.AddRange(new[]
 		{

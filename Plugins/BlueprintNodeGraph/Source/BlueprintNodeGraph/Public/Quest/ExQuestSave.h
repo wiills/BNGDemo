@@ -21,6 +21,9 @@ struct FExQuestObjectiveSaveJson
 	int32 CurrentProgress = 0;
 
 	UPROPERTY()
+	float CurrentProgressFloat = 0.f;
+
+	UPROPERTY()
 	int32 State = static_cast<int32>(EExQuestState::Locked);
 
 	/** Legacy V2 field; read-only compat when State is missing. */

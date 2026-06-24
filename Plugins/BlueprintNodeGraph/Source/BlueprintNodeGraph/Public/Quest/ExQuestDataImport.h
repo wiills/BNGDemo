@@ -3,10 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Quest/ExQuestTypes.h"
 
 class UDataTable;
 class UExQuestDataAsset;
-struct FExQuestTaskDefinition;
 
 /** Result of importing rows from a quest task DataTable. */
 struct BLUEPRINTNODEGRAPH_API FExQuestDataImportResult
@@ -30,11 +30,11 @@ public:
 
 	static bool GatherTaskDefinitionsFromTable(
 		const UDataTable* TaskTable,
-		TArray<FExQuestTaskDefinition>& OutDefinitions,
+		TArray<FExQuestTask>& OutDefinitions,
 		int32& OutSkippedRows);
 
 	static FExQuestDataImportResult ApplyDefinitionsToDataAsset(
 		UExQuestDataAsset* QuestAsset,
-		const TArray<FExQuestTaskDefinition>& Definitions,
+		const TArray<FExQuestTask>& Definitions,
 		const UDataTable* SourceTable);
 };

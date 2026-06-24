@@ -38,7 +38,7 @@ bool FExQuestDataImportUtil::IsCompatibleQuestTaskTable(const UDataTable* TaskTa
 
 bool FExQuestDataImportUtil::GatherTaskDefinitionsFromTable(
 	const UDataTable* TaskTable,
-	TArray<FExQuestTaskDefinition>& OutDefinitions,
+	TArray<FExQuestTask>& OutDefinitions,
 	int32& OutSkippedRows)
 {
 	OutDefinitions.Reset();
@@ -61,7 +61,7 @@ bool FExQuestDataImportUtil::GatherTaskDefinitionsFromTable(
 				return;
 			}
 
-			OutDefinitions.Add(Row.ToTaskDefinition());
+			OutDefinitions.Add(Row.ToRuntimeTask());
 		});
 
 	return true;
@@ -69,7 +69,7 @@ bool FExQuestDataImportUtil::GatherTaskDefinitionsFromTable(
 
 FExQuestDataImportResult FExQuestDataImportUtil::ApplyDefinitionsToDataAsset(
 	UExQuestDataAsset* QuestAsset,
-	const TArray<FExQuestTaskDefinition>& Definitions,
+	const TArray<FExQuestTask>& Definitions,
 	const UDataTable* SourceTable)
 {
 	FExQuestDataImportResult Result;

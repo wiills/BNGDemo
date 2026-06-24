@@ -1,7 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Quest/ExQuestTypes.h"
-
+#include "BlueprintTool/LatentTasks/ExLatentTask_Quest.h"
 #include "BlueprintTool/Common/ExLatentProxyDefine.h"
 
 void FExQuestObjective::ApplyProgressToState()
@@ -14,6 +14,42 @@ void FExQuestObjective::ApplyProgressToState()
 	{
 		State = EExQuestState::Active;
 	}
+}
+
+TSubclassOf<UExLatentTask_Quest> FExQuestObjective::GetQuestTaskClass() const
+{
+	if (const FExQuestObjectivePayload* LatentPayload = Payload.GetPtr<FExQuestObjectivePayload>())
+	{
+		return LatentPayload->QuestTaskClass;
+	}
+	return nullptr;
+}
+
+EExQuestCompleteAction FExQuestObjective::GetCompleteAction() const
+{
+	if (const FExQuestObjectivePayload* LatentPayload = Payload.GetPtr<FExQuestObjectivePayload>())
+	{
+		return LatentPayload->CompleteAction;
+	}
+	return EExQuestCompleteAction::IncrementProgress;
+}
+
+int32 FExQuestObjective::GetProgressDelta() const
+{
+	if (const FExQuestObjectivePayload* LatentPayload = Payload.GetPtr<FExQuestObjectivePayload>())
+	{
+		return LatentPayload->ProgressDelta;
+	}
+	return 1;
+}
+
+bool FExQuestObjective::IsOptional() const
+{
+	if (const FExQuestObjectivePayloadBase* BasePayload = Payload.GetPtr<FExQuestObjectivePayloadBase>())
+	{
+		return BasePayload->bIsOptional;
+	}
+	return false;
 }
 
 bool FExQuestTask::CanActivate() const
@@ -49,7 +85,7 @@ bool FExQuestTask::IsFullyCompleted() const
 {
 	for (const FExQuestObjective& Objective : Objectives)
 	{
-		if (!Objective.bIsOptional && !Objective.IsCompleted())
+		if (!Objective.IsOptional() && !Objective.IsCompleted())
 		{
 			return false;
 		}
@@ -100,7 +136,7 @@ float FExQuestTask::GetCompletionPercent() const
 
 	for (const FExQuestObjective& Objective : Objectives)
 	{
-		if (!Objective.bIsOptional)
+		if (!Objective.IsOptional())
 		{
 			TotalItems++;
 			if (Objective.IsCompleted())
@@ -125,7 +161,7 @@ float FExQuestTask::GetAggregateCompletionPercent(const FExQuestData& QuestData)
 
 	for (const FExQuestObjective& Objective : Objectives)
 	{
-		if (!Objective.bIsOptional)
+		if (!Objective.IsOptional())
 		{
 			TotalItems++;
 			if (Objective.IsCompleted())
@@ -389,6 +425,7 @@ FExQuestRuntimeState FExQuestData::ExtractRuntimeState() const
 			FExQuestObjectiveRuntime ObjRuntime;
 			ObjRuntime.ObjectiveTag = Objective.ObjectiveTag;
 			ObjRuntime.CurrentProgress = Objective.CurrentProgress;
+			ObjRuntime.CurrentProgressFloat = Objective.CurrentProgressFloat;
 			ObjRuntime.State = Objective.State;
 			TaskRuntime.Objectives.Add(ObjRuntime);
 		}
@@ -423,6 +460,7 @@ void FExQuestData::ApplyRuntimeState(const FExQuestRuntimeState& RuntimeState)
 				if (Objective.ObjectiveTag == ObjRuntime.ObjectiveTag)
 				{
 					Objective.CurrentProgress = ObjRuntime.CurrentProgress;
+					Objective.CurrentProgressFloat = ObjRuntime.CurrentProgressFloat;
 					Objective.State = ObjRuntime.State;
 					break;
 				}
@@ -441,69 +479,24 @@ void FExQuestData::EnrichMetadataFrom(const FExQuestData& DefinitionData)
 			continue;
 		}
 
-		if (Task.TaskName.IsEmpty() && !DefTask.TaskName.IsEmpty())
-		{
-			Task.TaskName = DefTask.TaskName;
-		}
-
-		if (Task.Description.IsEmpty() && !DefTask.Description.IsEmpty())
-		{
-			Task.Description = DefTask.Description;
-		}
-
-		if (Task.EntryViewClass.IsNull() && !DefTask.EntryViewClass.IsNull())
-		{
-			Task.EntryViewClass = DefTask.EntryViewClass;
-		}
-
-		if (!Task.LatentTaskClass && DefTask.LatentTaskClass)
-		{
-			Task.LatentTaskClass = DefTask.LatentTaskClass;
-		}
-
-		if (DefTask.LatentTaskClass)
-		{
-			Task.LatentTaskPayload = DefTask.LatentTaskPayload;
-		}
+		Task.TaskName = DefTask.TaskName;
+		Task.Description = DefTask.Description;
+		Task.ContextID = DefTask.ContextID;
+		Task.UIConfig = DefTask.UIConfig;
 
 		// RuntimeState 只保存进度/状态；UI 样式属于定义侧元数据，所以读档后需要从定义快照补回到每个目标。
 		for (FExQuestObjective& Objective : Task.Objectives)
 		{
 			for (const FExQuestObjective& DefObjective : DefTask.Objectives)
 			{
-				if (Objective.ObjectiveTag != DefObjective.ObjectiveTag)
-				{
-					continue;
-				}
-
-				if (Objective.Description.IsEmpty() && !DefObjective.Description.IsEmpty())
+				if (Objective.ObjectiveTag == DefObjective.ObjectiveTag)
 				{
 					Objective.Description = DefObjective.Description;
-				}
-
-				if (Objective.TargetProgress <= 0 && DefObjective.TargetProgress > 0)
-				{
 					Objective.TargetProgress = DefObjective.TargetProgress;
+					Objective.UIConfig = DefObjective.UIConfig;
+					Objective.Payload = DefObjective.Payload;
+					break;
 				}
-
-				Objective.bUIVisible = DefObjective.bUIVisible;
-
-				if (Objective.EntryViewClass.IsNull() && !DefObjective.EntryViewClass.IsNull())
-				{
-					Objective.EntryViewClass = DefObjective.EntryViewClass;
-				}
-
-				if (!Objective.LatentTaskClass && DefObjective.LatentTaskClass)
-				{
-					Objective.LatentTaskClass = DefObjective.LatentTaskClass;
-				}
-
-				if (DefObjective.LatentTaskClass)
-				{
-					Objective.LatentTaskPayload = DefObjective.LatentTaskPayload;
-				}
-
-				break;
 			}
 		}
 	}

@@ -9,6 +9,7 @@
 void UExLatentTask_QuestTimer::OnStart()
 {
 	SyncedObjectiveProgress = 0;
+	SyncedObjectiveProgressFloat = 0.f;
 	bCompletedNaturally = false;
 	ResolvedDuration = 0.f;
 	RemainingTime = 0.f;
@@ -261,8 +262,8 @@ void UExLatentTask_QuestTimer::SyncObjectiveProgressFromElapsed()
 		return;
 	}
 
-	const int32 NewProgress = ComputeObjectiveProgressFromElapsed();
-	if (NewProgress == SyncedObjectiveProgress)
+	const float NewProgressFloat = FMath::Clamp(ElapsedTime, 0.f, ResolvedDuration);
+	if (NewProgressFloat == SyncedObjectiveProgressFloat)
 	{
 		return;
 	}
@@ -273,9 +274,10 @@ void UExLatentTask_QuestTimer::SyncObjectiveProgressFromElapsed()
 		return;
 	}
 
-	if (UExQuestReplicationComponent::RouteUpdateQuestObjective(WorldContext, QuestTag, ObjectiveTag, NewProgress))
+	if (UExQuestReplicationComponent::RouteUpdateQuestObjectiveFloat(WorldContext, QuestTag, ObjectiveTag, NewProgressFloat))
 	{
-		SyncedObjectiveProgress = NewProgress;
+		SyncedObjectiveProgressFloat = NewProgressFloat;
+		SyncedObjectiveProgress = FMath::Clamp(FMath::FloorToInt(NewProgressFloat), 0, FMath::RoundToInt(ResolvedDuration));
 	}
 }
 
@@ -292,8 +294,9 @@ void UExLatentTask_QuestTimer::ResetObjectiveProgress()
 		return;
 	}
 
-	if (UExQuestReplicationComponent::RouteUpdateQuestObjective(WorldContext, QuestTag, ObjectiveTag, 0))
+	if (UExQuestReplicationComponent::RouteUpdateQuestObjectiveFloat(WorldContext, QuestTag, ObjectiveTag, 0.f))
 	{
+		SyncedObjectiveProgressFloat = 0.f;
 		SyncedObjectiveProgress = 0;
 	}
 }

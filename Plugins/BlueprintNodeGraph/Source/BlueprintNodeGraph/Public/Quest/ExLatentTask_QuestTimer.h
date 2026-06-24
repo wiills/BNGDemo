@@ -19,8 +19,8 @@ class BLUEPRINTNODEGRAPH_API UExLatentTask_QuestTimer : public UExLatentTask_Que
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (ClampMin = "0.01"))
-	float TickInterval = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer", meta = (ClampMin = "0.0"))
+	float TickInterval = 0.1f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer")
 	bool bSyncObjectiveProgress = true;
@@ -126,5 +126,6 @@ protected:
 	int32 ComputeObjectiveProgressFromElapsed() const;
 
 	FExLatentCountdownTimer CountdownTimer;
+	float SyncedObjectiveProgressFloat = 0.f;
 	bool bCompletedNaturally = false;
 };
